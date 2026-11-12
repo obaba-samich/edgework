@@ -35,12 +35,13 @@ enum MealBuilder {
         switch meal {
         case .preGame:
             // Carb-forward, easy to digest.
-            if let c = pick({ carbRich($0) && lowFatFiber($0) }) { foods.append(c) }
+            if let c = pick({ carbRich($0) && lowFatFiber($0) && $0.benefits.contains(.energy) }) ?? pick({ carbRich($0) && lowFatFiber($0) }) { foods.append(c) }
             if let f = pick({ $0.group == .fruit && lowFatFiber($0) && !foods.contains($0) }) { foods.append(f) }
             if let p = pick({ proteinRich($0) && $0.fat <= 10 }) { foods.append(p) }
         case .postWorkout:
-            if let p = pick(proteinRich) { foods.append(p) }
-            if let c = pick({ carbRich($0) && !foods.contains($0) }) { foods.append(c) }
+            if let p = pick({ proteinRich($0) && $0.benefits.contains(.recovery) }) ?? pick(proteinRich) { foods.append(p) }
+            if let c = pick({ carbRich($0) && $0.benefits.contains(.energy) && $0.group != .snack && !foods.contains($0) })
+                ?? pick({ carbRich($0) && !foods.contains($0) }) { foods.append(c) }
             if let f = pick({ $0.group == .fruit && !foods.contains($0) }) { foods.append(f) }
         case .snack, .drinks:
             if let a = pick({ meal == .drinks ? $0.group == .drink : ($0.group == .snack || $0.group == .fruit || $0.group == .dairy || $0.group == .fats) }) { foods.append(a) }

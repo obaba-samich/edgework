@@ -38,6 +38,7 @@ struct SettingsView: View {
                 workout
                 goals
                 warmup
+                lineWork
                 running
                 difficulty
                 schedule
@@ -192,6 +193,25 @@ struct SettingsView: View {
             Stepper("Cool-down stretches: \(st.cooldownCount)", value: s.cooldownCount, in: 0...8)
         } header: { Text("Warm-up & stretching") } footer: {
             Text("Auto mixes walking moves (high knees, butt kickers, carioca…) with standing ones, then a block of still stretches. My routine runs your own list every time, like a team warm-up.")
+        }
+        .listRowBackground(Theme.surface)
+    }
+
+    private var lineWork: some View {
+        Section {
+            Toggle("Count travelling moves in lines", isOn: s.lineMode)
+            Stepper("Lines per set: \(st.lineCount)", value: s.lineCount, in: 1...20)
+            NavigationLink {
+                LineMovesView()
+            } label: {
+                HStack {
+                    Text("Per-exercise choices")
+                    Spacer()
+                    Text("\(st.measureModes.count) set").foregroundStyle(Theme.text2)
+                }
+            }
+        } header: { Text("Line work") } footer: {
+            Text("High knees, butt kicks, carioca, side lunges, skips and the rest get done line to line instead of by time or reps. Short lines? Bump up the count. −/+ on a move still scales it.")
         }
         .listRowBackground(Theme.surface)
     }
@@ -658,6 +678,38 @@ struct CalendarView: View {
         .alert(message ?? "", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             Button("OK", role: .cancel) {}
         }
+    }
+}
+
+struct LineMovesView: View {
+    @EnvironmentObject var store: Store
+
+    var body: some View {
+        let moves = Library.all.filter { Library.travelIDs.contains($0.id) }
+        List {
+            Section {
+                ForEach(moves) { ex in
+                    HStack {
+                        Text(ex.name).font(.subheadline)
+                        Spacer()
+                        Picker("", selection: Binding(
+                            get: { store.data.settings.measureModes[ex.id] ?? "global" },
+                            set: { v in store.data.settings.measureModes[ex.id] = v == "global" ? nil : v })) {
+                            Text("Global").tag("global")
+                            Text("Lines").tag("lines")
+                            Text(ex.measure == .seconds ? "Time" : "Reps").tag("default")
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                    }
+                }
+            } footer: { Text("Global follows the Line work switch. Pick Lines or Time/Reps to lock one exercise either way.") }
+            .listRowBackground(Theme.surface)
+        }
+        .scrollContentBackground(.hidden)
+        .screenBackground()
+        .navigationTitle("Line moves")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

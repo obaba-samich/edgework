@@ -179,7 +179,7 @@ struct ExerciseDetailView: View {
                         Text("\(ex.sets) ×").font(.number(22)).foregroundStyle(Theme.text2)
                         Text(store.targetText(item)).font(.number(34)).foregroundStyle(Theme.text)
                             .contentTransition(.numericText())
-                        if ex.measure == .reps { Text("reps").font(.subheadline).foregroundStyle(Theme.text2) }
+                        if store.measure(of: ex.id) == .reps { Text("reps").font(.subheadline).foregroundStyle(Theme.text2) }
                         if ex.perSide { Text("/ side").font(.subheadline).foregroundStyle(Theme.text2) }
                     }
                 }
@@ -199,6 +199,16 @@ struct ExerciseDetailView: View {
                 }
             }
         }
+            if Library.travelIDs.contains(ex.id) {
+                Picker("Count", selection: Binding(
+                    get: { store.data.settings.measureModes[ex.id] ?? "global" },
+                    set: { v in store.data.settings.measureModes[ex.id] = v == "global" ? nil : v })) {
+                    Text("Global (\(store.data.settings.lineMode ? "lines" : (ex.measure == .seconds ? "time" : "reps")))").tag("global")
+                    Text("Lines").tag("lines")
+                    Text(ex.measure == .seconds ? "Time" : "Reps").tag("default")
+                }
+                .pickerStyle(.segmented)
+            }
         .cardStyle()
     }
 

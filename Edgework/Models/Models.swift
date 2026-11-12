@@ -177,13 +177,14 @@ enum Equipment: String, Codable, CaseIterable, Identifiable {
 }
 
 enum Measure: String, Codable {
-    case reps, seconds, meters
+    case reps, seconds, meters, lines
 
     func label(_ value: Int) -> String {
         switch self {
         case .reps: return value == 1 ? "rep" : "reps"
         case .seconds: return "sec"
         case .meters: return "m"
+        case .lines: return value == 1 ? "line" : "lines"
         }
     }
 
@@ -191,6 +192,7 @@ enum Measure: String, Codable {
         switch self {
         case .reps: return "\(value)"
         case .seconds: return value >= 60 && value % 60 == 0 ? "\(value / 60):00" : (value >= 60 ? String(format: "%d:%02d", value / 60, value % 60) : "\(value)s")
+        case .lines: return "\(value) \(value == 1 ? "line" : "lines")"
         case .meters: return value >= 1000 ? String(format: "%.1fkm", Double(value) / 1000) : "\(value)m"
         }
     }
@@ -198,7 +200,7 @@ enum Measure: String, Codable {
     /// Rounds a scaled value to something you'd actually count.
     func round(_ raw: Double) -> Int {
         switch self {
-        case .reps: return max(1, Int(raw.rounded()))
+        case .reps, .lines: return max(1, Int(raw.rounded()))
         case .seconds: return max(5, Int((raw / 5).rounded()) * 5)
         case .meters: return raw >= 1000 ? max(50, Int((raw / 50).rounded()) * 50) : max(5, Int((raw / 5).rounded()) * 5)
         }
@@ -753,6 +755,9 @@ struct Settings: Codable {
     var remindGame = true
     var remindStreak = false
     var autoAdvance = true
+    var lineMode = true
+    var lineCount = 2
+    var measureModes: [String: String] = [:]
     var trainTimes: [String: Int] = [:]
     var runRemind = false
     var runRemindDays: Set<Int> = []
@@ -813,6 +818,9 @@ struct Settings: Codable {
         remindGame = try c.decodeIfPresent(Bool.self, forKey: .remindGame) ?? d.remindGame
         remindStreak = try c.decodeIfPresent(Bool.self, forKey: .remindStreak) ?? d.remindStreak
         autoAdvance = try c.decodeIfPresent(Bool.self, forKey: .autoAdvance) ?? d.autoAdvance
+        lineMode = try c.decodeIfPresent(Bool.self, forKey: .lineMode) ?? d.lineMode
+        lineCount = try c.decodeIfPresent(Int.self, forKey: .lineCount) ?? d.lineCount
+        measureModes = try c.decodeIfPresent([String: String].self, forKey: .measureModes) ?? d.measureModes
         trainTimes = try c.decodeIfPresent([String: Int].self, forKey: .trainTimes) ?? d.trainTimes
         runRemind = try c.decodeIfPresent(Bool.self, forKey: .runRemind) ?? d.runRemind
         runRemindDays = try c.decodeIfPresent(Set<Int>.self, forKey: .runRemindDays) ?? d.runRemindDays

@@ -34,7 +34,7 @@ extension Store {
                     switch e.measure {
                     case .meters: d.runKm += Double(e.sets * e.value) / 1000
                     case .seconds: d.runKm += Double(e.sets * e.value) / 360
-                    case .reps: d.runKm += Double(e.sets * e.value) * 0.03
+                    case .reps, .lines: d.runKm += Double(e.sets * e.value) * 0.03
                     }
                 }
             }

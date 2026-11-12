@@ -27,6 +27,9 @@ enum ShotType: String, Codable, CaseIterable, Identifiable {
     /// Shooting exercises that count toward the shot tracker when completed.
     static let exerciseMap: [String: ShotType] = [
         "wrist-shots": .wrist, "snap-shots": .snap, "slap-shots": .slap, "backhands": .backhand, "catch-release": .oneTimer,
+        "backhand-lift": .backhand, "middle-release": .wrist, "around-puck-shot": .wrist, "toe-drag-shot": .snap,
+        "corner-targets": .wrist, "low-glove-blocker": .wrist, "quick-release-feet": .snap, "walk-in-shot": .wrist,
+        "one-timers": .oneTimer, "deke-backhand": .backhand, "rebound-shots": .wrist,
     ]
 }
 

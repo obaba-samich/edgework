@@ -160,12 +160,34 @@ final class Store: ObservableObject {
     func target(_ item: WorkoutItem) -> Int {
         guard let ex = item.exercise else { return item.base }
         if item.fixed { return item.base }
+        if usesLines(item.exerciseID) {
+            return Measure.lines.round(Double(data.settings.lineCount) * intensity * factor(item.exerciseID) * todayScale)
+        }
         return ex.measure.round(Double(item.base) * intensity * factor(item.exerciseID) * todayScale)
+    }
+
+    /// Travelling moves (high knees, carioca, side lunges…) can be counted line-to-line instead of time or reps.
+    func usesLines(_ id: String) -> Bool {
+        guard Library.travelIDs.contains(id) else { return false }
+        if let m = data.settings.measureModes[id] { return m == "lines" }
+        return data.settings.lineMode
+    }
+
+    func measure(_ item: WorkoutItem) -> Measure {
+        item.fixed ? (item.exercise?.measure ?? .reps) : measure(of: item.exerciseID)
+    }
+
+    func measure(of id: String) -> Measure {
+        usesLines(id) ? .lines : (Library.byID[id]?.measure ?? .reps)
+    }
+
+    func setLineMode(_ id: String, _ lines: Bool?) {
+        data.settings.measureModes[id] = lines.map { $0 ? "lines" : "default" }
     }
 
     func targetText(_ item: WorkoutItem) -> String {
         guard let ex = item.exercise else { return "" }
-        return ex.measure.format(target(item))
+        return measure(item).format(target(item))
     }
 
     /// Nudges one exercise's personal multiplier until its shown target actually changes.
@@ -332,7 +354,7 @@ final class Store: ObservableObject {
 
     func estimateSeconds(_ item: WorkoutItem) -> Int {
         guard let ex = item.exercise else { return 0 }
-        return Generator.seconds(sets: item.sets, value: target(item), measure: ex.measure, perSide: ex.perSide, rest: item.rest)
+        return Generator.seconds(sets: item.sets, value: target(item), measure: measure(item), perSide: ex.perSide, rest: item.rest)
     }
 
     func estimateMinutes(_ w: Workout) -> Int {

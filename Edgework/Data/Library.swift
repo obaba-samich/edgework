@@ -12,14 +12,24 @@ func ex(
 }
 
 enum Library {
-    static let all: [Exercise] = Array(([warmups, walkingWarmups, lower, generalLower, upper, generalUpper, core, generalCore, power, speed, conditioning, generalCardio, balance, mobility, generalMobility, stillStretches, running, hands, shooting, goalie] as [[Exercise]]).joined())
+    static let all: [Exercise] = Array(([warmups, walkingWarmups, extraWalking, lower, generalLower, upper, generalUpper, core, generalCore, power, speed, conditioning, generalCardio, balance, mobility, generalMobility, stillStretches, running, skillRunning, hands, skillHands, shooting, skillShooting, goalie] as [[Exercise]]).joined())
+
+    /// Moves you can do travelling from line to line (rink, gym or field lines).
+    static let travelIDs: Set<String> = [
+        "high-knees", "butt-kickers", "butt-kicks", "a-skips", "b-skips", "carioca", "backpedal", "knee-hugs", "walking-quad-pull",
+        "frankenstein", "walking-lunge", "walking-lunge-twist", "lateral-lunge", "spiderman-lunge", "power-skips", "side-skips",
+        "hip-cradle", "heel-toe-walk", "lunge-reach", "lateral-shuffle-warm", "lateral-shuffle", "crossover-run", "bear-crawl",
+        "inchworm", "frog-jumps", "gate-openers", "forward-lunge", "curtsy-lunge", "skater-hops", "broad-jump", "skater-bound",
+        "backpedal-sprint", "sprint-starts", "backward-run", "bounding", "walking-knee-drive", "crab-walk",
+        "duck-walk", "lateral-bound-sprint", "banded-lateral-walk", "farmer-carry", "suitcase-carry",
+    ]
 
     static let byID: [String: Exercise] = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
 
     // MARK: Warm-up
 
     static let warmups: [Exercise] = [
-        ex("jumping-jacks", "Jumping Jacks", .warmup, .seconds, 1, 40, p: [.calves, .shoulders], s: [.abductors],
+        ex("jumping-jacks", "Jumping Jacks", .warmup, .reps, 1, 30, p: [.calves, .shoulders], s: [.abductors],
            sym: "figure.mixed.cardio",
            sum: "Classic full-body heart-rate raiser.",
            steps: ["Stand tall, feet together, arms at your sides.", "Jump feet wide while swinging arms overhead.", "Jump back to the start and keep a steady rhythm."],

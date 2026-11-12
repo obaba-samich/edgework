@@ -41,7 +41,7 @@ final class PlayerEngine: ObservableObject {
             guard let ex = item.exercise else { continue }
             let isLastItem = i == items.count - 1
             for s in 1...max(1, item.sets) {
-                if ex.measure == .seconds && ex.perSide {
+                if store.measure(item) == .seconds && ex.perSide {
                     steps.append(.work(item: i, set: s, side: .left))
                     steps.append(.rest(seconds: 5, label: "Switch sides"))
                     steps.append(.work(item: i, set: s, side: .right))
@@ -82,7 +82,7 @@ final class PlayerEngine: ObservableObject {
     func isTimed(_ step: Step) -> Bool {
         switch step {
         case .rest: return true
-        case .work(let i, _, _): return items[i].exercise?.measure == .seconds
+        case .work(let i, _, _): return store.measure(items[i]) == .seconds
         }
     }
 
@@ -234,7 +234,7 @@ final class PlayerEngine: ObservableObject {
     func record(rpe: Int, feeling: Feeling, note: String) -> SessionRecord {
         let entries: [SessionEntry] = items.compactMap { item in
             guard let ex = item.exercise, let sets = completed[item.id], sets > 0 else { return nil }
-            return SessionEntry(exerciseID: ex.id, sets: sets, value: store.target(item), measure: ex.measure)
+            return SessionEntry(exerciseID: ex.id, sets: sets, value: store.target(item), measure: store.measure(item))
         }
         return SessionRecord(date: Date(), title: workout.title, focus: workout.focus, duration: elapsed,
                              entries: entries, rpe: rpe, feeling: feeling, note: note)
@@ -352,7 +352,8 @@ struct PlayerView: View {
     private func workView(_ item: WorkoutItem, set: Int, side: PlayerEngine.Side?) -> some View {
         let ex = item.exercise!
         let color = ex.category.color
-        let timed = ex.measure == .seconds
+        let m = store.measure(item)
+        let timed = m == .seconds
         return VStack(spacing: 16) {
             VStack(spacing: 8) {
                 Overline("\(item.block.title) · Set \(set) of \(item.sets)", color: color)
@@ -390,11 +391,11 @@ struct PlayerView: View {
                     FigureView(exercise: ex, animate: !engine.paused)
                         .frame(height: 170)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(ex.measure == .meters ? ex.measure.format(store.target(item)) : "\(store.target(item))")
+                        Text(m == .meters ? m.format(store.target(item)) : "\(store.target(item))")
                             .font(.number(72, .heavy)).foregroundStyle(Theme.text)
                             .contentTransition(.numericText())
-                        if ex.measure == .reps {
-                            Text(ex.measure.label(store.target(item))).font(.title3.weight(.semibold)).foregroundStyle(Theme.text2)
+                        if m == .reps || m == .lines {
+                            Text(m.label(store.target(item))).font(.title3.weight(.semibold)).foregroundStyle(Theme.text2)
                         }
                     }
                 }

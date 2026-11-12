@@ -34,6 +34,7 @@ enum Generator {
         case .reps: work = value * 3 * sides
         case .seconds: work = value * sides + (perSide ? 5 : 0)
         case .meters: work = (value / 4 + 4) * sides
+        case .lines: work = value * 15
         }
         return sets * (work + 8) + max(0, sets - 1) * rest + 10
     }

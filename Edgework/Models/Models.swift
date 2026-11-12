@@ -161,7 +161,7 @@ enum Equipment: String, Codable, CaseIterable, Identifiable {
         case .jumpRope: "figure.jumprope"
         case .cones: "cone.fill"
         case .foamRoller: "cylinder.fill"
-        case .slideBoard: "figure.skating"
+        case .slideBoard: "figure.ice.skating"
         case .stickBall: "figure.hockey"
         case .shootingPad: "sportscourt.fill"
         case .tennisBall: "tennisball.fill"
@@ -558,7 +558,7 @@ enum DayType: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .game: "flag.checkered"
         case .postGame: "leaf.fill"
-        case .practice: "figure.skating"
+        case .practice: "figure.ice.skating"
         case .off: "figure.strengthtraining.functional"
         }
     }

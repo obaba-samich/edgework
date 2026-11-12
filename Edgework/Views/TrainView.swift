@@ -152,8 +152,8 @@ struct TrainView: View {
                 toolTile("Puck Counter", "Shoot the bucket, pick up every puck", "circle.grid.3x3.fill", Color(hex: 0xB8F36B))
             }
             }
-            .buttonStyle(PressableStyle())
         }
+        .buttonStyle(PressableStyle())
     }
 
     private func toolTile(_ title: String, _ sub: String, _ symbol: String, _ color: Color) -> some View {

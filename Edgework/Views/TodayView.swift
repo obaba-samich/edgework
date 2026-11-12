@@ -214,7 +214,7 @@ struct TodayHero: View {
                 Text(w.subtitle).font(.subheadline).foregroundStyle(Theme.text2)
             }
 
-            HStack(spacing: 18) {
+            HStack(spacing: 14) {
                 metric("\(store.estimateMinutes(w))", "min")
                 metric("\(w.items.count)", "moves")
                 metric("\(w.totalSets)", "sets")
@@ -281,6 +281,7 @@ struct TodayHero: View {
             Text(v).font(.number(22)).foregroundStyle(Theme.text)
             Text(label).font(.caption.weight(.semibold)).foregroundStyle(Theme.text2)
         }
+        .fixedSize()
     }
 }
 

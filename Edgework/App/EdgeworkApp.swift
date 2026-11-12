@@ -19,7 +19,8 @@ struct EdgeworkApp: App {
 struct RootView: View {
     @EnvironmentObject var store: Store
     @Environment(\.scenePhase) private var scenePhase
-    @State private var tab = 0
+    @State private var tab = UserDefaults.standard.integer(forKey: "startTab")
+    @State private var debugSheet = UserDefaults.standard.string(forKey: "showScreen")
 
     var body: some View {
         TabView(selection: $tab) {
@@ -48,6 +49,19 @@ struct RootView: View {
                 .environmentObject(store)
                 .interactiveDismissDisabled()
         }
+        .sheet(item: Binding(get: { debugSheet.map(DebugScreen.init) }, set: { debugSheet = $0?.id })) { screen in
+            NavigationStack {
+                if let ex = Library.byID[screen.id] {
+                    ExerciseDetailView(exercise: ex)
+                } else {
+                    TodayWorkoutScreen()
+                }
+            }
+            .environmentObject(store)
+        }
+        .onAppear {
+            if UserDefaults.standard.bool(forKey: "autoStart"), let w = store.data.today?.workout { store.start(w) }
+        }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active: store.ensureToday()
@@ -56,4 +70,9 @@ struct RootView: View {
             }
         }
     }
+}
+
+/// Launch-argument hooks used by the CI screenshot job (e.g. `-showScreen skater-bound`).
+private struct DebugScreen: Identifiable {
+    let id: String
 }

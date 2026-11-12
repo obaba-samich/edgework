@@ -1,0 +1,45 @@
+name: Simulator screenshots
+
+on:
+  workflow_dispatch:
+
+jobs:
+  shots:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Boot simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -E "^\s+iPhone 16 Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}")
+          echo "UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project Edgework.xcodeproj -scheme Edgework -configuration Debug \
+            -destination "id=$UDID" -derivedDataPath build build 2>&1 | tail -5
+      - name: Screenshots
+        run: |
+          APP=build/Build/Products/Debug-iphonesimulator/Edgework.app
+          ID=com.pizza.edgework
+          mkdir -p shots
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryLevel 100 --cellularBars 4
+          xcrun simctl install "$UDID" "$APP"
+          shot() { name=$1; shift; xcrun simctl launch "$UDID" $ID "$@"; sleep 5; xcrun simctl io "$UDID" screenshot "shots/$name.png"; xcrun simctl terminate "$UDID" $ID || true; sleep 1; }
+          shot 00-onboarding
+          for t in 0 1 2 3 4; do shot "1$t-tab" -demoData YES -startTab $t; done
+          shot 20-workout -demoData YES -showScreen today
+          shot 21-exercise -demoData YES -showScreen skater-bound
+          shot 22-exercise2 -demoData YES -showScreen copenhagen-plank
+          shot 30-player -demoData YES -autoStart YES
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots

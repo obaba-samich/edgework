@@ -55,7 +55,37 @@ final class Store: ObservableObject {
         } else {
             data = AppData()
         }
+        if UserDefaults.standard.bool(forKey: "demoData") { seedDemo() }
         ensureToday()
+    }
+
+    /// Fills the app with a month of fake history. Only used via the `-demoData YES` launch argument.
+    private func seedDemo() {
+        var d = AppData()
+        d.onboarded = true
+        d.settings.name = "Alex"
+        let today = Day.start(Date())
+        var rng = SeededRNG(seed: 42)
+        data = d
+        for back in stride(from: 34, through: 1, by: -1) where Int.random(in: 0..<10, using: &rng) < 7 {
+            let date = Day.add(-back, to: today).addingTimeInterval(17.5 * 3600)
+            let w = preview(for: date)
+            let entries = w.items.compactMap { item -> SessionEntry? in
+                guard let ex = item.exercise else { return nil }
+                return SessionEntry(exerciseID: ex.id, sets: item.sets, value: item.base, measure: ex.measure)
+            }
+            d.sessions.insert(SessionRecord(date: date, title: w.title, focus: w.focus, duration: estimateMinutes(w) * 60 + Int.random(in: -120...240, using: &rng),
+                                            entries: entries, rpe: Int.random(in: 5...8, using: &rng), feeling: .right, note: ""), at: 0)
+        }
+        let tests: [(Benchmark, [Double])] = [(.vertical, [21.5, 22.0, 23.5, 24.0]), (.sprint30, [4.62, 4.55, 4.49, 4.41]), (.plank, [90, 105, 120, 140]), (.broadJump, [88, 90, 93])]
+        for (b, values) in tests {
+            for (i, v) in values.enumerated() {
+                d.benchmarks.append(BenchmarkEntry(benchmark: b, date: Day.add(-28 + i * 9, to: today), value: v))
+            }
+        }
+        d.factors = ["push-up": 0.85, "skater-bound": 1.2]
+        d.favorites = ["skater-bound", "copenhagen-plank"]
+        data = d
     }
 
     // MARK: Persistence

@@ -122,7 +122,7 @@ struct SettingsView: View {
                 .frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 4) {
                     TextField("Your name", text: s.name).font(.headline).submitLabel(.done)
-                    Text("\(st.position.title) · \(st.style.title) · \(st.phase.title)")
+                    Text(st.sport == .track ? "\(st.trackGroup.title) · \(st.phase.title)" : "\(st.position.title) · \(st.style.title) · \(st.phase.title)")
                         .font(.subheadline).foregroundStyle(Theme.text2)
                 }
             }
@@ -168,17 +168,19 @@ struct SettingsView: View {
 
     private var player: some View {
         Section {
-            Picker("Training style", selection: s.style) {
-                ForEach(TrainingStyle.allCases) { Text($0.title).tag($0) }
+            if st.sport == .hockey {
+                Picker("Training style", selection: s.style) {
+                    ForEach(TrainingStyle.allCases) { Text($0.title).tag($0) }
+                }
+                Picker("Position", selection: s.position) {
+                    ForEach(Position.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
             }
-            Picker("Position", selection: s.position) {
-                ForEach(Position.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
             Picker("Season phase", selection: s.phase) {
                 ForEach(SeasonPhase.allCases) { Text($0.title).tag($0) }
             }
-        } header: { Text("Player") } footer: { Text("\(st.style.detail) \(st.phase.detail)") }
+        } header: { Text(st.sport == .track ? "Athlete" : "Player") } footer: { Text(st.sport == .track ? st.phase.detail : "\(st.style.detail) \(st.phase.detail)") }
         .listRowBackground(Theme.surface)
     }
 

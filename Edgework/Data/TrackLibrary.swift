@@ -22,25 +22,21 @@ extension Library {
            cues: ["Stiff ankles", "Quiet contacts"],
            why: "Ankle stiffness = less ground contact time = more speed."),
         ex("block-starts", "Block Starts", .sprints, .meters, 6, 20, level: 2, p: [.glutes, .quads], s: [.hamstrings, .calves], sym: "figure.track.and.field", tags: [.explosive],
-           
            sum: "Explode out of the blocks for 20 m.",
            steps: ["Set blocks: front foot about two feet back from the line.", "On set, raise hips slightly above shoulders.", "Drive out low and push through the full first 10 steps. Walk back."],
            cues: ["Push, don't step", "Low heel recovery out of the blocks"],
            why: "The first 10 steps decide short sprints."),
         ex("three-point-start", "3-Point Starts", .sprints, .meters, 6, 20, p: [.glutes, .quads], s: [.hamstrings], sym: "figure.track.and.field", tags: [.explosive],
-           
            sum: "Accelerate from a three-point stance.",
            steps: ["One hand down, opposite leg forward.", "Explode forward, staying low.", "Rise gradually over 20 m. Walk back."],
            cues: ["Big arm drive", "Stay low for 5+ steps"],
            why: "Acceleration practice without blocks."),
         ex("accel-30", "30 m Accelerations", .sprints, .meters, 6, 30, p: [.glutes, .quads], s: [.hamstrings, .calves], sym: "figure.run", tags: [.explosive],
-           
            sum: "Build from a standing start to near-max speed in 30 m.",
            steps: ["Start from a 2-point stance.", "Accelerate hard, rising gradually.", "Walk back. Full recovery."],
            cues: ["Push the ground back", "Arms drive from the shoulders"],
            why: "Acceleration is trainable, and it's half of every sprint."),
         ex("flying-30", "Flying 30s", .sprints, .meters, 4, 30, level: 2, p: [.hamstrings, .glutes], s: [.calves], sym: "figure.run", tags: [.explosive],
-           
            sum: "20 m build-up into 30 m at max speed.",
            steps: ["Build up over 20 m.", "Sprint the next 30 m at true max velocity.", "Walk back. 3–5 min rest."],
            cues: ["Relaxed face and hands", "Run tall"],
@@ -98,7 +94,6 @@ extension Library {
            cues: ["Flat thigh", "Knee to the armpit"],
            why: "A clean trail leg keeps you from clipping hurdles."),
         ex("hurdle-hops", "Hurdle Hops", .hurdles, .reps, 3, 6, level: 3, p: [.calves, .quads], s: [.glutes], sym: "figure.step.training", tags: [.explosive],
-           
            sum: "Two-foot rebound jumps over mini hurdles.",
            steps: ["Line up 5–6 low hurdles.", "Jump over each with both feet.", "Minimal ground contact between jumps."],
            cues: ["Bounce, don't pause", "Knees up"],
@@ -125,25 +120,21 @@ extension Library {
            cues: ["Same rhythm every time", "Tall last steps"],
            why: "A consistent approach fixes most fouls and short jumps."),
         ex("pop-ups", "Pop-Ups", .jumps, .reps, 6, 1, level: 2, p: [.glutes, .quads], s: [.hipFlexors, .calves], sym: "arrow.up.forward", tags: [.explosive],
-           
            sum: "Short approach, take off, and land on the takeoff leg's opposite.",
            steps: ["Use a 4–6 step approach.", "Take off and drive the free knee up.", "Land in the pit in the 'pop-up' position, no full jump."],
            cues: ["Plant flat, push through", "Free knee up and hold"],
            why: "Grooves the takeoff position."),
         ex("single-leg-bound", "Single-Leg Bounds", .jumps, .reps, 3, 6, side: true, level: 3, p: [.glutes, .quads], s: [.calves, .hamstrings], sym: "arrow.up.forward", tags: [.explosive],
-           
            sum: "Hop for distance on one leg.",
            steps: ["Push off one leg.", "Cycle the leg through and land on the same leg.", "Continue for all reps, then switch."],
            cues: ["Active landing", "Big arm swing"],
            why: "Triple jump power and single-leg elasticity."),
         ex("standing-triple", "Standing Triple Jump", .jumps, .reps, 4, 1, level: 2, p: [.glutes, .quads], s: [.calves], sym: "arrow.up.forward", tags: [.explosive],
-           
            sum: "Hop, step, jump from a standstill.",
            steps: ["Start on one leg.", "Hop (same leg), step (other leg), jump (two feet).", "Measure and try to beat it."],
            cues: ["Even phases", "Keep the speed through"],
            why: "Builds triple-jump rhythm and is a great test."),
         ex("depth-jump", "Depth Jumps", .jumps, .reps, 3, 5, level: 3, p: [.quads, .calves], s: [.glutes], eq: [.box], sym: "arrow.up.forward", tags: [.explosive],
-           
            sum: "Step off a box and rebound up instantly.",
            steps: ["Stand on a knee-high box.", "Step off, land on both feet.", "Jump straight up as fast as possible."],
            cues: ["Ground like it's hot", "Don't sink deep"],
@@ -155,7 +146,6 @@ extension Library {
            cues: ["Plant and go up, not across", "Lean away from the bar on the curve"],
            why: "Teaches high jump takeoff without the flop."),
         ex("box-bound", "Box Bounds", .jumps, .reps, 3, 6, level: 2, p: [.glutes, .quads], s: [.calves], eq: [.box], sym: "figure.step.training", tags: [.explosive],
-           
            sum: "Alternate-leg bounds onto low boxes.",
            steps: ["Line up 3–4 low boxes.", "Bound from the floor to box to floor, alternating legs.", "Keep moving forward."],
            cues: ["Drive the knee", "Land softly"],
@@ -164,19 +154,16 @@ extension Library {
 
     static let trackThrows: [Exercise] = [
         ex("overhead-back-toss", "Overhead Back Toss", .throwing, .reps, 4, 5, p: [.glutes, .hamstrings], s: [.lowerBack, .shoulders], eq: [.medBall], sym: "circle.fill", tags: [.explosive],
-           
            sum: "Squat with a med ball and throw it backward over your head.",
            steps: ["Hold the ball between your legs, quarter squat.", "Explode up and throw it back over your head.", "Full hip extension, land in a jump."],
            cues: ["Hips throw it, not arms", "Full extension"],
            why: "Total-body power. A classic throwers' test."),
         ex("chest-pass", "Med Ball Chest Pass", .throwing, .reps, 3, 8, p: [.chest, .triceps], s: [.shoulders], eq: [.medBall], sym: "circle.fill", tags: [.explosive],
-           
            sum: "Explosive two-hand pass into a wall.",
            steps: ["Stand facing a wall, ball at your chest.", "Step and push the ball hard into the wall.", "Catch and repeat."],
            cues: ["Max intent", "Step into it"],
            why: "Upper-body power for shot put."),
         ex("rotational-scoop", "Rotational Scoop Toss", .throwing, .reps, 3, 6, side: true, p: [.obliques, .glutes], s: [.shoulders], eq: [.medBall], sym: "circle.fill", tags: [.explosive],
-           
            sum: "Load the back hip and sling the ball sideways.",
            steps: ["Stand side-on to a wall.", "Load the back hip, then rotate hard.", "Release at hip height into the wall."],
            cues: ["Hips before shoulders", "Long arms"],

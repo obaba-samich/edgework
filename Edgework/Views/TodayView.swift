@@ -197,6 +197,7 @@ struct TodayHero: View {
                     }
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.text)
+                    .fixedSize()
                     .padding(.horizontal, 10).padding(.vertical, 7)
                     .background(Capsule().fill(Color.white.opacity(0.1)))
                 }

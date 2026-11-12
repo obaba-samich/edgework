@@ -44,7 +44,7 @@ struct TrainView: View {
                 ForEach(Focus.generatable) { f in
                     Button { genFocus = f; store.haptic(.light) } label: {
                         VStack(spacing: 6) {
-                            Image(systemName: f.symbol).font(.system(size: 18, weight: .semibold))
+                            Image(systemName: f.symbol).font(.system(size: 18, weight: .semibold)).frame(height: 22)
                             Text(f.shortTitle).font(.system(size: 12, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
                         }
                         .foregroundStyle(genFocus == f ? Theme.bg : f.color)

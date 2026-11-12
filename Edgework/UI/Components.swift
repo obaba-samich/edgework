@@ -90,6 +90,7 @@ struct StatTile: View {
         VStack(alignment: .leading, spacing: 6) {
             if let symbol {
                 Image(systemName: symbol).font(.system(size: 14, weight: .bold)).foregroundStyle(color)
+                    .frame(height: 18)
             }
             Text(value).font(.number(26)).foregroundStyle(Theme.text)
                 .lineLimit(1).minimumScaleFactor(0.6)

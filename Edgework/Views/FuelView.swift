@@ -9,6 +9,9 @@ struct FuelView: View {
     @State private var editing: FoodEntry?
     @State private var detail: Food?
     @State private var loggingWeight = false
+    @State private var generating = false
+    @State private var showPantry = false
+    @State private var showMyFoods = false
 
     private var isToday: Bool { Day.key(date) == Day.key(Date()) }
 
@@ -18,6 +21,22 @@ struct FuelView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     dayPicker
                     MacroCard(date: date)
+                    if store.data.settings.showMealGenerator {
+                        Button { generating = true } label: {
+                            HStack(spacing: 12) {
+                                IconBadge(symbol: "wand.and.stars", color: Theme.amber, size: 40)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Meal Generator").font(.headline).foregroundStyle(Theme.text)
+                                    Text(store.data.pantry.isEmpty ? "Ideas sized to what's left today" : "From the \(store.data.pantry.count) foods in your pantry")
+                                        .font(.caption).foregroundStyle(Theme.text2)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.footnote.weight(.bold)).foregroundStyle(Theme.text3)
+                            }
+                            .cardStyle(padding: 14)
+                        }
+                        .buttonStyle(PressableStyle())
+                    }
                     WaterCard(date: date)
                     ForEach(Meal.allCases) { meal in
                         mealSection(meal)
@@ -38,6 +57,15 @@ struct FuelView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { adding = Meal.now } label: { Image(systemName: "plus.circle.fill").font(.title3) }
                 }
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        Button { showMyFoods = true } label: { Label("My Foods", systemImage: "tray.full") }
+                        Button { showPantry = true } label: { Label("My Pantry", systemImage: "basket") }
+                        if store.data.settings.showMealGenerator {
+                            Button { generating = true } label: { Label("Meal Generator", systemImage: "wand.and.stars") }
+                        }
+                    } label: { Image(systemName: "line.3.horizontal.circle").font(.title3) }
+                }
             }
             .sheet(item: $adding) { meal in
                 AddFoodView(meal: meal, date: date).environmentObject(store)
@@ -47,6 +75,18 @@ struct FuelView: View {
             }
             .sheet(item: $detail) { food in
                 FoodDetailSheet(food: food, meal: Meal.now, date: date, existing: nil).environmentObject(store)
+            }
+            .sheet(isPresented: $generating) {
+                MealGeneratorView(meal: Meal.now, date: date).environmentObject(store)
+            }
+            .sheet(isPresented: $showPantry) {
+                NavigationStack { PantryView() }.environmentObject(store)
+            }
+            .sheet(isPresented: $showMyFoods) {
+                NavigationStack {
+                    MyFoodsView().toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { showMyFoods = false } } }
+                }
+                .environmentObject(store)
             }
             .sheet(isPresented: $loggingWeight) {
                 WeightSheet().environmentObject(store)
@@ -345,6 +385,7 @@ struct AddFoodView: View {
     @State private var quickAdd = false
     @State private var scanMessage: String?
     @State private var group: FoodGroup?
+    @State private var photoScan: FoodScanView.Mode?
 
     private var local: [Food] {
         let all = store.searchFoods(query)
@@ -358,17 +399,21 @@ struct AddFoodView: View {
                     Picker("Meal", selection: $meal) {
                         ForEach(Meal.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
                     }
-                    HStack(spacing: 10) {
-                        if DataScannerViewController.isSupported {
-                            Button { scanning = true } label: { Label("Scan barcode", systemImage: "barcode.viewfinder") }
-                                .buttonStyle(.borderless)
-                        }
-                        Spacer()
-                        Button { quickAdd = true } label: { Label("Quick add", systemImage: "square.and.pencil") }
-                            .buttonStyle(.borderless)
+                    if DataScannerViewController.isSupported {
+                        Button { scanning = true } label: { Label("Scan barcode", systemImage: "barcode.viewfinder") }
                     }
+                    Button { photoScan = .barcode } label: { Label("Barcode from a photo", systemImage: "barcode") }
+                    Button { photoScan = .label } label: { Label("Scan nutrition label (camera or photo)", systemImage: "doc.text.viewfinder") }
+                    Button { quickAdd = true } label: { Label("Quick add", systemImage: "square.and.pencil") }
                 }
                 .listRowBackground(Theme.surface)
+
+                if query.isEmpty && !store.data.customFoods.isEmpty {
+                    Section("My foods") {
+                        ForEach(store.data.customFoods.prefix(20)) { row($0) }
+                    }
+                    .listRowBackground(Theme.surface)
+                }
 
                 if query.isEmpty && !store.recentFoods.isEmpty {
                     Section("Recent") {
@@ -422,6 +467,15 @@ struct AddFoodView: View {
                 FoodDetailSheet(food: food, meal: meal, date: date, existing: nil) { dismiss() }
                     .environmentObject(store)
             }
+            .sheet(item: Binding(get: { photoScan.map { ScanMode(mode: $0) } }, set: { photoScan = $0?.mode })) { m in
+                FoodScanView(mode: m.mode) { food in
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 400_000_000)
+                        selected = food
+                    }
+                }
+                .environmentObject(store)
+            }
             .sheet(isPresented: $quickAdd) {
                 QuickAddFood(meal: meal, date: date) { dismiss() }.environmentObject(store)
             }
@@ -430,6 +484,7 @@ struct AddFoodView: View {
                     scanning = false
                     Task {
                         if let food = await FoodAPI.barcode(code) {
+                            store.saveToLibrary(food)
                             selected = food
                         } else {
                             scanMessage = "Couldn't find barcode \(code). Try searching or quick add."

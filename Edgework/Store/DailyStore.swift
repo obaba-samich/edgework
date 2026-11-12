@@ -71,6 +71,15 @@ extension Store {
 
     func removeFood(_ id: UUID) { data.foods.removeAll { $0.id == id } }
 
+    /// Keeps scanned and custom foods in "My foods" so they're searchable later.
+    func saveToLibrary(_ food: Food) {
+        if let i = data.customFoods.firstIndex(where: { $0.id == food.id }) {
+            data.customFoods[i] = food
+        } else {
+            data.customFoods.insert(food, at: 0)
+        }
+    }
+
     var recentFoods: [Food] {
         var seen = Set<String>()
         var out: [Food] = []
@@ -115,7 +124,9 @@ extension Store {
     func programWorkout(_ program: Program) -> Workout {
         var w = program.workout(rest: data.settings.rest)
         if data.settings.mustDosInPrograms {
-            for var it in data.settings.mustDos where it.exercise != nil {
+            for var it in data.settings.mustDos where it.exercise.map({ ex in
+                data.settings.sport == .hockey ? !Category.trackOnly.contains(ex.category) : !Category.hockeyOnly.contains(ex.category)
+            }) ?? false {
                 it.id = UUID()
                 it.block = .musts
                 w.items.append(it)

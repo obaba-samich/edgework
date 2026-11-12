@@ -13,6 +13,7 @@ struct Program: Identifiable {
     let subtitle: String
     let focus: Focus
     let entries: [Entry]
+    var sport: Sport = .hockey
 
     func workout(rest: RestLength) -> Workout {
         let items: [WorkoutItem] = entries.compactMap { e in
@@ -33,6 +34,57 @@ private func f(_ id: String, _ sets: Int? = nil, _ base: Int? = nil) -> Program.
 private func c(_ id: String, _ sets: Int? = nil, _ base: Int? = nil) -> Program.Entry { .init(id: id, block: .cooldown, sets: sets, base: base) }
 
 enum Programs {
+    static func forSport(_ sport: Sport) -> [Program] {
+        sport == .track ? track : all
+    }
+
+    static let track: [Program] = [
+        Program(id: "t-drills", title: "Sprint Drill Warm-up", subtitle: "The full drill series before any speed work.", focus: .trackSpeed, entries: [
+            w("warmup-jog"), w("a-skips"), w("b-skips"), w("high-knees"), w("butt-kickers"), w("ankling"), w("carioca"),
+            m("wall-drive", 2, 10), m("fast-leg", 2, 6), m("strides", 4, 100),
+        ], sport: .track),
+        Program(id: "t-accel", title: "Acceleration Day", subtitle: "Starts, pushes and the first 30 meters.", focus: .trackSpeed, entries: [
+            w("warmup-jog"), w("a-skips"), w("high-knees"), w("leg-swings-front"),
+            m("wall-drive"), m("three-point-start"), m("block-starts"), m("accel-30"), m("broad-jump", 3, 4), f("plank"), c("couch-stretch"), c("standing-hamstring"),
+        ], sport: .track),
+        Program(id: "t-maxv", title: "Max Velocity", subtitle: "Flying sprints and elastic power. Full rest.", focus: .trackSpeed, entries: [
+            w("warmup-jog"), w("a-skips"), w("b-skips"), w("ankling"),
+            m("flying-30"), m("sprint-60", 3, 60), m("bounding", 3, 30), c("quad-stretch"), c("standing-hamstring"),
+        ], sport: .track),
+        Program(id: "t-se", title: "Speed Endurance", subtitle: "Hold speed when it hurts: 150s and 200s.", focus: .speedEndurance, entries: [
+            w("warmup-jog"), w("a-skips"), w("high-knees"), w("butt-kickers"),
+            m("speed-150", 3, 150), m("rep-200", 2, 200), c("cooldown-jog"), c("standing-hamstring"), c("quad-stretch"),
+        ], sport: .track),
+        Program(id: "t-400", title: "400 Day", subtitle: "Lactate work for the one-lap race.", focus: .speedEndurance, entries: [
+            w("warmup-jog"), w("a-skips"), w("carioca"),
+            m("rep-300", 3, 300), m("tempo-100", 4, 100), c("cooldown-jog"), c("butterfly-stretch"),
+        ], sport: .track),
+        Program(id: "t-tempo", title: "Tempo Day", subtitle: "Smooth 100s. Recovery and aerobic base.", focus: .tempo, entries: [
+            w("warmup-jog"), w("leg-swings-front"), w("leg-swings-lateral"),
+            m("tempo-100", 10, 100), f("plank"), f("side-plank"), c("standing-hamstring"), c("calf-stretch"),
+        ], sport: .track),
+        Program(id: "t-hurdles", title: "Hurdle Technique", subtitle: "Mobility, lead and trail legs, rhythm.", focus: .hurdleDay, entries: [
+            w("warmup-jog"), w("hurdle-walkover"), w("hurdle-mobility"), w("a-skips"),
+            m("lead-leg"), m("trail-leg"), m("three-step"), m("hurdle-hops"), c("standing-groin"), c("figure-4"),
+        ], sport: .track),
+        Program(id: "t-jumps", title: "Jumps Power", subtitle: "Approach, takeoff and reactive plyos.", focus: .jumpDay, entries: [
+            w("warmup-jog"), w("a-skips"), w("power-skips"), w("ankling"),
+            m("approach-runs"), m("pop-ups"), m("single-leg-bound"), m("standing-triple"), m("depth-jump"), c("couch-stretch"), c("calf-stretch"),
+        ], sport: .track),
+        Program(id: "t-throws", title: "Throws Power", subtitle: "Med ball power and technique drills.", focus: .throwDay, entries: [
+            w("jumping-jacks"), w("arm-circles"), w("worlds-greatest"),
+            m("overhead-back-toss"), m("chest-pass"), m("rotational-scoop"), m("shot-stand"), m("discus-turn-drill"), m("kb-swing"), c("cross-body-shoulder"), c("open-book"),
+        ], sport: .track),
+        Program(id: "t-distance", title: "Distance Threshold", subtitle: "Tempo kilometers and strides.", focus: .distance, entries: [
+            w("warmup-jog"), w("leg-swings-front"), w("a-skips"),
+            m("tempo-1k", 3, 1000), m("strides", 4, 100), c("cooldown-jog"), c("calf-stretch"), c("standing-hamstring"),
+        ], sport: .track),
+        Program(id: "t-premeet", title: "Pre-Meet Activation", subtitle: "Wake up the legs the day before or morning of a meet.", focus: .activation, entries: [
+            w("warmup-jog"), w("a-skips"), w("b-skips"), w("ankling"),
+            m("wall-drive", 1, 10), m("accel-30", 2, 30), m("strides", 3, 100),
+        ], sport: .track),
+    ]
+
     static let all: [Program] = [
         Program(id: "pregame", title: "Pre-Game Activation", subtitle: "15 minutes before you get dressed. Fire up, don't fatigue.", focus: .activation, entries: [
             w("jumping-jacks"), w("leg-swings-front"), w("leg-swings-lateral"), w("gate-openers"), w("worlds-greatest", 1, 3),

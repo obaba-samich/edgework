@@ -38,8 +38,9 @@ enum ICS {
         let title = unescape(c["SUMMARY"]?.value ?? "Event")
         let allDay = start.params.uppercased().contains("VALUE=DATE") || start.value.count == 8
         let uid = c["UID"]?.value ?? "\(title)-\(start.value)"
+        let end = c["DTEND"].flatMap { parseDate($0.value, params: $0.params) }
         return CalEvent(id: uid + "|" + start.value, title: title, start: date, allDay: allDay,
-                        location: unescape(c["LOCATION"]?.value ?? ""), guessed: CalEvent.guess(title))
+                        location: unescape(c["LOCATION"]?.value ?? ""), guessed: CalEvent.guess(title, allDay: allDay), end: end)
     }
 
     private static func unescape(_ s: String) -> String {
@@ -88,7 +89,7 @@ extension Store {
             rebuildToday(seed: data.today?.seed ?? Day.seed(Date()), focus: nil, duration: defaultDuration(for: Date()))
         }
         Notifier.reschedule(self)
-        return (events.count, events.filter { kind($0) != .ignore }.count)
+        return (events.count, events.filter { kind($0).counts }.count)
     }
 
     func syncCalendar() async -> String {
@@ -120,7 +121,7 @@ extension Store {
     }
 
     func setKind(_ kind: EventKind, for event: CalEvent) {
-        data.eventKinds[event.id] = kind == event.guessed ? nil : kind
+        data.eventKinds[event.id] = kind == CalEvent.guess(event.title, allDay: event.allDay, settings: data.settings) ? nil : kind
         if data.today?.focus == nil {
             rebuildToday(seed: data.today?.seed ?? Day.seed(Date()), focus: nil, duration: defaultDuration(for: Date()))
         }
@@ -180,7 +181,11 @@ enum Notifier {
                 if d == 0 && !store.sessions(on: day).isEmpty { continue }
                 let wd = Day.cal.component(.weekday, from: day)
                 let minute: Int
-                if st.trainTimes.isEmpty {
+                if st.normalOnEventDays, let e = store.events(on: day).last, !e.allDay {
+                    let end = e.end ?? e.start.addingTimeInterval(90 * 60)
+                    let after = end.addingTimeInterval(45 * 60)
+                    minute = Day.cal.component(.hour, from: after) * 60 + Day.cal.component(.minute, from: after)
+                } else if st.trainTimes.isEmpty {
                     minute = st.remindMinute
                 } else if let m = st.trainTimes[String(wd)] {
                     minute = m

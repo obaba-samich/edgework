@@ -41,7 +41,10 @@ enum Day {
 @MainActor
 final class Store: ObservableObject {
     @Published var data: AppData {
-        didSet { scheduleSave() }
+        didSet {
+            Theme.sport = data.settings.sport
+            scheduleSave()
+        }
     }
     @Published var activeWorkout: Workout?
 
@@ -58,6 +61,8 @@ final class Store: ObservableObject {
             data = AppData()
         }
         if UserDefaults.standard.bool(forKey: "demoData") { seedDemo() }
+        if let s = UserDefaults.standard.string(forKey: "sport"), let sport = Sport(rawValue: s) { data.settings.sport = sport }
+        Theme.sport = data.settings.sport
         ensureToday()
     }
 
@@ -92,6 +97,10 @@ final class Store: ObservableObject {
             CalEvent(id: "demo-2", title: "Game vs Hawks", start: evening(3), allDay: false, location: "Main Rink", guessed: .game),
             CalEvent(id: "demo-3", title: "Team photos", start: evening(4), allDay: false, location: "", guessed: .ignore),
             CalEvent(id: "demo-4", title: "Tournament: Wolves @ Bears", start: evening(6), allDay: false, location: "", guessed: .game),
+            CalEvent(id: "demo-5", title: "B2 shared w/ 12U B1", start: evening(2), allDay: false, location: "Rink 2", guessed: .ignore),
+            CalEvent(id: "demo-6", title: "Goalie skills", start: evening(2).addingTimeInterval(3600), allDay: false, location: "", guessed: .ignore),
+            CalEvent(id: "demo-7", title: "Parent meeting", start: evening(5), allDay: false, location: "", guessed: .ignore),
+            CalEvent(id: "demo-8", title: "Spring Classic Tournament", start: Day.add(6, to: today), allDay: true, location: "", guessed: .ignore),
         ]
         d.favorites = ["skater-bound", "copenhagen-plank"]
         d.settings.trainTimes = ["2": 17 * 60, "3": 17 * 60, "4": 18 * 60, "6": 16 * 60, String(Day.cal.component(.weekday, from: today)): 17 * 60 + 30]
@@ -214,17 +223,19 @@ final class Store: ObservableObject {
 
     // MARK: Schedule
 
-    func kind(_ e: CalEvent) -> EventKind { data.eventKinds[e.id] ?? e.guessed }
+    func kind(_ e: CalEvent) -> EventKind {
+        data.eventKinds[e.id] ?? CalEvent.guess(e.title, allDay: e.allDay, settings: data.settings)
+    }
 
     /// Games and practices from the imported calendar on a given day.
     func events(on date: Date) -> [CalEvent] {
         let k = Day.key(date)
-        return data.events.filter { Day.key($0.start) == k && kind($0) != .ignore }.sorted { $0.start < $1.start }
+        return data.events.filter { Day.key($0.start) == k && kind($0).counts }.sorted { $0.start < $1.start }
     }
 
     var upcomingEvents: [CalEvent] {
         let now = Date().addingTimeInterval(-3 * 3600)
-        return data.events.filter { $0.start >= now && kind($0) != .ignore }.sorted { $0.start < $1.start }
+        return data.events.filter { $0.start >= now && kind($0).counts }.sorted { $0.start < $1.start }
     }
 
     func scheduledType(for date: Date) -> DayType {
@@ -257,6 +268,11 @@ final class Store: ObservableObject {
     /// The focuses the auto-picker rotates through, given style and settings.
     var focusRotation: [Focus] {
         let st = data.settings
+        if st.sport == .track {
+            var t = st.trackGroup.rotation
+            if st.lowImpact { t.removeAll { $0 == .power || $0 == .jumpDay } }
+            return t
+        }
         var r = st.style.rotation
         if st.runDays && !r.contains(.run) { r.insert(.run, at: min(3, r.count)) }
         if !st.runDays { r.removeAll { $0 == .run } }
@@ -282,12 +298,25 @@ final class Store: ObservableObject {
         return scored.sorted { $0.1 > $1.1 }.map(\.0)
     }
 
+    /// With "keep my normal workouts" on, games and practices don't change the type of workout.
+    func focusDayType(for date: Date) -> DayType {
+        data.settings.normalOnEventDays ? .off : dayType(for: date)
+    }
+
+    /// The game or practice a workout on this day comes after, when adjusting for it.
+    func afterEvent(for date: Date) -> DayType? {
+        guard data.settings.normalOnEventDays, data.settings.adjustAfterEvents else { return nil }
+        let t = dayType(for: date)
+        return t == .game || t == .practice ? t : nil
+    }
+
     func autoFocus(for date: Date) -> Focus {
-        switch dayType(for: date) {
+        switch focusDayType(for: date) {
         case .game: return .activation
         case .postGame: return .recovery
         case .practice:
-            let options: [Focus] = data.settings.style == .general ? [.abs, .upper, .mobility] : [.core, .mobility, .upper]
+            let options: [Focus] = data.settings.sport == .track ? [.core, .mobility, .tempo]
+                : (data.settings.style == .general ? [.abs, .upper, .mobility] : [.core, .mobility, .upper])
             return options[Day.seed(date) % options.count]
         case .off:
             let today = Day.start(Date())
@@ -298,7 +327,7 @@ final class Store: ObservableObject {
     }
 
     func defaultDuration(for date: Date) -> Int {
-        switch dayType(for: date) {
+        switch focusDayType(for: date) {
         case .game: return min(20, data.settings.duration)
         case .postGame: return min(25, data.settings.duration)
         default: return data.settings.duration
@@ -307,12 +336,15 @@ final class Store: ObservableObject {
 
     // MARK: Generation
 
-    func generate(focus: Focus, minutes: Int, seed: Int) -> Workout {
-        Generator.make(focus: focus, minutes: minutes, seed: UInt64(max(0, seed)), settings: data.settings)
+    func generate(focus: Focus, minutes: Int, seed: Int, date: Date? = nil) -> Workout {
+        var w = Generator.make(focus: focus, minutes: minutes, seed: UInt64(max(0, seed)), settings: data.settings,
+                               afterEvent: date.flatMap { afterEvent(for: $0) })
+        if focus == .activation && data.settings.sport == .track { w.title = "Pre-Meet Activation" }
+        return w
     }
 
     func preview(for date: Date) -> Workout {
-        generate(focus: autoFocus(for: date), minutes: defaultDuration(for: date), seed: Day.seed(date))
+        generate(focus: autoFocus(for: date), minutes: defaultDuration(for: date), seed: Day.seed(date), date: date)
     }
 
     func ensureToday() {
@@ -326,7 +358,27 @@ final class Store: ObservableObject {
         let now = Date()
         let f = focus ?? autoFocus(for: now)
         data.today = TodayState(dateKey: Day.key(now), seed: seed, focus: focus, duration: duration,
-                                workout: generate(focus: f, minutes: duration, seed: seed))
+                                workout: generate(focus: f, minutes: duration, seed: seed, date: now))
+    }
+
+    func setSport(_ sport: Sport) {
+        guard sport != data.settings.sport else { return }
+        data.settings.sport = sport
+        Theme.sport = sport
+        Appearance.apply()
+        rebuildToday(seed: data.today?.seed ?? Day.seed(Date()), focus: nil, duration: defaultDuration(for: Date()))
+        haptic(.medium)
+    }
+
+    /// "After the game · 7:00 PM" style label when today's workout follows an event.
+    func afterEventLabel(for date: Date) -> String? {
+        guard let t = afterEvent(for: date) else { return nil }
+        let word = t == .game ? (data.settings.sport == .track ? "meet" : "game") : "practice"
+        if let e = events(on: date).last {
+            let end = e.end ?? e.start.addingTimeInterval(90 * 60)
+            return "After the \(word) · \(end.formatted(date: .omitted, time: .shortened))"
+        }
+        return "After the \(word)"
     }
 
     func reroll() {

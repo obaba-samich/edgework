@@ -4,6 +4,10 @@ import SwiftUI
 
 enum Category: String, Codable, CaseIterable, Identifiable {
     case warmup, lowerBody, upperBody, core, power, speed, conditioning, balance, mobility, stickhandling, shooting, goalie, running
+    case sprints, hurdles, jumps, throws
+
+    static let hockeyOnly: Set<Category> = [.stickhandling, .shooting, .goalie]
+    static let trackOnly: Set<Category> = [.sprints, .hurdles, .jumps, .throws]
 
     var id: String { rawValue }
 
@@ -22,6 +26,10 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .shooting: "Shooting"
         case .goalie: "Goalie"
         case .running: "Running"
+        case .sprints: "Sprints"
+        case .hurdles: "Hurdles"
+        case .jumps: "Jumps"
+        case .throws: "Throws"
         }
     }
 
@@ -40,6 +48,10 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .shooting: "scope"
         case .goalie: "shield.lefthalf.filled"
         case .running: "figure.run"
+        case .sprints: "figure.track.and.field"
+        case .hurdles: "figure.step.training"
+        case .jumps: "arrow.up.forward"
+        case .throws: "circle.circle.fill"
         }
     }
 
@@ -58,6 +70,10 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .shooting: Color(hex: 0xB8F36B)
         case .goalie: Color(hex: 0xB7C4D6)
         case .running: Color(hex: 0x22D3EE)
+        case .sprints: Color(hex: 0xFF6B5E)
+        case .hurdles: Color(hex: 0xFFB547)
+        case .jumps: Color(hex: 0x9B86FF)
+        case .throws: Color(hex: 0x3DDC97)
         }
     }
 
@@ -76,6 +92,10 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .shooting: 30
         case .goalie: 40
         case .running: 90
+        case .sprints: 150
+        case .hurdles: 90
+        case .jumps: 90
+        case .throws: 75
         }
     }
 
@@ -94,6 +114,10 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .core: 9
         case .conditioning: 10
         case .running: 10
+        case .sprints: 1
+        case .hurdles: 2
+        case .jumps: 2
+        case .throws: 3
         case .mobility: 11
         }
     }
@@ -257,10 +281,20 @@ enum Block: String, Codable, CaseIterable, Identifiable {
 enum Focus: String, Codable, CaseIterable, Identifiable {
     case activation, power, strength, speed, conditioning, core, hands, fullBody, goalie, mobility, recovery, custom
     case upper, legs, abs, hiit, run
+    case trackSpeed, speedEndurance, tempo, hurdleDay, jumpDay, throwDay, distance
+
+    static let track: [Focus] = [.trackSpeed, .speedEndurance, .tempo, .hurdleDay, .jumpDay, .throwDay, .distance]
+    static let hockeyOnly: [Focus] = [.hands, .goalie]
 
     var id: String { rawValue }
 
     static let generatable: [Focus] = [.fullBody, .upper, .legs, .abs, .hiit, .run, .strength, .power, .speed, .conditioning, .core, .hands, .goalie, .mobility, .recovery, .activation]
+
+    static func generatable(for sport: Sport) -> [Focus] {
+        sport == .track
+            ? track + [.strength, .power, .fullBody, .upper, .legs, .abs, .hiit, .core, .mobility, .recovery, .activation]
+            : generatable
+    }
 
     var title: String {
         switch self {
@@ -281,6 +315,13 @@ enum Focus: String, Codable, CaseIterable, Identifiable {
         case .abs: "Abs & Core Burn"
         case .hiit: "HIIT"
         case .run: "Run Day"
+        case .trackSpeed: "Speed Day"
+        case .speedEndurance: "Speed Endurance"
+        case .tempo: "Tempo Run"
+        case .hurdleDay: "Hurdle Day"
+        case .jumpDay: "Jumps Day"
+        case .throwDay: "Throws Day"
+        case .distance: "Distance Day"
         }
     }
 
@@ -303,6 +344,13 @@ enum Focus: String, Codable, CaseIterable, Identifiable {
         case .abs: "Abs"
         case .hiit: "HIIT"
         case .run: "Run"
+        case .trackSpeed: "Speed"
+        case .speedEndurance: "Speed End."
+        case .tempo: "Tempo"
+        case .hurdleDay: "Hurdles"
+        case .jumpDay: "Jumps"
+        case .throwDay: "Throws"
+        case .distance: "Distance"
         }
     }
 
@@ -325,6 +373,13 @@ enum Focus: String, Codable, CaseIterable, Identifiable {
         case .abs: "Crunches, holds and twists. Feel the burn."
         case .hiit: "Short, sweaty intervals. Heart rate up."
         case .run: "Strides, intervals and distance."
+        case .trackSpeed: "Drills, starts and max-velocity sprints."
+        case .speedEndurance: "Hold your speed deep into the race."
+        case .tempo: "Smooth, controlled runs to build your engine."
+        case .hurdleDay: "Mobility, rhythm and hurdle technique."
+        case .jumpDay: "Approach, takeoff and reactive power."
+        case .throwDay: "Explosive hips and rotational power."
+        case .distance: "Easy miles and aerobic base."
         }
     }
 
@@ -347,6 +402,13 @@ enum Focus: String, Codable, CaseIterable, Identifiable {
         case .abs: "figure.core.training"
         case .hiit: "flame.fill"
         case .run: "figure.run"
+        case .trackSpeed: "figure.track.and.field"
+        case .speedEndurance: "stopwatch.fill"
+        case .tempo: "metronome.fill"
+        case .hurdleDay: "figure.step.training"
+        case .jumpDay: "arrow.up.forward"
+        case .throwDay: "circle.circle.fill"
+        case .distance: "figure.run"
         }
     }
 
@@ -369,6 +431,13 @@ enum Focus: String, Codable, CaseIterable, Identifiable {
         case .abs: Color(hex: 0xFF8A5B)
         case .hiit: Color(hex: 0xFF5FA2)
         case .run: Color(hex: 0x22D3EE)
+        case .trackSpeed: Color(hex: 0xFF6B5E)
+        case .speedEndurance: Color(hex: 0xFF4D5E)
+        case .tempo: Color(hex: 0x22D3EE)
+        case .hurdleDay: Color(hex: 0xFFB547)
+        case .jumpDay: Color(hex: 0x9B86FF)
+        case .throwDay: Color(hex: 0x3DDC97)
+        case .distance: Color(hex: 0x7CD4FF)
         }
     }
 }
@@ -696,13 +765,35 @@ enum TrainingStyle: String, Codable, CaseIterable, Identifiable {
 }
 
 enum EventKind: String, Codable, CaseIterable, Identifiable {
-    case game, practice, ignore
+    case game, practice, meeting, skipped, ignore
     var id: String { rawValue }
     var title: String {
         switch self {
         case .game: "Game"
         case .practice: "Practice"
+        case .meeting: "Meeting"
+        case .skipped: "Not going"
         case .ignore: "Ignore"
+        }
+    }
+    /// Only games and practices change the training day.
+    var counts: Bool { self == .game || self == .practice }
+    var symbol: String {
+        switch self {
+        case .game: "flag.checkered"
+        case .practice: "figure.ice.skating"
+        case .meeting: "person.3.fill"
+        case .skipped: "calendar.badge.minus"
+        case .ignore: "minus.circle"
+        }
+    }
+    var color: Color {
+        switch self {
+        case .game: Theme.red
+        case .practice: Theme.ice
+        case .meeting: Theme.amber
+        case .skipped: Theme.text3
+        case .ignore: Theme.text3
         }
     }
 }
@@ -714,15 +805,79 @@ struct CalEvent: Codable, Identifiable, Hashable {
     var allDay: Bool
     var location: String
     var guessed: EventKind
+    var end: Date?
 
-    static func guess(_ title: String) -> EventKind {
-        let t = " " + title.lowercased() + " "
-        let practice = ["practice", "skate", "skills", "clinic", "training", "dryland", "camp", "tryout", "development", "stick time", "stick & puck", "stick and puck"]
-        let game = ["game", " vs", "vs.", " v ", " @ ", " at ", "tournament", "scrimmage", "playoff", "championship", "exhibition", "jamboree", "final", "semi"]
-        if practice.contains(where: { t.contains($0) }) { return .practice }
-        if game.contains(where: { t.contains($0) }) { return .game }
+    /// Best guess from the title. Order matters: ignore rules, goalie-only, games, meetings, then practices.
+    static func guess(_ title: String, allDay: Bool = false, settings: Settings? = nil) -> EventKind {
+        let t = " " + title.lowercased().replacingOccurrences(of: "/", with: " ") + " "
+        func has(_ words: [String]) -> Bool { words.contains { t.contains($0) } }
+        let extraIgnore = settings?.ignoreKeywords ?? []
+        let extraPractice = settings?.practiceKeywords ?? []
+        if has(["reminder", " tbd", "tba", "placeholder", " bye ", "no ice", "cancel", "postpone", "holiday", "off day"] + extraIgnore.map { $0.lowercased() }) { return .ignore }
+        if has(["goalie", "goaltend"]) && !has([" vs", " @ ", "game"]) {
+            return settings?.position == .goalie ? .practice : .ignore
+        }
+        let gameWords = ["game", " vs", "vs.", " v ", " @ ", " at ", "tournament", "scrimmage", "playoff", "championship", "exhibition", "jamboree", "final", "semi", "meet ", "invitational", "relays", "race"]
+        if has(gameWords) { return allDay && (settings?.allDayIgnore ?? true) ? .ignore : .game }
+        if has(["meeting", "parent", "photo", "picture", "fundraiser", "banquet", "party", "registration", "dinner", "social", "volunteer", "orientation", "zoom", "jersey", "uniform", "info session", "sign up", "signup", "team bonding", "potluck"]) {
+            return .meeting
+        }
+        let practiceWords = ["practice", "skate", "skills", "clinic", "training", "dryland", "camp", "tryout", "development", "stick time", "stick & puck", "stick and puck", " solo", "shared", " ice ", "ice time", "power skating", "workout", "conditioning", "lift"]
+        if has(practiceWords + extraPractice.map { $0.lowercased() }) { return allDay ? .ignore : .practice }
+        // Team ice codes like "B2", "A1", "12U", "xxU b1".
+        if t.range(of: #"\b([abc][0-9]|[0-9]{1,2}u|xxu)\b"#, options: .regularExpression) != nil { return allDay ? .ignore : .practice }
         return .ignore
     }
+}
+
+enum Sport: String, Codable, CaseIterable, Identifiable {
+    case hockey, track
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .hockey: "Hockey"
+        case .track: "Track & Field"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .hockey: "figure.hockey"
+        case .track: "figure.track.and.field"
+        }
+    }
+}
+
+enum TrackGroup: String, Codable, CaseIterable, Identifiable {
+    case sprints, hurdles, distance, jumps, throws, multi
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .sprints: "Sprints"
+        case .hurdles: "Hurdles"
+        case .distance: "Distance"
+        case .jumps: "Jumps"
+        case .throws: "Throws"
+        case .multi: "Multi-events"
+        }
+    }
+    var rotation: [Focus] {
+        switch self {
+        case .sprints: [.trackSpeed, .strength, .tempo, .power, .speedEndurance, .core, .mobility]
+        case .hurdles: [.hurdleDay, .trackSpeed, .strength, .tempo, .power, .speedEndurance, .mobility]
+        case .distance: [.distance, .tempo, .strength, .distance, .speedEndurance, .core, .mobility]
+        case .jumps: [.jumpDay, .trackSpeed, .power, .strength, .tempo, .core, .mobility]
+        case .throws: [.throwDay, .strength, .power, .throwDay, .trackSpeed, .core, .mobility]
+        case .multi: [.trackSpeed, .hurdleDay, .jumpDay, .throwDay, .strength, .tempo, .mobility]
+        }
+    }
+}
+
+struct TrackPR: Codable, Identifiable, Hashable {
+    var id = UUID()
+    var event: String
+    var date: Date
+    var value: Double
+    var note: String = ""
 }
 
 struct Settings: Codable {
@@ -757,6 +912,21 @@ struct Settings: Codable {
     var autoAdvance = true
     var lineMode = true
     var puckCount = 18
+    var sport = Sport.hockey
+    var trackGroup = TrackGroup.sprints
+    var normalOnEventDays = false
+    var adjustAfterEvents = true
+    var ignoreKeywords: [String] = []
+    var practiceKeywords: [String] = []
+    var hidePastEvents = true
+    var allDayIgnore = true
+    var showFuel = true
+    var showMealGenerator = true
+    var showReadiness = true
+    var showDailyGoals = true
+    var showFigures = true
+    var showTips = true
+    var showHockeyTools = true
     var lineCount = 2
     var measureModes: [String: String] = [:]
     var trainTimes: [String: Int] = [:]
@@ -821,6 +991,21 @@ struct Settings: Codable {
         autoAdvance = try c.decodeIfPresent(Bool.self, forKey: .autoAdvance) ?? d.autoAdvance
         lineMode = try c.decodeIfPresent(Bool.self, forKey: .lineMode) ?? d.lineMode
         puckCount = try c.decodeIfPresent(Int.self, forKey: .puckCount) ?? d.puckCount
+        sport = try c.decodeIfPresent(Sport.self, forKey: .sport) ?? d.sport
+        trackGroup = try c.decodeIfPresent(TrackGroup.self, forKey: .trackGroup) ?? d.trackGroup
+        normalOnEventDays = try c.decodeIfPresent(Bool.self, forKey: .normalOnEventDays) ?? d.normalOnEventDays
+        adjustAfterEvents = try c.decodeIfPresent(Bool.self, forKey: .adjustAfterEvents) ?? d.adjustAfterEvents
+        ignoreKeywords = try c.decodeIfPresent([String].self, forKey: .ignoreKeywords) ?? d.ignoreKeywords
+        practiceKeywords = try c.decodeIfPresent([String].self, forKey: .practiceKeywords) ?? d.practiceKeywords
+        hidePastEvents = try c.decodeIfPresent(Bool.self, forKey: .hidePastEvents) ?? d.hidePastEvents
+        allDayIgnore = try c.decodeIfPresent(Bool.self, forKey: .allDayIgnore) ?? d.allDayIgnore
+        showFuel = try c.decodeIfPresent(Bool.self, forKey: .showFuel) ?? d.showFuel
+        showMealGenerator = try c.decodeIfPresent(Bool.self, forKey: .showMealGenerator) ?? d.showMealGenerator
+        showReadiness = try c.decodeIfPresent(Bool.self, forKey: .showReadiness) ?? d.showReadiness
+        showDailyGoals = try c.decodeIfPresent(Bool.self, forKey: .showDailyGoals) ?? d.showDailyGoals
+        showFigures = try c.decodeIfPresent(Bool.self, forKey: .showFigures) ?? d.showFigures
+        showTips = try c.decodeIfPresent(Bool.self, forKey: .showTips) ?? d.showTips
+        showHockeyTools = try c.decodeIfPresent(Bool.self, forKey: .showHockeyTools) ?? d.showHockeyTools
         lineCount = try c.decodeIfPresent(Int.self, forKey: .lineCount) ?? d.lineCount
         measureModes = try c.decodeIfPresent([String: String].self, forKey: .measureModes) ?? d.measureModes
         trainTimes = try c.decodeIfPresent([String: Int].self, forKey: .trainTimes) ?? d.trainTimes
@@ -871,6 +1056,8 @@ struct AppData: Codable {
     var customFoods: [Food] = []
     var favoriteFoods: Set<String> = []
     var dayScale: [String: Double] = [:]
+    var pantry: Set<String> = []
+    var trackPRs: [TrackPR] = []
 
     init() {}
 
@@ -893,6 +1080,8 @@ struct AppData: Codable {
         customFoods = try c.decodeIfPresent([Food].self, forKey: .customFoods) ?? []
         favoriteFoods = try c.decodeIfPresent(Set<String>.self, forKey: .favoriteFoods) ?? []
         dayScale = try c.decodeIfPresent([String: Double].self, forKey: .dayScale) ?? [:]
+        pantry = try c.decodeIfPresent(Set<String>.self, forKey: .pantry) ?? []
+        trackPRs = try c.decodeIfPresent([TrackPR].self, forKey: .trackPRs) ?? []
     }
 }
 

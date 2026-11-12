@@ -225,7 +225,10 @@ enum Moves {
         case .stickhandling: return stickhandle
         case .shooting: return shoot
         case .goalie: return shuffle
-        case .running: return run
+        case .running, .sprints: return run
+        case .hurdles: return highKnees
+        case .jumps: return broadJump
+        case .throws: return throwSide
         }
     }
 
@@ -278,7 +281,7 @@ enum Moves {
         "power-skips": powerSkip, "b-skips": highKnees, "side-skips": jack, "hip-cradle": kneeHug, "heel-toe-walk": walk,
         "lunge-reach": kneelStretch, "easy-run": run, "strides": run, "sprints-200": run, "repeats-400": run,
         "hill-sprints": run, "tempo-1k": run, "mile-run": run, "fartlek": run, "shuttle-run": shuffle, "cooldown-jog": walk,
-        "standing-hamstring": fold, "stair-runs": highKnees, "bounding": powerSkip, "crab-walk": bearCrawl, "duck-walk": squatPulse, "walking-knee-drive": kneeHug, "distance-run": run, "stickhandling-session": stickhandle, "side-reach": sideReach, "standing-groin": groin, "figure-4": figure4,
+        "standing-hamstring": fold, "wall-drive": highKnees, "ankling": pogo, "fast-leg": highKnees, "hurdle-walkover": legSwing, "hurdle-mobility": legSwing, "lead-leg": legSwing, "trail-leg": legSwing, "hurdle-hops": tuckJump, "depth-jump": jumpSquat, "overhead-back-toss": slam, "chest-pass": bandPress, "box-bound": skater, "single-leg-bound": powerSkip, "approach-runs": run, "pop-ups": powerSkip, "scissor-kicks-hj": powerSkip, "baton-exchange": run, "javelin-crossovers": shuffle, "discus-turn-drill": throwSide, "stair-runs": highKnees, "bounding": powerSkip, "crab-walk": bearCrawl, "duck-walk": squatPulse, "walking-knee-drive": kneeHug, "distance-run": run, "stickhandling-session": stickhandle, "side-reach": sideReach, "standing-groin": groin, "figure-4": figure4,
     ]
 }
 

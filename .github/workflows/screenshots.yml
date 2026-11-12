@@ -40,6 +40,7 @@ jobs:
           shot 31-addfood -demoData YES -showScreen addfood
           shot 32-food -demoData YES -showScreen food
           shot 33-aim -demoData YES -showScreen aim
+          shot 35-pucks -demoData YES -showScreen pucks
           shot 34-highknees -demoData YES -showScreen high-knees
           shot 20-workout -demoData YES -showScreen today
           shot 21-exercise -demoData YES -showScreen skater-bound

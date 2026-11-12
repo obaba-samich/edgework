@@ -78,8 +78,8 @@ private let kneel = S.w { $0.lL = -12; $0.sL = -90; $0.lR = 80; $0.sR = 0 }
 private let stanceF = F.w { $0.aL = -25; $0.fL = 25; $0.aR = 25; $0.fR = -25; $0.lL = -28; $0.sL = 6; $0.lR = 28; $0.sR = -6 }
 private let hang = F.w { $0.aL = -168; $0.fL = -172; $0.aR = 168; $0.fR = 172; $0.lL = -3; $0.sL = -2; $0.lR = 3; $0.sR = 2; $0.lift = 6 }
 private let seated = S.w { $0.t = 195; $0.aL = 60; $0.fL = 80; $0.aR = 58; $0.fR = 78; $0.lL = 118; $0.sL = 48; $0.lR = 116; $0.sR = 50 }
-private let childPose = S.w { $0.t = 62; $0.h = 50; $0.aL = 92; $0.fL = 92; $0.aR = 90; $0.fR = 90; $0.lL = 72; $0.sL = -92; $0.lR = 70; $0.sR = -90 }
-private let fold = S.w { $0.t = 22; $0.h = 12; $0.aL = 8; $0.fL = 8; $0.aR = 6; $0.fR = 6 }
+private let childBase = S.w { $0.t = 62; $0.h = 50; $0.aL = 92; $0.fL = 92; $0.aR = 90; $0.fR = 90; $0.lL = 72; $0.sL = -92; $0.lR = 70; $0.sR = -90 }
+private let foldBase = S.w { $0.t = 22; $0.h = 12; $0.aL = 8; $0.fL = 8; $0.aR = 6; $0.fR = 6 }
 
 private func hold(_ p: Pose, _ d: Double = 3.5, front: Bool = false) -> Move {
     Move(frames: [p, p.w { $0.t += 3; $0.h = ($0.h ?? $0.t) + 4 }], duration: d, front: front)
@@ -128,7 +128,7 @@ enum Moves {
     static let buttKick = alternate(S.w { $0.lR = -5; $0.sR = -165; $0.lL = 0; $0.sL = 0; $0.aR = 30; $0.fR = 100; $0.aL = -30; $0.fL = 20; $0.lift = 2 }, 0.5)
     static let burpee = Move(frames: [S, crouch, plankHigh, crouch, S.w { $0.aL = 172; $0.fL = 176; $0.aR = 176; $0.fR = 178; $0.lift = 10 }], duration: 3.4)
     static let halfBurpee = Move(frames: [S, crouch, plankHigh, crouch], duration: 2.6)
-    static let inchworm = Move(frames: [S, fold, plankHigh, plankHigh, fold], duration: 4.4)
+    static let inchworm = Move(frames: [S, foldBase, plankHigh, plankHigh, foldBase], duration: 4.4)
     static let crunch = Move(frames: [lie.w { $0.aL = -150; $0.fL = 70; $0.aR = -148; $0.fR = 72 }, lie.w { $0.t = -125; $0.aL = -185; $0.fL = 35; $0.aR = -183; $0.fR = 37 }], duration: 1.8)
     static let situp = Move(frames: [lie.w { $0.aL = 140; $0.fL = 120; $0.aR = 138; $0.fR = 118 }, lie.w { $0.t = -170; $0.aL = 60; $0.fL = 70; $0.aR = 58; $0.fR = 68 }], duration: 2.2)
     static let vup = Move(frames: [lieFlat.w { $0.aL = -92; $0.fL = -92; $0.aR = -90; $0.fR = -90; $0.lift = 0 }, lieFlat.w { $0.t = -140; $0.aL = 150; $0.fL = 150; $0.aR = 148; $0.fR = 148; $0.lL = 140; $0.sL = 140; $0.lR = 138; $0.sR = 138 }], duration: 2.0)
@@ -144,7 +144,7 @@ enum Moves {
     static let birdDog = Move(frames: [quad, quad.w { $0.aR = 90; $0.fR = 90; $0.lL = -90; $0.sL = -90 }], duration: 2.4)
     static let donkeyKick = Move(frames: [quad, quad.w { $0.lR = -150; $0.sR = 175 }], duration: 1.4)
     static let catCow = Move(frames: [quad.w { $0.t = 84; $0.h = 120 }, quad.w { $0.t = 96; $0.h = 40 }], duration: 3.0)
-    static let rockBack = Move(frames: [quad, childPose], duration: 2.6)
+    static let rockBack = Move(frames: [quad, childBase], duration: 2.6)
     static let bearCrawl = alternate(S.w { $0.t = 80; $0.aL = 20; $0.fL = 20; $0.aR = 35; $0.fR = 35; $0.lL = 35; $0.sL = -30; $0.lR = 55; $0.sR = -10 }, 0.8)
     static let hinge = Move(frames: [S.w { $0.aL = 2; $0.fL = 2; $0.aR = 0; $0.fR = 0 }, S.w { $0.t = 100; $0.h = 105; $0.aL = 2; $0.fL = 2; $0.aR = 0; $0.fR = 0; $0.lL = 12; $0.sL = 0; $0.lR = 10; $0.sR = 0 }], duration: 2.4)
     static let swing = Move(frames: [S.w { $0.t = 115; $0.aL = -15; $0.fL = -15; $0.aR = -13; $0.fR = -13; $0.lL = 25; $0.sL = -5; $0.lR = 23; $0.sR = -5 }, S.w { $0.aL = 92; $0.fL = 92; $0.aR = 90; $0.fR = 90 }], duration: 1.2)
@@ -182,9 +182,9 @@ enum Moves {
     static let balance = Move(frames: [F.w { $0.aL = -85; $0.fL = -88; $0.aR = 85; $0.fR = 88; $0.lR = 12; $0.sR = -45 }, F.w { $0.t = 176; $0.aL = -80; $0.fL = -84; $0.aR = 90; $0.fR = 92; $0.lR = 14; $0.sR = -40 }], duration: 2.4, front: true)
     static let starReach = Move(frames: [S.w { $0.t = 165; $0.aL = 80; $0.fL = 80; $0.aR = 78; $0.fR = 78; $0.lL = 15; $0.sL = -10; $0.lR = 75; $0.sR = 72 }, S.w { $0.t = 150; $0.aL = 85; $0.fL = 85; $0.aR = 83; $0.fR = 83; $0.lL = 20; $0.sL = -15; $0.lR = -60; $0.sR = -62 }], duration: 2.6)
     static let quadStretch = hold(S.w { $0.aL = 80; $0.fL = 80; $0.aR = -25; $0.fR = -15; $0.lR = -12; $0.sR = 178 })
-    static let fold = hold(fold)
+    static let fold = hold(foldBase)
     static let kneelStretch = Move(frames: [lungeLow.w { $0.aR = 172; $0.fR = 172; $0.aL = 2; $0.fL = 2 }, lungeLow.w { $0.t = 188; $0.aR = 178; $0.fR = 182; $0.aL = 2; $0.fL = 2; $0.lR = 70; $0.sR = 5 }], duration: 3.5)
-    static let childPose = hold(childPose)
+    static let childPose = hold(childBase)
     static let seatedStretch = Move(frames: [S.w { $0.t = 180; $0.aL = 30; $0.fL = 20; $0.aR = 28; $0.fR = 18; $0.lL = 78; $0.sL = -120; $0.lR = 76; $0.sR = -118 },
                                              S.w { $0.t = 158; $0.aL = 40; $0.fL = 30; $0.aR = 38; $0.fR = 28; $0.lL = 78; $0.sL = -120; $0.lR = 76; $0.sR = -118 }], duration: 3.5)
     static let lyingStretch = hold(lieFlat.w { $0.aR = 160; $0.fR = 168; $0.lR = 172; $0.sR = 172 })

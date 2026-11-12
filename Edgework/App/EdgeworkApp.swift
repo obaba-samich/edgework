@@ -62,6 +62,8 @@ struct RootView: View {
                     ManualLogView()
                 } else if screen.id == "settings" {
                     SettingsView()
+                } else if screen.id == "aim" {
+                    AimTrainerView()
                 } else if screen.id == "shots" {
                     ShotTrackerView()
                 } else if screen.id == "addfood" {

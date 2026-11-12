@@ -4,10 +4,61 @@ import SwiftUI
 struct WorkoutDetailView: View {
     @EnvironmentObject var store: Store
     @Binding var workout: Workout
+    var onRegenerate: (() -> Void)? = nil
     @State private var showPicker = false
     @State private var swapFailed = false
+    @State private var reordering = false
 
     var body: some View {
+        if reordering { reorderList } else { mainContent }
+    }
+
+    private var reorderList: some View {
+        List {
+            ForEach(workout.ordered) { item in
+                if let ex = item.exercise {
+                    HStack(spacing: 12) {
+                        IconBadge(symbol: ex.symbol, color: ex.category.color, size: 34)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(ex.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                            Text(item.block.title).font(.caption).foregroundStyle(Theme.text2)
+                        }
+                        Spacer()
+                        Text("\(item.sets)×\(store.targetText(item))").font(.number(13)).foregroundStyle(Theme.text2)
+                    }
+                    .listRowBackground(Theme.surface)
+                }
+            }
+            .onMove { from, to in
+                var list = workout.ordered
+                guard let src = from.first else { return }
+                let id = list[src].id
+                list.move(fromOffsets: from, toOffset: to)
+                // A moved item keeps its block if it still borders it, otherwise joins its new neighbours.
+                if let i = list.firstIndex(where: { $0.id == id }) {
+                    let above: Block? = i > 0 ? list[i - 1].block : nil
+                    let below: Block? = i + 1 < list.count ? list[i + 1].block : nil
+                    let orig = list[i].block
+                    if orig != above && orig != below { list[i].block = above ?? below ?? orig }
+                }
+                workout.items = list
+            }
+            .onDelete { idx in
+                let ids = idx.map { workout.ordered[$0].id }
+                workout.items.removeAll { ids.contains($0.id) }
+            }
+        }
+        .environment(\.editMode, .constant(.active))
+        .scrollContentBackground(.hidden)
+        .screenBackground()
+        .safeAreaInset(edge: .bottom) {
+            Button { withAnimation { reordering = false } } label: { Label("Done reordering", systemImage: "checkmark") }
+                .buttonStyle(PrimaryButtonStyle())
+                .padding(16)
+        }
+    }
+
+    private var mainContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header
@@ -88,6 +139,28 @@ struct WorkoutDetailView: View {
             }
             CompositionBar(categories: workout.mainCategories)
                 .padding(.top, 2)
+            HStack(spacing: 8) {
+                Button { withAnimation { reordering = true } } label: {
+                    Chip(text: "Reorder", symbol: "arrow.up.arrow.down", color: Theme.ice)
+                }
+                Menu {
+                    Button { refresh([.main, .finisher]) } label: { Label("New main exercises", systemImage: "arrow.triangle.2.circlepath") }
+                    Button { refresh([.warmup, .stretch]) } label: { Label("New warm-up & stretches", systemImage: "flame") }
+                    Button { refresh([.cooldown]) } label: { Label("New cool-down", systemImage: "leaf") }
+                    if let onRegenerate {
+                        Divider()
+                        Button { withAnimation { onRegenerate() } } label: { Label("Generate a whole new workout", systemImage: "dice") }
+                    }
+                } label: {
+                    Chip(text: "Refresh", symbol: "arrow.triangle.2.circlepath", color: Theme.amber)
+                }
+                Button { showPicker = true } label: {
+                    Chip(text: "Add", symbol: "plus", color: Theme.green)
+                }
+                Spacer()
+            }
+            .buttonStyle(PressableStyle())
+            .padding(.top, 4)
         }
     }
 
@@ -116,6 +189,15 @@ struct WorkoutDetailView: View {
         } else {
             swapFailed = true
         }
+    }
+
+    private func refresh(_ blocks: Set<Block>) {
+        var w = workout
+        for i in w.items.indices where blocks.contains(w.items[i].block) {
+            if let new = Generator.swap(w.items[i], in: w, settings: store.data.settings) { w.items[i] = new }
+        }
+        withAnimation(.snappy) { workout = w }
+        store.haptic(.medium)
     }
 
     private func remove(_ item: WorkoutItem) {
@@ -216,7 +298,7 @@ struct TodayWorkoutScreen: View {
     @State private var saved = false
 
     var body: some View {
-        WorkoutDetailView(workout: store.todayWorkout)
+        WorkoutDetailView(workout: store.todayWorkout, onRegenerate: { store.reroll() })
             .navigationTitle("Today")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -320,7 +402,11 @@ struct GeneratedScreen: View {
 
     var body: some View {
         WorkoutDetailView(workout: Binding(get: { workout ?? store.generate(focus: focus, minutes: minutes, seed: seed) },
-                                           set: { workout = $0 }))
+                                           set: { workout = $0 }),
+                          onRegenerate: {
+                              seed += 1
+                              workout = store.generate(focus: focus, minutes: minutes, seed: seed)
+                          })
             .navigationTitle("Generated")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { if workout == nil { workout = store.generate(focus: focus, minutes: minutes, seed: seed) } }

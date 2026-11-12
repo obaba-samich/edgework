@@ -21,6 +21,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var tab = UserDefaults.standard.integer(forKey: "startTab")
     @State private var debugSheet = UserDefaults.standard.string(forKey: "showScreen")
+    @State private var calendarMessage: String?
 
     var body: some View {
         TabView(selection: $tab) {
@@ -53,6 +54,12 @@ struct RootView: View {
             NavigationStack {
                 if let ex = Library.byID[screen.id] {
                     ExerciseDetailView(exercise: ex)
+                } else if screen.id == "calendar" {
+                    CalendarView()
+                } else if screen.id == "routine" {
+                    RoutineEditor()
+                } else if screen.id == "log" {
+                    ManualLogView()
                 } else {
                     TodayWorkoutScreen()
                 }
@@ -62,9 +69,25 @@ struct RootView: View {
         .onAppear {
             if UserDefaults.standard.bool(forKey: "autoStart"), let w = store.data.today?.workout { store.start(w) }
         }
+        .onOpenURL { url in
+            if url.pathExtension.lowercased() == "ics" {
+                calendarMessage = store.importCalendar(from: url)
+            } else if url.pathExtension.lowercased() == "json", let raw = try? Data(contentsOf: url) {
+                calendarMessage = store.importBackup(raw) ? "Backup restored." : "That file isn't an Edgework backup."
+            }
+        }
+        .alert(calendarMessage ?? "", isPresented: Binding(get: { calendarMessage != nil }, set: { if !$0 { calendarMessage = nil } })) {
+            Button("OK", role: .cancel) {}
+        }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
-            case .active: store.ensureToday()
+            case .active:
+                store.ensureToday()
+                Notifier.reschedule(store)
+                if !store.data.settings.calendarURL.isEmpty,
+                   Date().timeIntervalSince(store.data.lastSync ?? .distantPast) > 1800 {
+                    Task { _ = await store.syncCalendar() }
+                }
             case .background, .inactive: store.saveNow()
             @unknown default: break
             }

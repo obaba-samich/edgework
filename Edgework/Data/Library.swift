@@ -1,6 +1,6 @@
 import Foundation
 
-private func ex(
+func ex(
     _ id: String, _ name: String, _ cat: Category, _ m: Measure, _ sets: Int, _ base: Int,
     side: Bool = false, level: Int = 1, p: [Muscle], s: [Muscle] = [], eq: [Equipment] = [],
     sym: String? = nil, tags: Set<Tag> = [],
@@ -12,7 +12,7 @@ private func ex(
 }
 
 enum Library {
-    static let all: [Exercise] = warmups + lower + upper + core + power + speed + conditioning + balance + mobility + hands + shooting + goalie
+    static let all: [Exercise] = Array(([warmups, walkingWarmups, lower, generalLower, upper, generalUpper, core, generalCore, power, speed, conditioning, generalCardio, balance, mobility, generalMobility, stillStretches, running, hands, shooting, goalie] as [[Exercise]]).joined())
 
     static let byID: [String: Exercise] = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
 
@@ -111,7 +111,7 @@ enum Library {
            steps: ["Stand tall, step one foot back.", "Lower until both knees are around 90°.", "Push through the front foot to return."],
            cues: ["Torso upright", "Control the way down"],
            why: "Knee-friendly single-leg strength. Add dumbbells when it gets easy."),
-        ex("lateral-lunge", "Lateral Lunge", .lowerBody, .reps, 3, 8, side: true, p: [.adductors, .glutes, .quads], tags: [.injuryPrevention],
+        ex("lateral-lunge", "Side Lunge", .lowerBody, .reps, 3, 8, side: true, p: [.adductors, .glutes, .quads], tags: [.injuryPrevention],
            sum: "Big step to the side and sit into that hip.",
            steps: ["Feet together, take a wide step to the side.", "Sit your hips back over the stepping leg, other leg straight.", "Push back to the start."],
            cues: ["Both feet stay flat", "Toes point forward"],
@@ -250,7 +250,7 @@ enum Library {
            steps: ["Anchor a band at face height.", "Pull it toward your forehead, splitting the hands apart.", "Finish with elbows high and hands by your ears.", "Return slowly."],
            cues: ["Thumbs point back at the end", "Slow and controlled"],
            why: "Shoulder health insurance for a sport full of falls and collisions."),
-        ex("bench-dip", "Bench Dip", .upperBody, .reps, 3, 12, p: [.triceps], s: [.chest, .shoulders], eq: [.bench],
+        ex("bench-dip", "Tricep Dips", .upperBody, .reps, 3, 12, p: [.triceps], s: [.chest, .shoulders], eq: [.bench],
            sym: "figure.strengthtraining.functional",
            sum: "Dip off the edge of a bench.",
            steps: ["Hands on the bench edge behind you, legs out.", "Bend your elbows to lower your hips.", "Press back up."],
@@ -425,7 +425,7 @@ enum Library {
            steps: ["Hold a med ball, rise onto your toes and reach overhead.", "Slam the ball into the floor as hard as you can.", "Pick it up and repeat."],
            cues: ["Use your whole body", "Max effort every rep"],
            why: "Total-body power and a great stress outlet."),
-        ex("split-jump", "Split Squat Jump", .power, .reps, 3, 6, side: true, level: 2, p: [.quads, .glutes], s: [.hamstrings, .calves],
+        ex("split-jump", "Jump Lunges", .power, .reps, 3, 6, side: true, level: 2, p: [.quads, .glutes], s: [.hamstrings, .calves],
            sym: "figure.highintensity.intervaltraining", tags: [.explosive],
            sum: "Lunge, explode up, switch legs mid-air.",
            steps: ["Start in a lunge.", "Jump up and switch legs in the air.", "Land softly in the opposite lunge."],

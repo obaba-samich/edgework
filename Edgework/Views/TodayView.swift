@@ -3,6 +3,7 @@ import SwiftUI
 struct TodayView: View {
     @EnvironmentObject var store: Store
     @State private var previewDay: Date?
+    @State private var logging = false
 
     private var greeting: String {
         let h = Calendar.current.component(.hour, from: Date())
@@ -17,11 +18,18 @@ struct TodayView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     header
                     WeekStrip(onSelect: { previewDay = $0 })
+                    if let next = store.upcomingEvents.first(where: { $0.start < Day.add(8, to: Date()) }) {
+                        NextEventCard(event: next)
+                    }
                     if let today = store.data.today {
                         TodayHero(state: today)
                     }
                     IntensityCard()
                     statsRow
+                    Button { logging = true } label: {
+                        Label("Log an activity", systemImage: "square.and.pencil")
+                    }
+                    .buttonStyle(SecondaryButtonStyle(color: Theme.ice))
                     quickStarts
                     tipCard
                 }
@@ -30,6 +38,9 @@ struct TodayView: View {
             }
             .screenBackground()
             .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $logging) {
+                ManualLogView().environmentObject(store)
+            }
             .sheet(item: Binding(get: { previewDay.map { IdentifiedDate(date: $0) } }, set: { previewDay = $0?.date })) { d in
                 DayPreviewSheet(date: d.date)
                     .environmentObject(store)
@@ -137,13 +148,38 @@ struct WeekStrip: View {
     }
 }
 
+// MARK: - Next event
+
+struct NextEventCard: View {
+    @EnvironmentObject var store: Store
+    let event: CalEvent
+
+    var body: some View {
+        let game = store.kind(event) == .game
+        let color = game ? Theme.red : Theme.ice
+        HStack(spacing: 12) {
+            IconBadge(symbol: game ? "flag.checkered" : "figure.ice.skating", color: color, size: 40)
+            VStack(alignment: .leading, spacing: 2) {
+                Overline(Day.key(event.start) == Day.key(Date()) ? (game ? "Game today" : "Practice today") : (game ? "Next game" : "Next practice"), color: color)
+                Text(event.title).font(.headline).foregroundStyle(Theme.text).lineLimit(1)
+                Text(event.allDay ? event.start.formatted(.dateTime.weekday(.wide).month().day())
+                                  : event.start.formatted(.dateTime.weekday(.wide).hour().minute()))
+                    .font(.footnote).foregroundStyle(Theme.text2)
+            }
+            Spacer()
+        }
+        .cardStyle(padding: 14)
+    }
+}
+
 // MARK: - Hero
 
 struct TodayHero: View {
     @EnvironmentObject var store: Store
     let state: TodayState
+    @State private var reviewing = false
 
-    private let durations = [15, 20, 30, 45, 60, 75]
+    private let durations = [10, 15, 20, 30, 45, 60, 75, 90]
 
     var body: some View {
         let w = state.workout
@@ -206,7 +242,9 @@ struct TodayHero: View {
             CompositionBar(categories: w.mainCategories)
 
             HStack(spacing: 10) {
-                Button { store.start(w) } label: {
+                Button {
+                    if store.data.settings.reviewFirst { reviewing = true } else { store.start(w) }
+                } label: {
                     Label("Start", systemImage: "play.fill")
                 }
                 .buttonStyle(PrimaryButtonStyle(color: w.focus.color))
@@ -235,6 +273,7 @@ struct TodayHero: View {
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         )
         .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(w.focus.color.opacity(0.25)))
+        .navigationDestination(isPresented: $reviewing) { TodayWorkoutScreen() }
     }
 
     private func metric(_ v: String, _ label: String) -> some View {

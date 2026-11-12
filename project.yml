@@ -8,6 +8,14 @@ targets:
     type: application
     platform: iOS
     sources: [Edgework]
+    info:
+      path: Edgework/Info.plist
+      properties:
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Calendar
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [com.apple.ical.ics, public.calendar-event]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pizza.edgework

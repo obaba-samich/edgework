@@ -77,7 +77,7 @@ struct ExerciseDetailView: View {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "figure.hockey").font(.system(size: 22, weight: .semibold)).foregroundStyle(Theme.ice)
                     VStack(alignment: .leading, spacing: 4) {
-                        Overline("Why it matters on the ice", color: Theme.ice)
+                        Overline("Why it helps", color: Theme.ice)
                         Text(ex.why).font(.subheadline).foregroundStyle(Theme.text)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -128,6 +128,15 @@ struct ExerciseDetailView: View {
                         addedTo = w.title
                     } label: { Label("New workout with this", systemImage: "plus") }
                 } label: { Image(systemName: "text.badge.plus") }
+                Menu {
+                    let excluded = store.data.settings.excluded.contains(ex.id)
+                    Button {
+                        if excluded { store.data.settings.excluded.remove(ex.id) } else { store.data.settings.excluded.insert(ex.id) }
+                    } label: {
+                        Label(excluded ? "Allow in generated workouts" : "Never show in generated workouts",
+                              systemImage: excluded ? "eye" : "eye.slash")
+                    }
+                } label: { Image(systemName: "ellipsis.circle") }
                 Button { store.toggleFavorite(ex.id) } label: {
                     Image(systemName: store.isFavorite(ex.id) ? "star.fill" : "star")
                         .foregroundStyle(store.isFavorite(ex.id) ? Theme.amber : Theme.text)
@@ -140,25 +149,22 @@ struct ExerciseDetailView: View {
     }
 
     private func hero(_ ex: Exercise, _ color: Color) -> some View {
-        ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(LinearGradient(colors: [color.opacity(0.35), color.opacity(0.05)], startPoint: .topTrailing, endPoint: .bottomLeading))
-            Image(systemName: ex.symbol)
-                .font(.system(size: 120, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(color)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(20)
-                .opacity(0.9)
-            VStack(alignment: .leading, spacing: 6) {
-                Overline(ex.category.title, color: color)
-                Text(ex.name).font(.display(32)).foregroundStyle(Theme.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(ex.summary).font(.subheadline).foregroundStyle(Theme.text2)
-            }
-            .padding(18)
+        VStack(alignment: .leading, spacing: 6) {
+            FigureView(exercise: ex)
+                .frame(maxWidth: .infinity)
+                .frame(height: 210)
+                .padding(.top, 8)
+            Overline(ex.category.title, color: color)
+            Text(ex.name).font(.display(32)).foregroundStyle(Theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(ex.summary).font(.subheadline).foregroundStyle(Theme.text2)
         }
-        .frame(height: 250)
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(LinearGradient(colors: [color.opacity(0.22), color.opacity(0.03)], startPoint: .top, endPoint: .bottom))
+        )
         .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(color.opacity(0.25)))
     }
 

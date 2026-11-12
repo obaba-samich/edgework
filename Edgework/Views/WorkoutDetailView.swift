@@ -241,7 +241,7 @@ struct ItemRow: View {
                             Text(ex.name).font(.system(size: 16, weight: .semibold)).foregroundStyle(Theme.text)
                                 .lineLimit(2).multilineTextAlignment(.leading)
                             HStack(spacing: 6) {
-                                Text("\(item.sets) \(item.sets == 1 ? "set" : "sets")\(ex.perSide ? " · each side" : "")")
+                                Text("\(item.sets) \(item.sets == 1 ? "set" : "sets")\(ex.perSide && store.measure(item) != .lines ? " · each side" : "")")
                                 if abs(f - 1) > 0.001 && !item.fixed {
                                     Text("\(f > 1 ? "+" : "")\(Int(((f - 1) * 100).rounded()))%")
                                         .font(.system(size: 11, weight: .bold))

@@ -126,6 +126,7 @@ enum Generator {
 
         var budget = minutes * 60 - warm.map(cost).reduce(0, +) - cool.map(cost).reduce(0, +)
         if !plan.finisher.isEmpty || wantsRunFinisher { budget -= 200 }
+        budget -= settings.mustDos.map(cost).reduce(0, +)
 
         // Main
         var weights = plan.main

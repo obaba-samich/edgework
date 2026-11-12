@@ -63,6 +63,7 @@ final class Store: ObservableObject {
         if UserDefaults.standard.bool(forKey: "demoData") { seedDemo() }
         if let s = UserDefaults.standard.string(forKey: "sport"), let sport = Sport(rawValue: s) { data.settings.sport = sport }
         Theme.sport = data.settings.sport
+        Appearance.apply()
         ensureToday()
     }
 

@@ -278,7 +278,7 @@ enum Moves {
         "power-skips": powerSkip, "b-skips": highKnees, "side-skips": jack, "hip-cradle": kneeHug, "heel-toe-walk": walk,
         "lunge-reach": kneelStretch, "easy-run": run, "strides": run, "sprints-200": run, "repeats-400": run,
         "hill-sprints": run, "tempo-1k": run, "mile-run": run, "fartlek": run, "shuttle-run": shuffle, "cooldown-jog": walk,
-        "standing-hamstring": fold, "distance-run": run, "stickhandling-session": stickhandle, "side-reach": sideReach, "standing-groin": groin, "figure-4": figure4,
+        "standing-hamstring": fold, "stair-runs": highKnees, "bounding": powerSkip, "crab-walk": bearCrawl, "duck-walk": squatPulse, "walking-knee-drive": kneeHug, "distance-run": run, "stickhandling-session": stickhandle, "side-reach": sideReach, "standing-groin": groin, "figure-4": figure4,
     ]
 }
 

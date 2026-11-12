@@ -105,6 +105,14 @@ struct TrainView: View {
                     toolTile("Must-Dos", "Mandatory every time", "checklist", Theme.amber)
                 }
             }
+            HStack(spacing: 10) {
+                NavigationLink { AimTrainerView() } label: {
+                    toolTile("Aim Trainer", "Random target calls", "target", Color(hex: 0xB8F36B))
+                }
+                NavigationLink { HandsCallerView() } label: {
+                    toolTile("Hands Caller", "React to called moves", "waveform", Color(hex: 0xF5D76E))
+                }
+            }
             .buttonStyle(PressableStyle())
         }
     }

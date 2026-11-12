@@ -258,7 +258,7 @@ struct ItemRow: View {
                 }
                 .buttonStyle(.plain)
 
-                TargetStepper(value: store.targetText(item), unit: ex.measure == .reps ? ex.measure.label(store.target(item)) : nil,
+                TargetStepper(value: store.measure(item) == .lines ? "\(store.target(item))" : store.targetText(item), unit: store.measure(item) == .reps || store.measure(item) == .lines ? store.measure(item).label(store.target(item)) : nil,
                               minus: { withAnimation(.snappy) { store.adjust(item, up: false) } },
                               plus: { withAnimation(.snappy) { store.adjust(item, up: true) } })
 
@@ -279,6 +279,13 @@ struct ItemRow: View {
 
     @ViewBuilder private var menuItems: some View {
         Button { onSwap() } label: { Label("Swap exercise", systemImage: "arrow.triangle.2.circlepath") }
+        if Library.travelIDs.contains(item.exerciseID) && !item.fixed {
+            let lines = store.usesLines(item.exerciseID)
+            Button { store.setLineMode(item.exerciseID, !lines) } label: {
+                Label(lines ? "Count by \(item.exercise?.measure == .seconds ? "time" : "reps") instead" : "Count line to line",
+                      systemImage: lines ? "timer" : "arrow.left.and.right")
+            }
+        }
         Button { onSets(1) } label: { Label("Add a set", systemImage: "plus.square") }
         Button { onSets(-1) } label: { Label("Remove a set", systemImage: "minus.square") }
         Button { onMove(true) } label: { Label("Move up", systemImage: "arrow.up") }

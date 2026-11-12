@@ -228,7 +228,7 @@ enum Moves {
         case .running, .sprints: return run
         case .hurdles: return highKnees
         case .jumps: return broadJump
-        case .throws: return throwSide
+        case .throwing: return throwSide
         }
     }
 

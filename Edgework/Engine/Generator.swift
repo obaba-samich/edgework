@@ -210,7 +210,7 @@ enum Generator {
         case .jumpDay:
             return FocusPlan(main: [(.jumps, 0.7), (.power, 0.3)], finisher: [.core], warmups: 5, cooldowns: 2, minMain: 4, maxMain: 7)
         case .throwDay:
-            return FocusPlan(main: [(.throws, 0.7), (.power, 0.15), (.upperBody, 0.15)], finisher: [.core], warmups: 4, cooldowns: 2, minMain: 4, maxMain: 7)
+            return FocusPlan(main: [(.throwing, 0.7), (.power, 0.15), (.upperBody, 0.15)], finisher: [.core], warmups: 4, cooldowns: 2, minMain: 4, maxMain: 7)
         case .distance:
             return FocusPlan(main: [(.running, 1)], finisher: [.core], warmups: 3, cooldowns: 3, minMain: 1, maxMain: 3)
         case .activation:

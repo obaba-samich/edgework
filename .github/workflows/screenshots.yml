@@ -41,6 +41,9 @@ jobs:
           shot 32-food -demoData YES -showScreen food
           shot 33-aim -demoData YES -showScreen aim
           shot 35-pucks -demoData YES -showScreen pucks
+          shot 36-mealgen -demoData YES -showScreen mealgen
+          shot 37-scan -demoData YES -showScreen scan
+          shot 38-settings-track -demoData YES -sport track -showScreen settings
           shot 40-track-today -demoData YES -sport track -startTab 0
           shot 41-track-train -demoData YES -sport track -startTab 1
           shot 42-track-prs -demoData YES -sport track -showScreen prs

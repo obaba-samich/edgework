@@ -8,8 +8,9 @@ struct LibraryView: View {
     @State private var favoritesOnly = false
 
     private var results: [Exercise] {
-        Library.all.filter { ex in
-            (category == nil || ex.category == category)
+        let hidden: Set<Category> = store.data.settings.sport == .track ? Category.hockeyOnly : Category.trackOnly
+        return Library.all.filter { ex in
+            (category == nil ? !hidden.contains(ex.category) : ex.category == category)
                 && (!onlyMine || ex.equipment.allSatisfy { store.data.settings.equipment.contains($0) })
                 && (!favoritesOnly || store.isFavorite(ex.id))
                 && (query.isEmpty || ex.name.localizedCaseInsensitiveContains(query)
@@ -68,7 +69,9 @@ struct LibraryView: View {
                     Button { category = nil } label: {
                         Chip(text: "All \(Library.all.count)", color: Theme.ice, filled: category == nil)
                     }
-                    ForEach(Category.allCases) { c in
+                    ForEach(Category.allCases.filter { c in
+                        !(store.data.settings.sport == .track ? Category.hockeyOnly : Category.trackOnly).contains(c)
+                    }) { c in
                         Button { category = category == c ? nil : c } label: {
                             Chip(text: c.title, symbol: c.symbol, color: c.color, filled: category == c)
                         }

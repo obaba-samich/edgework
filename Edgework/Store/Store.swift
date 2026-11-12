@@ -371,6 +371,15 @@ final class Store: ObservableObject {
         haptic(.medium)
     }
 
+    func dayTitle(_ t: DayType) -> String {
+        guard data.settings.sport == .track else { return t.title }
+        switch t {
+        case .game: return "Meet Day"
+        case .postGame: return "Day After Meet"
+        default: return t.title
+        }
+    }
+
     /// "After the game · 7:00 PM" style label when today's workout follows an event.
     func afterEventLabel(for date: Date) -> String? {
         guard let t = afterEvent(for: date) else { return nil }

@@ -34,9 +34,11 @@ struct RootView: View {
             LibraryView()
                 .tabItem { Label("Library", systemImage: "books.vertical.fill") }
                 .tag(2)
-            FuelView()
-                .tabItem { Label("Fuel", systemImage: "fork.knife") }
-                .tag(3)
+            if store.data.settings.showFuel {
+                FuelView()
+                    .tabItem { Label("Fuel", systemImage: "fork.knife") }
+                    .tag(3)
+            }
             StatsView()
                 .tabItem { Label("Progress", systemImage: "chart.bar.xaxis") }
                 .tag(4)
@@ -64,6 +66,10 @@ struct RootView: View {
                     ManualLogView()
                 } else if screen.id == "settings" {
                     SettingsView()
+                } else if screen.id == "mealgen" {
+                    MealGeneratorView(meal: .postWorkout, date: Date())
+                } else if screen.id == "scan" {
+                    FoodScanView(mode: .label) { _ in }
                 } else if screen.id == "prs" {
                     TrackPRsView()
                 } else if screen.id == "pace" {

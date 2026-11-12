@@ -175,7 +175,9 @@ enum Generator {
         items += main
 
         // Must-dos the player set as mandatory for every workout.
-        for var it in settings.mustDos where it.exercise != nil {
+        for var it in settings.mustDos where it.exercise.map({ ex in
+            settings.sport == .hockey ? !Category.trackOnly.contains(ex.category) : !Category.hockeyOnly.contains(ex.category)
+        }) ?? false {
             it.id = UUID()
             it.block = .musts
             used.insert(it.exerciseID)

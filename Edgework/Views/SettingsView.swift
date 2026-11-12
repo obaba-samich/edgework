@@ -34,6 +34,7 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 profile
+                sportSection
                 player
                 workout
                 goals
@@ -44,6 +45,7 @@ struct SettingsView: View {
                 schedule
                 notifications
                 nutrition
+                features
                 during
                 data
                 about
@@ -77,6 +79,8 @@ struct SettingsView: View {
                 Text("History, benchmarks, custom workouts and settings will be deleted. This can't be undone.")
             }
             .onChange(of: st.gameDays) { _, _ in rebuildIfAuto() }
+            .onChange(of: st.normalOnEventDays) { _, _ in rebuildIfAuto(); refreshNotifications() }
+            .onChange(of: st.adjustAfterEvents) { _, _ in rebuildIfAuto() }
             .onChange(of: st.practiceDays) { _, _ in rebuildIfAuto() }
             .onChange(of: st.remindDaily) { _, _ in refreshNotifications() }
             .onChange(of: st.remindGame) { _, _ in refreshNotifications() }
@@ -123,6 +127,41 @@ struct SettingsView: View {
                 }
             }
             .padding(.vertical, 4)
+        }
+        .listRowBackground(Theme.surface)
+    }
+
+    private var sportSection: some View {
+        Section {
+            Picker("Sport", selection: Binding(get: { st.sport }, set: { store.setSport($0) })) {
+                ForEach(Sport.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            if st.sport == .track {
+                Picker("Event group", selection: s.trackGroup) {
+                    ForEach(TrackGroup.allCases) { Text($0.title).tag($0) }
+                }
+            }
+        } header: { Text("Sport") } footer: {
+            Text(st.sport == .track
+                 ? "Track mode: sprint, hurdle, jump, throw and distance workouts, track tools and a red theme. The event group decides what the daily workout rotates through."
+                 : "Hockey mode: on-ice skill tools, hockey drills and the ice-blue theme.")
+        }
+        .listRowBackground(Theme.surface)
+        .onChange(of: st.trackGroup) { _, _ in rebuildIfAuto() }
+    }
+
+    private var features: some View {
+        Section {
+            Toggle("Fuel tab", isOn: s.showFuel)
+            Toggle("Meal generator", isOn: s.showMealGenerator)
+            Toggle("Daily readiness check-in", isOn: s.showReadiness)
+            Toggle("Daily goals card", isOn: s.showDailyGoals)
+            Toggle("Animated exercise figures", isOn: s.showFigures)
+            Toggle("Coach's tips", isOn: s.showTips)
+            Toggle("Hockey skill tools", isOn: s.showHockeyTools)
+        } header: { Text("Features") } footer: {
+            Text("Turn off anything you don't use. Your data is kept, it's just hidden.")
         }
         .listRowBackground(Theme.surface)
     }
@@ -280,6 +319,10 @@ struct SettingsView: View {
                     Text(store.data.events.isEmpty ? "Not set up" : "\(store.upcomingEvents.count) upcoming").foregroundStyle(Theme.text2)
                 }
             }
+            Toggle("Keep my normal workouts on game days", isOn: s.normalOnEventDays)
+            if st.normalOnEventDays {
+                Toggle("Make workouts after games/practices lighter", isOn: s.adjustAfterEvents)
+            }
             NavigationLink {
                 WeeklyScheduleView()
             } label: {
@@ -290,7 +333,9 @@ struct SettingsView: View {
                 }
             }
         } header: { Text("Schedule") } footer: {
-            Text("Import your Crossbar calendar so game days get an activation and the next day a recovery session. Or tap any day on Today to mark it by hand.")
+            Text(st.normalOnEventDays
+                 ? "Games and practices won't change your workout. You'll train after the event, and the reminder comes after it ends. With lighter workouts on, after a game you get about 15% less volume, no jumping or heavy legs, and extra stretching."
+                 : "Import your Crossbar calendar so game days get an activation and the next day a recovery session. Or tap any day on Today to mark it by hand.")
         }
         .listRowBackground(Theme.surface)
     }

@@ -288,17 +288,33 @@ enum Moves {
 // MARK: - View
 
 struct FigureView: View {
+    @EnvironmentObject var store: Store
     let move: Move
+    let symbol: String
     var color: Color = Theme.ice
     var animate = true
 
     init(exercise: Exercise, color: Color? = nil, animate: Bool = true) {
         move = Moves.move(for: exercise)
+        symbol = exercise.symbol
         self.color = color ?? exercise.category.color
         self.animate = animate
     }
 
     var body: some View {
+        if store.data.settings.showFigures {
+            animated
+        } else {
+            Image(systemName: symbol)
+                .resizable().scaledToFit()
+                .padding(28)
+                .foregroundStyle(color)
+                .symbolRenderingMode(.hierarchical)
+                .aspectRatio(1, contentMode: .fit)
+        }
+    }
+
+    private var animated: some View {
         TimelineView(.animation(paused: !animate)) { tl in
             Canvas { ctx, size in
                 draw(ctx: ctx, size: size, time: tl.date.timeIntervalSinceReferenceDate)

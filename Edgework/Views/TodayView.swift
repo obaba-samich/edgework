@@ -25,8 +25,8 @@ struct TodayView: View {
                     if let today = store.data.today {
                         TodayHero(state: today)
                     }
-                    ReadinessCard()
-                    DailyGoalsCard()
+                    if store.data.settings.showReadiness { ReadinessCard() }
+                    if store.data.settings.showDailyGoals { DailyGoalsCard() }
                     IntensityCard()
                     statsRow
                     Button { logging = true } label: {
@@ -34,7 +34,7 @@ struct TodayView: View {
                     }
                     .buttonStyle(SecondaryButtonStyle(color: Theme.ice))
                     quickStarts
-                    tipCard
+                    if store.data.settings.showTips { tipCard }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -204,7 +204,7 @@ struct TodayHero: View {
         let dayType = store.dayType(for: Date())
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Chip(text: dayType.title, symbol: dayType.symbol, color: dayType.color)
+                Chip(text: store.dayTitle(dayType), symbol: dayType.symbol, color: dayType.color)
                 if let m = store.data.settings.trainTimes[String(Day.cal.component(.weekday, from: Date()))] {
                     Chip(text: Day.start(Date()).addingTimeInterval(TimeInterval(m * 60)).formatted(date: .omitted, time: .shortened),
                          symbol: "clock", color: Theme.text2)
@@ -231,6 +231,9 @@ struct TodayHero: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
+                if let after = store.afterEventLabel(for: Date()) {
+                    Chip(text: after, symbol: "arrow.turn.down.right", color: Theme.amber)
+                }
                 Overline("Today's workout", color: w.focus.color)
                 Text(w.title).font(.display(32)).foregroundStyle(Theme.text)
                 Text(w.subtitle).font(.subheadline).foregroundStyle(Theme.text2)
@@ -400,7 +403,7 @@ struct DayPreviewSheet: View {
                                     Button {
                                         store.setDayType(t == store.scheduledType(for: date) ? nil : t, for: date)
                                     } label: {
-                                        Chip(text: t.title, symbol: t.symbol, color: t == .off ? Theme.ice : t.color, filled: selected)
+                                        Chip(text: store.dayTitle(t), symbol: t.symbol, color: t == .off ? Theme.ice : t.color, filled: selected)
                                     }
                                     .buttonStyle(PressableStyle())
                                 }

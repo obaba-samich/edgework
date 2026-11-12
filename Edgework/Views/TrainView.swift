@@ -5,6 +5,7 @@ struct TrainView: View {
     @State private var genFocus: Focus = .power
     @State private var genMinutes = 30
     @State private var building: Workout?
+    @State private var showProfile = false
 
     private let minuteOptions = [15, 20, 30, 45, 60, 75]
 
@@ -22,6 +23,12 @@ struct TrainView: View {
             }
             .screenBackground()
             .navigationTitle("Train")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showProfile = true } label: { Image(systemName: "gearshape.fill") }
+                }
+            }
+            .sheet(isPresented: $showProfile) { SettingsView().environmentObject(store) }
             .sheet(item: $building) { w in
                 BuilderView(workout: w) { store.saveCustom($0) }
                     .environmentObject(store)
@@ -80,6 +87,22 @@ struct TrainView: View {
                 }
                 NavigationLink { BenchmarksView() } label: {
                     toolTile("Combine Tests", "Track your numbers", "chart.line.uptrend.xyaxis", Theme.green)
+                }
+            }
+            HStack(spacing: 10) {
+                NavigationLink { ShotTrackerView() } label: {
+                    toolTile("Shot Tracker", "Count every puck", "scope", Color(hex: 0xB8F36B))
+                }
+                NavigationLink { StickhandlingView() } label: {
+                    toolTile("Stickhandling", "Timer & daily minutes", "figure.hockey", Color(hex: 0xF5D76E))
+                }
+            }
+            HStack(spacing: 10) {
+                NavigationLink { RunLogView() } label: {
+                    toolTile("Running", "Weekly distance", "figure.run", Color(hex: 0x22D3EE))
+                }
+                NavigationLink { MustDosEditor() } label: {
+                    toolTile("Must-Dos", "Mandatory every time", "checklist", Theme.amber)
                 }
             }
             .buttonStyle(PressableStyle())

@@ -16,6 +16,8 @@ struct SettingsView: View {
     @State private var importResult: String?
     @State private var confirmReset = false
     @State private var regenerated = false
+    @Environment(\.isPresented) private var isPresented
+    @Environment(\.dismiss) private var dismiss
 
     private var s: Binding<Settings> { $store.data.settings }
     private var st: Settings { store.data.settings }
@@ -34,11 +36,13 @@ struct SettingsView: View {
                 profile
                 player
                 workout
+                goals
                 warmup
                 running
                 difficulty
                 schedule
                 notifications
+                nutrition
                 during
                 data
                 about
@@ -47,6 +51,11 @@ struct SettingsView: View {
             .screenBackground()
             .scrollDismissesKeyboard(.immediately)
             .navigationTitle("Profile")
+            .toolbar {
+                if isPresented {
+                    ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                }
+            }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
                 guard case .success(let url) = result else { return }
                 let access = url.startAccessingSecurityScopedResource()
@@ -72,6 +81,11 @@ struct SettingsView: View {
             .onChange(of: st.remindGame) { _, _ in refreshNotifications() }
             .onChange(of: st.remindStreak) { _, _ in refreshNotifications() }
             .onChange(of: st.remindMinute) { _, _ in refreshNotifications() }
+            .onChange(of: st.trainTimes) { _, _ in refreshNotifications() }
+            .onChange(of: st.runRemind) { _, _ in refreshNotifications() }
+            .onChange(of: st.runRemindDays) { _, _ in refreshNotifications() }
+            .onChange(of: st.runMinute) { _, _ in refreshNotifications() }
+            .onChange(of: st.remindWater) { _, _ in refreshNotifications() }
         }
     }
 
@@ -82,7 +96,7 @@ struct SettingsView: View {
 
     private func refreshNotifications() {
         Task {
-            if st.remindDaily || st.remindGame || st.remindStreak { _ = await Notifier.requestPermission() }
+            if st.remindDaily || st.remindGame || st.remindStreak || st.runRemind || st.remindWater { _ = await Notifier.requestPermission() }
             Notifier.reschedule(store)
         }
     }
@@ -261,17 +275,80 @@ struct SettingsView: View {
         .listRowBackground(Theme.surface)
     }
 
+    private var runTime: Binding<Date> {
+        Binding(get: { Day.start(Date()).addingTimeInterval(TimeInterval(st.runMinute * 60)) },
+                set: { d in
+                    let c = Day.cal.dateComponents([.hour, .minute], from: d)
+                    store.data.settings.runMinute = (c.hour ?? 7) * 60 + (c.minute ?? 0)
+                })
+    }
+
     private var notifications: some View {
         Section {
-            Toggle("Daily workout reminder", isOn: s.remindDaily)
-            if st.remindDaily {
-                DatePicker("Time", selection: reminderTime, displayedComponents: .hourAndMinute)
+            NavigationLink {
+                TrainingTimesView()
+            } label: {
+                HStack {
+                    Label("Workout times", systemImage: "clock.fill")
+                    Spacer()
+                    Text(st.trainTimes.isEmpty ? "Not set" : "\(st.trainTimes.count) days").foregroundStyle(Theme.text2)
+                }
             }
+            Toggle("Workout reminders", isOn: s.remindDaily)
+            if st.remindDaily && st.trainTimes.isEmpty {
+                DatePicker("Every day at", selection: reminderTime, displayedComponents: .hourAndMinute)
+            }
+            Toggle("Run reminders", isOn: s.runRemind)
+            if st.runRemind {
+                WeekdayPicker(title: "Run days", color: Color(hex: 0x22D3EE), selection: s.runRemindDays)
+                DatePicker("Run time", selection: runTime, displayedComponents: .hourAndMinute)
+            }
+            Toggle("Water reminders (every 2 h)", isOn: s.remindWater)
             Toggle("Game-day activation reminder", isOn: s.remindGame)
             Toggle("Streak saver (8 PM)", isOn: s.remindStreak)
-        } header: { Text("Notifications") } footer: {
-            Text("Game reminders come 3 hours before games on your imported calendar.")
+        } header: { Text("Schedule & reminders") } footer: {
+            Text("Set a time for each day you train and you'll get a reminder with that day's workout. Shot-goal reminders come at 7 PM if you're short.")
         }
+        .listRowBackground(Theme.surface)
+    }
+
+    private var goals: some View {
+        Section {
+            Stepper("Shots per day: \(st.shotGoal)", value: s.shotGoal, in: 0...1000, step: 25)
+            Stepper("Stickhandling: \(st.stickGoal) min/day", value: s.stickGoal, in: 0...120, step: 5)
+            Stepper("Water: \(st.waterGoal) glasses/day", value: s.waterGoal, in: 0...20)
+            Stepper("Running: \(store.distanceText(st.runGoalKm))/week", value: s.runGoalKm, in: 0...150, step: 1)
+            NavigationLink {
+                MustDosEditor()
+            } label: {
+                HStack {
+                    Label("Must-dos in every workout", systemImage: "checklist")
+                    Spacer()
+                    Text(st.mustDos.isEmpty ? "None" : "\(st.mustDos.count)").foregroundStyle(Theme.text2)
+                }
+            }
+        } header: { Text("Goals & must-dos") } footer: {
+            Text("Must-dos are mandatory items, like a required run or 100 shots, added to every generated workout.")
+        }
+        .listRowBackground(Theme.surface)
+    }
+
+    private var nutrition: some View {
+        Section {
+            NavigationLink {
+                NutritionSettingsView()
+            } label: {
+                HStack {
+                    Label("Nutrition profile", systemImage: "fork.knife")
+                    Spacer()
+                    Text("\(Int(store.targets.kcal)) kcal · \(Int(store.targets.protein))g P").foregroundStyle(Theme.text2)
+                }
+            }
+            Picker("Units", selection: s.units) {
+                ForEach(Units.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+        } header: { Text("Nutrition") }
         .listRowBackground(Theme.surface)
     }
 
@@ -581,6 +658,184 @@ struct CalendarView: View {
         .alert(message ?? "", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             Button("OK", role: .cancel) {}
         }
+    }
+}
+
+struct TrainingTimesView: View {
+    @EnvironmentObject var store: Store
+
+    private func binding(_ wd: Int) -> Binding<Date> {
+        Binding(get: { Day.start(Date()).addingTimeInterval(TimeInterval((store.data.settings.trainTimes[String(wd)] ?? 17 * 60) * 60)) },
+                set: { d in
+                    let c = Day.cal.dateComponents([.hour, .minute], from: d)
+                    store.data.settings.trainTimes[String(wd)] = (c.hour ?? 17) * 60 + (c.minute ?? 0)
+                })
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                ForEach(Day.mondayFirst, id: \.self) { wd in
+                    let on = store.data.settings.trainTimes[String(wd)] != nil
+                    HStack {
+                        Toggle(isOn: Binding(get: { on }, set: { v in store.data.settings.trainTimes[String(wd)] = v ? 17 * 60 : nil })) {
+                            Text(Calendar.current.weekdaySymbols[wd - 1])
+                        }
+                        .fixedSize()
+                        Spacer()
+                        if on {
+                            DatePicker("", selection: binding(wd), displayedComponents: .hourAndMinute).labelsHidden()
+                        } else {
+                            Text("Rest").foregroundStyle(Theme.text3)
+                        }
+                    }
+                }
+            } footer: {
+                Text("Turn on Workout reminders in Profile to get notified at these times. Today shows your planned time.")
+            }
+            .listRowBackground(Theme.surface)
+            Section {
+                Button("Same time every day (5:00 PM)") {
+                    for wd in 1...7 { store.data.settings.trainTimes[String(wd)] = 17 * 60 }
+                }
+                Button("Clear all", role: .destructive) { store.data.settings.trainTimes = [:] }
+            }
+            .listRowBackground(Theme.surface)
+        }
+        .scrollContentBackground(.hidden)
+        .screenBackground()
+        .navigationTitle("Workout times")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct MustDosEditor: View {
+    @EnvironmentObject var store: Store
+    @State private var picking = false
+
+    private var items: Binding<[WorkoutItem]> { $store.data.settings.mustDos }
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(Store.mustDoPresets.indices, id: \.self) { i in
+                    Button { store.addMustDoPreset(i) } label: {
+                        Label(Store.mustDoPresets[i].title, systemImage: "plus.circle")
+                    }
+                }
+                Button { picking = true } label: { Label("Pick any exercise", systemImage: "list.bullet") }
+            } header: { Text("Add") } footer: {
+                Text("Runs, shots, stickhandling, push-ups: anything you have to do every time.")
+            }
+            .listRowBackground(Theme.surface)
+
+            Section {
+                if store.data.settings.mustDos.isEmpty {
+                    Text("No must-dos yet.").foregroundStyle(Theme.text2)
+                }
+                ForEach(items) { $item in
+                    if let ex = item.exercise {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 10) {
+                                IconBadge(symbol: ex.symbol, color: ex.category.color, size: 32)
+                                Text(ex.name).font(.subheadline.weight(.semibold))
+                            }
+                            Stepper("\(item.sets) sets", value: $item.sets, in: 1...20).font(.footnote)
+                            Stepper("\(ex.measure.format(item.base))\(ex.measure == .reps ? " reps" : "")", value: $item.base, in: 1...20000,
+                                    step: ex.measure == .reps ? 5 : (ex.measure == .meters ? 100 : 30))
+                                .font(.footnote)
+                        }
+                    }
+                }
+                .onDelete { items.wrappedValue.remove(atOffsets: $0) }
+                .onMove { items.wrappedValue.move(fromOffsets: $0, toOffset: $1) }
+            } header: { Text("Your must-dos") }
+            .listRowBackground(Theme.surface)
+
+            Section {
+                Toggle("Also add to programs", isOn: $store.data.settings.mustDosInPrograms)
+            } footer: { Text("Must-dos always go into generated workouts. Turn this on to add them to built-in programs too.") }
+            .listRowBackground(Theme.surface)
+        }
+        .scrollContentBackground(.hidden)
+        .screenBackground()
+        .navigationTitle("Must-dos")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { EditButton() }
+        .sheet(isPresented: $picking) {
+            ExercisePicker { picked in
+                for ex in picked {
+                    var it = store.item(for: ex, block: .main)
+                    it.block = .musts
+                    items.wrappedValue.append(it)
+                }
+            }
+            .environmentObject(store)
+        }
+    }
+}
+
+struct NutritionSettingsView: View {
+    @EnvironmentObject var store: Store
+    private var s: Binding<Settings> { $store.data.settings }
+    private var st: Settings { store.data.settings }
+
+    var body: some View {
+        let t = store.targets
+        let imperial = st.units == .imperial
+        Form {
+            Section {
+                HStack(spacing: 10) {
+                    target("\(Int(t.kcal))", "kcal", Theme.amber)
+                    target("\(Int(t.protein))g", "protein", Theme.green)
+                    target("\(Int(t.carbs))g", "carbs", Theme.amber)
+                    target("\(Int(t.fat))g", "fat", Theme.ice)
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+            }
+            Section {
+                Picker("Goal", selection: s.nutritionGoal) {
+                    ForEach(NutritionGoal.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                Picker("Sex", selection: s.sex) {
+                    ForEach(Sex.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                Stepper("Age: \(st.age)", value: s.age, in: 10...80)
+                Stepper(imperial ? "Weight: \(Int((st.weightKg * 2.20462).rounded())) lb" : "Weight: \(Int(st.weightKg.rounded())) kg",
+                        value: Binding(get: { imperial ? st.weightKg * 2.20462 : st.weightKg },
+                                       set: { store.data.settings.weightKg = imperial ? $0 / 2.20462 : $0 }),
+                        in: 50...400, step: 1)
+                Stepper(imperial ? "Height: \(Int(st.heightCm / 2.54) / 12)' \(Int(st.heightCm / 2.54) % 12)\"" : "Height: \(Int(st.heightCm)) cm",
+                        value: Binding(get: { imperial ? st.heightCm / 2.54 : st.heightCm },
+                                       set: { store.data.settings.heightCm = imperial ? $0 * 2.54 : $0 }),
+                        in: 40...230, step: 1)
+            } header: { Text("About you") } footer: {
+                Text("Targets use the Mifflin-St Jeor formula with an active-athlete multiplier, about 1.8 g/kg protein, and 28% of calories from fat.")
+            }
+            .listRowBackground(Theme.surface)
+            Section {
+                Stepper(st.kcalOverride == 0 ? "Calories: auto" : "Calories: \(st.kcalOverride)", value: s.kcalOverride, in: 0...6000, step: 50)
+                Stepper(st.proteinOverride == 0 ? "Protein: auto" : "Protein: \(st.proteinOverride) g", value: s.proteinOverride, in: 0...400, step: 5)
+            } header: { Text("Manual targets") } footer: { Text("Set to 0 for automatic.") }
+            .listRowBackground(Theme.surface)
+        }
+        .scrollContentBackground(.hidden)
+        .screenBackground()
+        .navigationTitle("Nutrition")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func target(_ v: String, _ label: String, _ color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(v).font(.number(18)).foregroundStyle(Theme.text)
+            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(color)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.surface))
     }
 }
 

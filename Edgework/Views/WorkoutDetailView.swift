@@ -328,14 +328,14 @@ struct ProgramScreen: View {
     @State private var saved = false
 
     var body: some View {
-        WorkoutDetailView(workout: Binding(get: { workout ?? program.workout(rest: store.data.settings.rest) },
+        WorkoutDetailView(workout: Binding(get: { workout ?? store.programWorkout(program) },
                                            set: { workout = $0 }))
             .navigationTitle(program.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        var w = workout ?? program.workout(rest: store.data.settings.rest)
+                        var w = workout ?? store.programWorkout(program)
                         w.id = UUID()
                         store.saveCustom(w)
                         saved = true

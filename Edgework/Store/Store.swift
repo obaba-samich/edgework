@@ -14,6 +14,8 @@ enum Day {
 
     static func key(_ date: Date) -> String { keyFormatter.string(from: date) }
 
+    static func parse(_ key: String) -> Date? { keyFormatter.date(from: key) }
+
     static func seed(_ date: Date) -> Int {
         let c = cal.dateComponents([.year, .month, .day], from: date)
         return (c.year ?? 0) * 10_000 + (c.month ?? 0) * 100 + (c.day ?? 0)
@@ -92,7 +94,31 @@ final class Store: ObservableObject {
             CalEvent(id: "demo-4", title: "Tournament: Wolves @ Bears", start: evening(6), allDay: false, location: "", guessed: .game),
         ]
         d.favorites = ["skater-bound", "copenhagen-plank"]
+        d.settings.trainTimes = ["2": 17 * 60, "3": 17 * 60, "4": 18 * 60, "6": 16 * 60, String(Day.cal.component(.weekday, from: today)): 17 * 60 + 30]
+        var log = DailyLog()
+        log.shots = ["wrist": 50, "snap": 15, "backhand": 10]
+        log.onTarget = 48
+        log.stickMinutes = 10
+        log.water = 5
+        log.sleep = 7.5
+        log.soreness = 2
+        log.energy = 4
+        log.runKm = 3.2
+        d.daily[Day.key(today)] = log
+        for (i, back) in [12, 9, 6, 3, 1].enumerated() {
+            var w = DailyLog()
+            w.weightKg = 72.5 - Double(i) * 0.3
+            w.runKm = back == 1 ? 2.5 : 0
+            d.daily[Day.key(Day.add(-back, to: today))] = w
+        }
+        let eaten: [(String, Double, Meal)] = [("oats-pb-banana", 1, .breakfast), ("oj", 1, .breakfast), ("turkey-sandwich", 1, .lunch),
+                                               ("apple", 1, .lunch), ("pbj", 1, .preGame), ("choc-milk", 2, .postWorkout)]
+        for (id, servings, meal) in eaten {
+            if let f = FoodDB.byID[id] { d.foods.append(FoodEntry(food: f, servings: servings, meal: meal, date: today.addingTimeInterval(9 * 3600))) }
+        }
         data = d
+        addMustDoPreset(1)
+        addMustDoPreset(0)
     }
 
     // MARK: Persistence
@@ -134,7 +160,7 @@ final class Store: ObservableObject {
     func target(_ item: WorkoutItem) -> Int {
         guard let ex = item.exercise else { return item.base }
         if item.fixed { return item.base }
-        return ex.measure.round(Double(item.base) * intensity * factor(item.exerciseID))
+        return ex.measure.round(Double(item.base) * intensity * factor(item.exerciseID) * todayScale)
     }
 
     func targetText(_ item: WorkoutItem) -> String {
@@ -323,6 +349,7 @@ final class Store: ObservableObject {
     func log(_ record: SessionRecord) {
         data.sessions.append(record)
         data.sessions.sort { $0.date > $1.date }
+        creditDaily(from: record)
         Notifier.reschedule(self)
         switch record.feeling {
         case .easy: adjustAll(up: true)

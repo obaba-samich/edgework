@@ -34,11 +34,11 @@ struct RootView: View {
             LibraryView()
                 .tabItem { Label("Library", systemImage: "books.vertical.fill") }
                 .tag(2)
+            FuelView()
+                .tabItem { Label("Fuel", systemImage: "fork.knife") }
+                .tag(3)
             StatsView()
                 .tabItem { Label("Progress", systemImage: "chart.bar.xaxis") }
-                .tag(3)
-            SettingsView()
-                .tabItem { Label("Profile", systemImage: "person.crop.circle.fill") }
                 .tag(4)
         }
         .fullScreenCover(item: $store.activeWorkout) { workout in
@@ -60,6 +60,14 @@ struct RootView: View {
                     RoutineEditor()
                 } else if screen.id == "log" {
                     ManualLogView()
+                } else if screen.id == "settings" {
+                    SettingsView()
+                } else if screen.id == "shots" {
+                    ShotTrackerView()
+                } else if screen.id == "addfood" {
+                    AddFoodView(meal: .breakfast, date: Date())
+                } else if screen.id == "food" {
+                    FoodDetailSheet(food: FoodDB.byID["pbj"]!, meal: .preGame, date: Date(), existing: nil)
                 } else {
                     TodayWorkoutScreen()
                 }

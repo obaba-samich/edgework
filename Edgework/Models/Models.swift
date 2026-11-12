@@ -4,10 +4,10 @@ import SwiftUI
 
 enum Category: String, Codable, CaseIterable, Identifiable {
     case warmup, lowerBody, upperBody, core, power, speed, conditioning, balance, mobility, stickhandling, shooting, goalie, running
-    case sprints, hurdles, jumps, throws
+    case sprints, hurdles, jumps, throwing
 
     static let hockeyOnly: Set<Category> = [.stickhandling, .shooting, .goalie]
-    static let trackOnly: Set<Category> = [.sprints, .hurdles, .jumps, .throws]
+    static let trackOnly: Set<Category> = [.sprints, .hurdles, .jumps, .throwing]
 
     var id: String { rawValue }
 
@@ -29,7 +29,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .sprints: "Sprints"
         case .hurdles: "Hurdles"
         case .jumps: "Jumps"
-        case .throws: "Throws"
+        case .throwing: "Throws"
         }
     }
 
@@ -51,7 +51,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .sprints: "figure.track.and.field"
         case .hurdles: "figure.step.training"
         case .jumps: "arrow.up.forward"
-        case .throws: "circle.circle.fill"
+        case .throwing: "circle.circle.fill"
         }
     }
 
@@ -73,7 +73,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .sprints: Color(hex: 0xFF6B5E)
         case .hurdles: Color(hex: 0xFFB547)
         case .jumps: Color(hex: 0x9B86FF)
-        case .throws: Color(hex: 0x3DDC97)
+        case .throwing: Color(hex: 0x3DDC97)
         }
     }
 
@@ -95,7 +95,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .sprints: 150
         case .hurdles: 90
         case .jumps: 90
-        case .throws: 75
+        case .throwing: 75
         }
     }
 
@@ -117,7 +117,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .sprints: 1
         case .hurdles: 2
         case .jumps: 2
-        case .throws: 3
+        case .throwing: 3
         case .mobility: 11
         }
     }
@@ -848,7 +848,7 @@ enum Sport: String, Codable, CaseIterable, Identifiable {
 }
 
 enum TrackGroup: String, Codable, CaseIterable, Identifiable {
-    case sprints, hurdles, distance, jumps, throws, multi
+    case sprints, hurdles, distance, jumps, throwing, multi
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -856,7 +856,7 @@ enum TrackGroup: String, Codable, CaseIterable, Identifiable {
         case .hurdles: "Hurdles"
         case .distance: "Distance"
         case .jumps: "Jumps"
-        case .throws: "Throws"
+        case .throwing: "Throws"
         case .multi: "Multi-events"
         }
     }
@@ -866,7 +866,7 @@ enum TrackGroup: String, Codable, CaseIterable, Identifiable {
         case .hurdles: [.hurdleDay, .trackSpeed, .strength, .tempo, .power, .speedEndurance, .mobility]
         case .distance: [.distance, .tempo, .strength, .distance, .speedEndurance, .core, .mobility]
         case .jumps: [.jumpDay, .trackSpeed, .power, .strength, .tempo, .core, .mobility]
-        case .throws: [.throwDay, .strength, .power, .throwDay, .trackSpeed, .core, .mobility]
+        case .throwing: [.throwDay, .strength, .power, .throwDay, .trackSpeed, .core, .mobility]
         case .multi: [.trackSpeed, .hurdleDay, .jumpDay, .throwDay, .strength, .tempo, .mobility]
         }
     }

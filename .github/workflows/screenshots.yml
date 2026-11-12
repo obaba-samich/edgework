@@ -35,6 +35,10 @@ jobs:
           shot() { name=$1; shift; xcrun simctl launch "$UDID" $ID "$@"; sleep 6; xcrun simctl io "$UDID" screenshot "shots/$name.png"; xcrun simctl terminate "$UDID" $ID || true; sleep 1; }
           shot 00-onboarding
           for t in 0 1 2 3 4; do shot "1$t-tab" -demoData YES -startTab $t; done
+          shot 28-settings -demoData YES -showScreen settings
+          shot 29-shots -demoData YES -showScreen shots
+          shot 31-addfood -demoData YES -showScreen addfood
+          shot 32-food -demoData YES -showScreen food
           shot 20-workout -demoData YES -showScreen today
           shot 21-exercise -demoData YES -showScreen skater-bound
           shot 22-exercise2 -demoData YES -showScreen copenhagen-plank

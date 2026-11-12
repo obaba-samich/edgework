@@ -158,6 +158,14 @@ enum Generator {
         main.sort { ($0.exercise?.category.sessionRank ?? 0) < ($1.exercise?.category.sessionRank ?? 0) }
         items += main
 
+        // Must-dos the player set as mandatory for every workout.
+        for var it in settings.mustDos where it.exercise != nil {
+            it.id = UUID()
+            it.block = .musts
+            used.insert(it.exerciseID)
+            items.append(it)
+        }
+
         // Finisher
         if wantsRunFinisher {
             let short: Set<String> = ["strides", "sprints-200", "hill-sprints", "shuttle-run", "repeats-400"]

@@ -4,6 +4,7 @@ struct TodayView: View {
     @EnvironmentObject var store: Store
     @State private var previewDay: Date?
     @State private var logging = false
+    @State private var showProfile = false
 
     private var greeting: String {
         let h = Calendar.current.component(.hour, from: Date())
@@ -24,6 +25,8 @@ struct TodayView: View {
                     if let today = store.data.today {
                         TodayHero(state: today)
                     }
+                    ReadinessCard()
+                    DailyGoalsCard()
                     IntensityCard()
                     statsRow
                     Button { logging = true } label: {
@@ -38,6 +41,9 @@ struct TodayView: View {
             }
             .screenBackground()
             .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $showProfile) {
+                SettingsView().environmentObject(store)
+            }
             .sheet(isPresented: $logging) {
                 ManualLogView().environmentObject(store)
             }
@@ -49,11 +55,22 @@ struct TodayView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Overline(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()))
-            Text(greeting)
-                .font(.display(34))
-                .foregroundStyle(Theme.text)
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 4) {
+                Overline(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                Text(greeting)
+                    .font(.display(34))
+                    .foregroundStyle(Theme.text)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+            }
+            Spacer()
+            Button { showProfile = true } label: {
+                Image(systemName: "person.crop.circle.fill")
+                    .font(.system(size: 30))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Theme.ice)
+            }
+            .buttonStyle(PressableStyle())
         }
         .padding(.top, 12)
     }
@@ -187,6 +204,10 @@ struct TodayHero: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Chip(text: dayType.title, symbol: dayType.symbol, color: dayType.color)
+                if let m = store.data.settings.trainTimes[String(Day.cal.component(.weekday, from: Date()))] {
+                    Chip(text: Day.start(Date()).addingTimeInterval(TimeInterval(m * 60)).formatted(date: .omitted, time: .shortened),
+                         symbol: "clock", color: Theme.text2)
+                }
                 Spacer()
                 Menu {
                     Picker("Focus", selection: Binding(get: { state.focus }, set: { store.setTodayFocus($0) })) {

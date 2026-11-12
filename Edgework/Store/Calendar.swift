@@ -141,6 +141,8 @@ extension Store {
                                    entries: entries, rpe: rpe, feeling: .right, note: note, activity: activity, distance: distanceKm)
         data.sessions.append(record)
         data.sessions.sort { $0.date > $1.date }
+        if activity == .run, let km = distanceKm, km > 0 { updateDaily(date) { $0.runKm += km } }
+        if !entries.isEmpty { creditDaily(from: record) }
         Notifier.reschedule(self)
     }
 }
@@ -176,9 +178,43 @@ enum Notifier {
             for d in 0..<7 {
                 let day = Day.add(d, to: Day.start(now))
                 if d == 0 && !store.sessions(on: day).isEmpty { continue }
-                let at = day.addingTimeInterval(TimeInterval(st.remindMinute * 60))
+                let wd = Day.cal.component(.weekday, from: day)
+                let minute: Int
+                if st.trainTimes.isEmpty {
+                    minute = st.remindMinute
+                } else if let m = st.trainTimes[String(wd)] {
+                    minute = m
+                } else {
+                    continue
+                }
                 let w = d == 0 ? (store.data.today?.workout ?? store.preview(for: day)) : store.preview(for: day)
-                add("daily-\(d)", "Today: \(w.title)", "\(store.estimateMinutes(w)) min · \(w.items.count) exercises. Tap to get it done.", at: at)
+                add("daily-\(d)", "Workout time: \(w.title)", "\(store.estimateMinutes(w)) min · \(w.items.count) exercises. Let's go.",
+                    at: day.addingTimeInterval(TimeInterval(minute * 60)))
+            }
+        }
+        if st.runRemind {
+            for d in 0..<7 {
+                let day = Day.add(d, to: Day.start(now))
+                let wd = Day.cal.component(.weekday, from: day)
+                guard st.runRemindDays.contains(wd) else { continue }
+                let done = store.weekRunKm
+                add("run-\(d)", "Run day", "Weekly goal \(store.distanceText(st.runGoalKm)), \(store.distanceText(done)) done so far. Lace up.",
+                    at: day.addingTimeInterval(TimeInterval(st.runMinute * 60)))
+            }
+        }
+        if st.remindWater {
+            for d in 0..<2 {
+                let day = Day.add(d, to: Day.start(now))
+                for h in [10, 12, 14, 16, 18, 20] {
+                    add("water-\(d)-\(h)", "Drink some water", "Goal: \(st.waterGoal) glasses today. Tap to log one.",
+                        at: day.addingTimeInterval(TimeInterval(h * 3600)))
+                }
+            }
+        }
+        if st.shotGoal > 0 && st.remindDaily {
+            let shots = store.daily().totalShots
+            if shots < st.shotGoal, let at = cal.date(bySettingHour: 19, minute: 0, second: 0, of: now) {
+                add("shots", "\(st.shotGoal - shots) shots to go", "Your daily goal is \(st.shotGoal). Grab the pucks.", at: at)
             }
         }
         if st.remindGame {

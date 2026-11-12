@@ -238,13 +238,14 @@ struct Exercise: Identifiable, Hashable {
 // MARK: - Workouts
 
 enum Block: String, Codable, CaseIterable, Identifiable {
-    case warmup, stretch, main, finisher, cooldown
+    case warmup, stretch, main, musts, finisher, cooldown
     var id: String { rawValue }
     var title: String {
         switch self {
         case .warmup: "Warm-up"
         case .stretch: "Static Stretch"
         case .main: "Main Set"
+        case .musts: "Must-Dos"
         case .finisher: "Finisher"
         case .cooldown: "Cool-down"
         }
@@ -752,6 +753,25 @@ struct Settings: Codable {
     var remindGame = true
     var remindStreak = false
     var autoAdvance = true
+    var trainTimes: [String: Int] = [:]
+    var runRemind = false
+    var runRemindDays: Set<Int> = []
+    var runMinute = 7 * 60
+    var remindWater = false
+    var shotGoal = 100
+    var stickGoal = 15
+    var waterGoal = 8
+    var runGoalKm = 10.0
+    var mustDos: [WorkoutItem] = []
+    var mustDosInPrograms = false
+    var units = Units.imperial
+    var weightKg = 70.0
+    var heightCm = 175.0
+    var age = 18
+    var sex = Sex.male
+    var nutritionGoal = NutritionGoal.maintain
+    var kcalOverride = 0
+    var proteinOverride = 0
     var haptics = true
     var sounds = true
     var countdown = true
@@ -793,6 +813,25 @@ struct Settings: Codable {
         remindGame = try c.decodeIfPresent(Bool.self, forKey: .remindGame) ?? d.remindGame
         remindStreak = try c.decodeIfPresent(Bool.self, forKey: .remindStreak) ?? d.remindStreak
         autoAdvance = try c.decodeIfPresent(Bool.self, forKey: .autoAdvance) ?? d.autoAdvance
+        trainTimes = try c.decodeIfPresent([String: Int].self, forKey: .trainTimes) ?? d.trainTimes
+        runRemind = try c.decodeIfPresent(Bool.self, forKey: .runRemind) ?? d.runRemind
+        runRemindDays = try c.decodeIfPresent(Set<Int>.self, forKey: .runRemindDays) ?? d.runRemindDays
+        runMinute = try c.decodeIfPresent(Int.self, forKey: .runMinute) ?? d.runMinute
+        remindWater = try c.decodeIfPresent(Bool.self, forKey: .remindWater) ?? d.remindWater
+        shotGoal = try c.decodeIfPresent(Int.self, forKey: .shotGoal) ?? d.shotGoal
+        stickGoal = try c.decodeIfPresent(Int.self, forKey: .stickGoal) ?? d.stickGoal
+        waterGoal = try c.decodeIfPresent(Int.self, forKey: .waterGoal) ?? d.waterGoal
+        runGoalKm = try c.decodeIfPresent(Double.self, forKey: .runGoalKm) ?? d.runGoalKm
+        mustDos = try c.decodeIfPresent([WorkoutItem].self, forKey: .mustDos) ?? d.mustDos
+        mustDosInPrograms = try c.decodeIfPresent(Bool.self, forKey: .mustDosInPrograms) ?? d.mustDosInPrograms
+        units = try c.decodeIfPresent(Units.self, forKey: .units) ?? d.units
+        weightKg = try c.decodeIfPresent(Double.self, forKey: .weightKg) ?? d.weightKg
+        heightCm = try c.decodeIfPresent(Double.self, forKey: .heightCm) ?? d.heightCm
+        age = try c.decodeIfPresent(Int.self, forKey: .age) ?? d.age
+        sex = try c.decodeIfPresent(Sex.self, forKey: .sex) ?? d.sex
+        nutritionGoal = try c.decodeIfPresent(NutritionGoal.self, forKey: .nutritionGoal) ?? d.nutritionGoal
+        kcalOverride = try c.decodeIfPresent(Int.self, forKey: .kcalOverride) ?? d.kcalOverride
+        proteinOverride = try c.decodeIfPresent(Int.self, forKey: .proteinOverride) ?? d.proteinOverride
     }
 }
 
@@ -817,6 +856,11 @@ struct AppData: Codable {
     var events: [CalEvent] = []
     var eventKinds: [String: EventKind] = [:]
     var lastSync: Date?
+    var daily: [String: DailyLog] = [:]
+    var foods: [FoodEntry] = []
+    var customFoods: [Food] = []
+    var favoriteFoods: Set<String> = []
+    var dayScale: [String: Double] = [:]
 
     init() {}
 
@@ -834,6 +878,11 @@ struct AppData: Codable {
         events = try c.decodeIfPresent([CalEvent].self, forKey: .events) ?? []
         eventKinds = try c.decodeIfPresent([String: EventKind].self, forKey: .eventKinds) ?? [:]
         lastSync = try c.decodeIfPresent(Date.self, forKey: .lastSync)
+        daily = try c.decodeIfPresent([String: DailyLog].self, forKey: .daily) ?? [:]
+        foods = try c.decodeIfPresent([FoodEntry].self, forKey: .foods) ?? []
+        customFoods = try c.decodeIfPresent([Food].self, forKey: .customFoods) ?? []
+        favoriteFoods = try c.decodeIfPresent(Set<String>.self, forKey: .favoriteFoods) ?? []
+        dayScale = try c.decodeIfPresent([String: Double].self, forKey: .dayScale) ?? [:]
     }
 }
 

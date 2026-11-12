@@ -756,6 +756,7 @@ struct Settings: Codable {
     var remindStreak = false
     var autoAdvance = true
     var lineMode = true
+    var puckCount = 18
     var lineCount = 2
     var measureModes: [String: String] = [:]
     var trainTimes: [String: Int] = [:]
@@ -819,6 +820,7 @@ struct Settings: Codable {
         remindStreak = try c.decodeIfPresent(Bool.self, forKey: .remindStreak) ?? d.remindStreak
         autoAdvance = try c.decodeIfPresent(Bool.self, forKey: .autoAdvance) ?? d.autoAdvance
         lineMode = try c.decodeIfPresent(Bool.self, forKey: .lineMode) ?? d.lineMode
+        puckCount = try c.decodeIfPresent(Int.self, forKey: .puckCount) ?? d.puckCount
         lineCount = try c.decodeIfPresent(Int.self, forKey: .lineCount) ?? d.lineCount
         measureModes = try c.decodeIfPresent([String: String].self, forKey: .measureModes) ?? d.measureModes
         trainTimes = try c.decodeIfPresent([String: Int].self, forKey: .trainTimes) ?? d.trainTimes

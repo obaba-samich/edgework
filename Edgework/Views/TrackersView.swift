@@ -131,6 +131,11 @@ struct ShotTrackerView: View {
                 }
                 .cardStyle(padding: 14)
 
+                NavigationLink { PuckCounterView() } label: {
+                    Label("Shoot a bucket with the Puck Counter", systemImage: "circle.grid.3x3.fill")
+                }
+                .buttonStyle(SecondaryButtonStyle(color: Color(hex: 0xB8F36B)))
+
                 chart
 
                 Text("Shooting exercises you finish in workouts (wrist, snap, slap, backhand, catch & release) count automatically.")

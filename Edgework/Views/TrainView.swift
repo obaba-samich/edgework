@@ -113,6 +113,9 @@ struct TrainView: View {
                     toolTile("Hands Caller", "React to called moves", "waveform", Color(hex: 0xF5D76E))
                 }
             }
+            NavigationLink { PuckCounterView() } label: {
+                toolTile("Puck Counter", "Shoot the bucket, pick up every puck", "circle.grid.3x3.fill", Color(hex: 0xB8F36B))
+            }
             .buttonStyle(PressableStyle())
         }
     }

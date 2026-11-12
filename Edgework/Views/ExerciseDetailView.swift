@@ -198,7 +198,6 @@ struct ExerciseDetailView: View {
                         .font(.caption.weight(.bold)).foregroundStyle(color)
                 }
             }
-        }
             if Library.travelIDs.contains(ex.id) {
                 Picker("Count", selection: Binding(
                     get: { store.data.settings.measureModes[ex.id] ?? "global" },
@@ -209,6 +208,7 @@ struct ExerciseDetailView: View {
                 }
                 .pickerStyle(.segmented)
             }
+        }
         .cardStyle()
     }
 

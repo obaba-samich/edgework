@@ -41,6 +41,8 @@ struct RootView: View {
                 .tabItem { Label("Progress", systemImage: "chart.bar.xaxis") }
                 .tag(4)
         }
+        .id(store.data.settings.sport)
+        .tint(Theme.ice)
         .fullScreenCover(item: $store.activeWorkout) { workout in
             PlayerView(workout: workout, store: store)
                 .environmentObject(store)
@@ -62,6 +64,10 @@ struct RootView: View {
                     ManualLogView()
                 } else if screen.id == "settings" {
                     SettingsView()
+                } else if screen.id == "prs" {
+                    TrackPRsView()
+                } else if screen.id == "pace" {
+                    PaceCalculatorView()
                 } else if screen.id == "pucks" {
                     PuckCounterView()
                 } else if screen.id == "aim" {

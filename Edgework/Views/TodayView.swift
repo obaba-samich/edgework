@@ -57,6 +57,7 @@ struct TodayView: View {
     private var header: some View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 4) {
+                SportMenu().padding(.bottom, 6)
                 Overline(Date().formatted(.dateTime.weekday(.wide).month(.wide).day()))
                 Text(greeting)
                     .font(.display(34))
@@ -89,7 +90,7 @@ struct TodayView: View {
             SectionHeader("Quick start", subtitle: "Ready-made sessions")
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(Programs.all.prefix(8)) { p in
+                    ForEach(Programs.forSport(store.data.settings.sport).prefix(8)) { p in
                         NavigationLink {
                             ProgramScreen(program: p)
                         } label: {
@@ -212,7 +213,7 @@ struct TodayHero: View {
                 Menu {
                     Picker("Focus", selection: Binding(get: { state.focus }, set: { store.setTodayFocus($0) })) {
                         Label("Auto (\(store.autoFocus(for: Date()).shortTitle))", systemImage: "sparkles").tag(Focus?.none)
-                        ForEach(Focus.generatable) { f in
+                        ForEach(Focus.generatable(for: store.data.settings.sport)) { f in
                             Label(f.title, systemImage: f.symbol).tag(Focus?.some(f))
                         }
                     }

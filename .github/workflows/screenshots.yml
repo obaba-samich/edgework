@@ -41,6 +41,11 @@ jobs:
           shot 32-food -demoData YES -showScreen food
           shot 33-aim -demoData YES -showScreen aim
           shot 35-pucks -demoData YES -showScreen pucks
+          shot 40-track-today -demoData YES -sport track -startTab 0
+          shot 41-track-train -demoData YES -sport track -startTab 1
+          shot 42-track-prs -demoData YES -sport track -showScreen prs
+          shot 43-track-pace -demoData YES -sport track -showScreen pace
+          shot 44-track-drill -demoData YES -sport track -showScreen block-starts
           shot 34-highknees -demoData YES -showScreen high-knees
           shot 20-workout -demoData YES -showScreen today
           shot 21-exercise -demoData YES -showScreen skater-bound

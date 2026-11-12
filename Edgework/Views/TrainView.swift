@@ -13,8 +13,9 @@ struct TrainView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    SportMenu()
                     generator
-                    tools
+                    if store.data.settings.sport == .track { trackTools } else { tools }
                     programs
                     mine
                 }
@@ -48,7 +49,7 @@ struct TrainView: View {
                 }
             }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
-                ForEach(Focus.generatable) { f in
+                ForEach(Focus.generatable(for: store.data.settings.sport)) { f in
                     Button { genFocus = f; store.haptic(.light) } label: {
                         VStack(spacing: 6) {
                             Image(systemName: f.symbol).font(.system(size: 18, weight: .semibold)).frame(height: 22)
@@ -77,6 +78,37 @@ struct TrainView: View {
     }
 
     // MARK: Tools
+
+    private var trackTools: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader("Track tools")
+            HStack(spacing: 10) {
+                NavigationLink { StopwatchView() } label: {
+                    toolTile("Stopwatch", "Laps and splits", "stopwatch.fill", Theme.ice)
+                }
+                NavigationLink { PaceCalculatorView() } label: {
+                    toolTile("Pace Calculator", "Splits for any goal", "speedometer", Theme.amber)
+                }
+            }
+            HStack(spacing: 10) {
+                NavigationLink { TrackPRsView() } label: {
+                    toolTile("PRs", "Times and marks", "trophy.fill", Theme.green)
+                }
+                NavigationLink { IntervalSetupView() } label: {
+                    toolTile("Interval Timer", "Work / rest reps", "timer", Theme.red)
+                }
+            }
+            HStack(spacing: 10) {
+                NavigationLink { RunLogView() } label: {
+                    toolTile("Running", "Weekly distance", "figure.run", Color(hex: 0x22D3EE))
+                }
+                NavigationLink { MustDosEditor() } label: {
+                    toolTile("Must-Dos", "Mandatory every time", "checklist", Theme.amber)
+                }
+            }
+        }
+        .buttonStyle(PressableStyle())
+    }
 
     private var tools: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -135,9 +167,9 @@ struct TrainView: View {
 
     private var programs: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader("Programs", subtitle: "\(Programs.all.count) built-in sessions")
+            SectionHeader("Programs", subtitle: "\(Programs.forSport(store.data.settings.sport).count) built-in sessions")
             VStack(spacing: 10) {
-                ForEach(Programs.all) { p in
+                ForEach(Programs.forSport(store.data.settings.sport)) { p in
                     NavigationLink { ProgramScreen(program: p) } label: { ProgramRow(program: p) }
                         .buttonStyle(PressableStyle())
                 }

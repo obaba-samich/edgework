@@ -623,18 +623,19 @@ struct CalendarView: View {
             .listRowBackground(Theme.surface)
 
             Section {
-                let upcoming = store.data.events.filter { $0.start >= Day.start(Date()) }.prefix(60)
+                let upcoming = store.data.events.filter { !store.data.settings.hidePastEvents || $0.start >= Day.start(Date()) }.prefix(80)
                 if upcoming.isEmpty {
                     Text("No upcoming events.").foregroundStyle(Theme.text2)
                 }
                 ForEach(Array(upcoming)) { e in
                     HStack(spacing: 12) {
                         let k = store.kind(e)
-                        Image(systemName: k == .game ? "flag.checkered" : (k == .practice ? "figure.ice.skating" : "minus.circle"))
-                            .foregroundStyle(k == .game ? Theme.red : (k == .practice ? Theme.ice : Theme.text3))
+                        Image(systemName: k.symbol)
+                            .foregroundStyle(k.color)
                             .frame(width: 22)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(e.title).font(.subheadline.weight(.semibold)).foregroundStyle(k == .ignore ? Theme.text3 : Theme.text)
+                            Text(e.title).font(.subheadline.weight(.semibold)).foregroundStyle(k.counts ? Theme.text : Theme.text3)
+                                .strikethrough(k == .skipped)
                             Text(e.allDay ? e.start.formatted(.dateTime.weekday().month().day()) : e.start.formatted(.dateTime.weekday().month().day().hour().minute()))
                                 .font(.caption).foregroundStyle(Theme.text2)
                         }
@@ -646,12 +647,27 @@ struct CalendarView: View {
                                 }
                             }
                         } label: {
-                            Chip(text: k.title, color: k == .game ? Theme.red : (k == .practice ? Theme.ice : Theme.text3))
+                            Chip(text: k.title, color: k.color)
                         }
                     }
                 }
-            } header: { Text("Upcoming") } footer: {
-                Text("Edgework guesses games and practices from event names. Tap the tag to correct one.")
+            } header: { Text(store.data.settings.hidePastEvents ? "Upcoming" : "All events") } footer: {
+                Text("Edgework guesses from the event name. Tap a tag to change it: Not going skips a practice you'll miss. Only games and practices change your training.")
+            }
+            .listRowBackground(Theme.surface)
+
+            Section {
+                Toggle("Hide past events", isOn: $store.data.settings.hidePastEvents)
+                Toggle("All-day events are placeholders", isOn: $store.data.settings.allDayIgnore)
+                KeywordEditor(title: "Always ignore titles containing", words: $store.data.settings.ignoreKeywords,
+                              placeholder: "e.g. reminder, goalie")
+                KeywordEditor(title: "Also count as practice", words: $store.data.settings.practiceKeywords,
+                              placeholder: "e.g. B2, power skate")
+                if !store.data.eventKinds.isEmpty {
+                    Button("Reset my manual tags (\(store.data.eventKinds.count))") { store.data.eventKinds = [:] }
+                }
+            } header: { Text("Detection rules") } footer: {
+                Text("Built in: reminders, TBD and cancelled are ignored; goalie-only sessions are ignored unless you're a goalie; meetings, photos and parent events get a Meeting tag; ice slots like \"B2 solo\" or \"12U shared\" count as practice.")
             }
             .listRowBackground(Theme.surface)
 
@@ -888,6 +904,48 @@ struct NutritionSettingsView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.surface))
+    }
+}
+
+struct KeywordEditor: View {
+    let title: String
+    @Binding var words: [String]
+    var placeholder = ""
+    @State private var draft = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.subheadline)
+            if !words.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(words, id: \.self) { w in
+                            Button { words.removeAll { $0 == w } } label: {
+                                Chip(text: w, symbol: "xmark", color: Theme.ice)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            HStack {
+                TextField(placeholder, text: $draft)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .onSubmit(add)
+                Button("Add", action: add).disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .font(.footnote)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func add() {
+        let w = draft.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !w.isEmpty, !words.contains(w) else { return }
+        words.append(w)
+        draft = ""
     }
 }
 

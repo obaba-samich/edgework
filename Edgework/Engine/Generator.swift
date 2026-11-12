@@ -39,9 +39,21 @@ enum Generator {
         return sets * (work + 8) + max(0, sets - 1) * rest + 10
     }
 
-    static func make(focus: Focus, minutes: Int, seed: UInt64, settings: Settings) -> Workout {
+    static func make(focus: Focus, minutes: Int, seed: UInt64, settings: Settings, afterEvent: DayType? = nil) -> Workout {
         var rng = SeededRNG(seed: seed &+ UInt64(Focus.allCases.firstIndex(of: focus) ?? 0) &* 104_729)
-        var plan = plan(for: focus)
+        var plan = plan(for: focus, sport: settings.sport)
+        // Training after a game or practice: less volume, no explosive or heavy-leg work, more stretching.
+        var settings = settings
+        if afterEvent == .game {
+            settings.lowImpact = true
+            plan.volume *= 0.85
+            plan.setsOverride = min(plan.setsOverride ?? 3, 3)
+            settings.cooldownCount += 1
+            plan.main = plan.main.filter { $0.0 != .lowerBody || plan.main.count == 1 }
+        } else if afterEvent == .practice {
+            plan.volume *= 0.92
+            settings.cooldownCount += 1
+        }
         tune(&plan, for: settings.position, focus: focus, settings: settings)
         let minutes = min(minutes, plan.maxMinutes ?? minutes)
 
@@ -52,6 +64,8 @@ enum Generator {
             if !ex.equipment.allSatisfy({ settings.equipment.contains($0) }) { return false }
             if ex.category == .goalie && settings.position != .goalie && focus != .goalie { return false }
             if !settings.includeHockey && !hockeyFocus && hockeyOnly.contains(ex.category) { return false }
+            if settings.sport == .track && hockeyOnly.contains(ex.category) && !hockeyFocus { return false }
+            if settings.sport == .hockey && Category.trackOnly.contains(ex.category) && !Focus.track.contains(focus) { return false }
             if settings.lowImpact && (ex.tags.contains(.explosive) || ex.category == .power) { return false }
             return true
         }
@@ -180,8 +194,25 @@ enum Generator {
         return Workout(title: focus.title, subtitle: focus.tagline, focus: focus, items: items)
     }
 
-    private static func plan(for focus: Focus) -> FocusPlan {
+    private static func plan(for focus: Focus, sport: Sport) -> FocusPlan {
         switch focus {
+        case .activation where sport == .track:
+            return FocusPlan(main: [(.sprints, 0.6), (.power, 0.2), (.balance, 0.2)], finisher: [], warmups: 5, cooldowns: 1,
+                             minMain: 3, maxMain: 4, setsOverride: 2, volume: 0.6, maxMinutes: 25)
+        case .trackSpeed:
+            return FocusPlan(main: [(.sprints, 0.7), (.power, 0.3)], finisher: [.core], warmups: 6, cooldowns: 2, minMain: 3, maxMain: 6)
+        case .speedEndurance:
+            return FocusPlan(main: [(.sprints, 0.7), (.running, 0.3)], finisher: [.core], warmups: 6, cooldowns: 2, minMain: 2, maxMain: 4)
+        case .tempo:
+            return FocusPlan(main: [(.running, 0.6), (.core, 0.4)], finisher: [], warmups: 4, cooldowns: 3, minMain: 2, maxMain: 5)
+        case .hurdleDay:
+            return FocusPlan(main: [(.hurdles, 0.7), (.sprints, 0.3)], finisher: [.core], warmups: 5, cooldowns: 2, minMain: 4, maxMain: 7)
+        case .jumpDay:
+            return FocusPlan(main: [(.jumps, 0.7), (.power, 0.3)], finisher: [.core], warmups: 5, cooldowns: 2, minMain: 4, maxMain: 7)
+        case .throwDay:
+            return FocusPlan(main: [(.throws, 0.7), (.power, 0.15), (.upperBody, 0.15)], finisher: [.core], warmups: 4, cooldowns: 2, minMain: 4, maxMain: 7)
+        case .distance:
+            return FocusPlan(main: [(.running, 1)], finisher: [.core], warmups: 3, cooldowns: 3, minMain: 1, maxMain: 3)
         case .activation:
             return FocusPlan(main: [(.power, 0.4), (.speed, 0.4), (.balance, 0.2)], finisher: [], warmups: 4, cooldowns: 1,
                              minMain: 3, maxMain: 4, setsOverride: 2, volume: 0.6, maxMinutes: 20)

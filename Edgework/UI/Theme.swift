@@ -2,15 +2,19 @@ import SwiftUI
 import UIKit
 
 enum Theme {
-    static let bg = Color(hex: 0x080D18)
-    static let surface = Color(hex: 0x111827)
-    static let surface2 = Color(hex: 0x1A2335)
+    /// Set by the store whenever the sport changes. Track tints the app warm red; hockey stays ice blue.
+    static var sport = Sport.hockey
+    private static var track: Bool { sport == .track }
+
+    static var bg: Color { track ? Color(hex: 0x100A0C) : Color(hex: 0x080D18) }
+    static var surface: Color { track ? Color(hex: 0x1C1316) : Color(hex: 0x111827) }
+    static var surface2: Color { track ? Color(hex: 0x271B1F) : Color(hex: 0x1A2335) }
     static let stroke = Color.white.opacity(0.07)
     static let text = Color(hex: 0xEDF2FA)
-    static let text2 = Color(hex: 0x8D99B2)
-    static let text3 = Color(hex: 0x5A6680)
-    static let ice = Color(hex: 0x7CD4FF)
-    static let iceDeep = Color(hex: 0x2F8CFF)
+    static var text2: Color { track ? Color(hex: 0xB0979C) : Color(hex: 0x8D99B2) }
+    static var text3: Color { track ? Color(hex: 0x7A6266) : Color(hex: 0x5A6680) }
+    static var ice: Color { track ? Color(hex: 0xFF8A7A) : Color(hex: 0x7CD4FF) }
+    static var iceDeep: Color { track ? Color(hex: 0xE5484D) : Color(hex: 0x2F8CFF) }
     static let red = Color(hex: 0xFF4D5E)
     static let green = Color(hex: 0x3DDC97)
     static let amber = Color(hex: 0xFFB547)

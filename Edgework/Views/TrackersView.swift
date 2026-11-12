@@ -12,11 +12,13 @@ struct DailyGoalsCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Overline("Daily goals")
             HStack(spacing: 8) {
+                if store.data.settings.sport == .hockey {
                 NavigationLink { ShotTrackerView() } label: {
                     goal("\(log.totalShots)", "/\(st.shotGoal) shots", Double(log.totalShots) / Double(max(1, st.shotGoal)), Color(hex: 0xB8F36B), "scope")
                 }
                 NavigationLink { StickhandlingView() } label: {
                     goal("\(log.stickMinutes)", "/\(st.stickGoal) min hands", Double(log.stickMinutes) / Double(max(1, st.stickGoal)), Color(hex: 0xF5D76E), "figure.hockey")
+                }
                 }
                 Button {
                     store.updateDaily { $0.water += 1 }

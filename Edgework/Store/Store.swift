@@ -84,6 +84,13 @@ final class Store: ObservableObject {
             }
         }
         d.factors = ["push-up": 0.85, "skater-bound": 1.2]
+        let evening: (Int) -> Date = { Day.add($0, to: today).addingTimeInterval(19 * 3600) }
+        d.events = [
+            CalEvent(id: "demo-1", title: "Practice", start: evening(1), allDay: false, location: "Main Rink", guessed: .practice),
+            CalEvent(id: "demo-2", title: "Game vs Hawks", start: evening(3), allDay: false, location: "Main Rink", guessed: .game),
+            CalEvent(id: "demo-3", title: "Team photos", start: evening(4), allDay: false, location: "", guessed: .ignore),
+            CalEvent(id: "demo-4", title: "Tournament: Wolves @ Bears", start: evening(6), allDay: false, location: "", guessed: .game),
+        ]
         d.favorites = ["skater-bound", "copenhagen-plank"]
         data = d
     }
@@ -159,15 +166,32 @@ final class Store: ObservableObject {
 
     // MARK: Schedule
 
+    func kind(_ e: CalEvent) -> EventKind { data.eventKinds[e.id] ?? e.guessed }
+
+    /// Games and practices from the imported calendar on a given day.
+    func events(on date: Date) -> [CalEvent] {
+        let k = Day.key(date)
+        return data.events.filter { Day.key($0.start) == k && kind($0) != .ignore }.sorted { $0.start < $1.start }
+    }
+
+    var upcomingEvents: [CalEvent] {
+        let now = Date().addingTimeInterval(-3 * 3600)
+        return data.events.filter { $0.start >= now && kind($0) != .ignore }.sorted { $0.start < $1.start }
+    }
+
     func scheduledType(for date: Date) -> DayType {
+        let today = events(on: date)
+        if today.contains(where: { kind($0) == .game }) { return .game }
         let wd = Day.cal.component(.weekday, from: date)
-        if data.settings.gameDays.contains(wd) { return .game }
+        if today.isEmpty && data.settings.gameDays.contains(wd) { return .game }
         let yesterday = Day.add(-1, to: date)
         let ywd = Day.cal.component(.weekday, from: yesterday)
-        if data.dayOverrides[Day.key(yesterday)] == .game || (data.dayOverrides[Day.key(yesterday)] == nil && data.settings.gameDays.contains(ywd)) {
+        let yOverride = data.dayOverrides[Day.key(yesterday)]
+        if yOverride == .game || events(on: yesterday).contains(where: { kind($0) == .game })
+            || (yOverride == nil && data.settings.gameDays.contains(ywd)) {
             return .postGame
         }
-        if data.settings.practiceDays.contains(wd) { return .practice }
+        if !today.isEmpty || data.settings.practiceDays.contains(wd) { return .practice }
         return .off
     }
 
@@ -182,24 +206,46 @@ final class Store: ObservableObject {
         }
     }
 
+    /// The focuses the auto-picker rotates through, given style and settings.
+    var focusRotation: [Focus] {
+        let st = data.settings
+        var r = st.style.rotation
+        if st.runDays && !r.contains(.run) { r.insert(.run, at: min(3, r.count)) }
+        if !st.runDays { r.removeAll { $0 == .run } }
+        if !st.includeHockey { r.removeAll { $0 == .hands } }
+        if st.position == .goalie && st.style != .general && !r.contains(.goalie) { r.insert(.goalie, at: min(2, r.count)) }
+        if st.lowImpact { r.removeAll { $0 == .power || $0 == .hiit } }
+        return r.isEmpty ? [.fullBody] : r
+    }
+
+    /// Focuses ordered by how long it's been since you trained them (longest first).
+    func rankedFocuses(before date: Date) -> [Focus] {
+        let start = Day.start(date)
+        let past = data.sessions.filter { $0.date < start }
+        let rotation = focusRotation
+        let offset = Day.seed(date) % max(1, rotation.count)
+        let scored = rotation.enumerated().map { pair -> (Focus, Double) in
+            let (i, f) = pair
+            let last = past.filter { $0.focus == f }.map(\.date).max()
+            let days = last.map { start.timeIntervalSince(Day.start($0)) / 86_400 } ?? 30
+            let tiebreak = Double((i + rotation.count - offset) % rotation.count) * 0.01
+            return (f, days - tiebreak)
+        }
+        return scored.sorted { $0.1 > $1.1 }.map(\.0)
+    }
+
     func autoFocus(for date: Date) -> Focus {
-        let wd = Day.cal.component(.weekday, from: date)
         switch dayType(for: date) {
         case .game: return .activation
         case .postGame: return .recovery
         case .practice:
-            let options: [Focus] = [.core, .mobility, .hands]
+            let options: [Focus] = data.settings.style == .general ? [.abs, .upper, .mobility] : [.core, .mobility, .upper]
             return options[Day.seed(date) % options.count]
         case .off:
-            switch wd {
-            case 2: return .strength
-            case 3: return .speed
-            case 4: return data.settings.position == .goalie ? .goalie : .core
-            case 5: return .power
-            case 6: return .conditioning
-            case 7: return .fullBody
-            default: return .mobility
-            }
+            let today = Day.start(Date())
+            let ahead = max(0, Day.cal.dateComponents([.day], from: today, to: Day.start(date)).day ?? 0)
+            let ranked = rankedFocuses(before: ahead == 0 ? date : today)
+            return ranked[ahead % ranked.count]
         }
     }
 
@@ -277,6 +323,7 @@ final class Store: ObservableObject {
     func log(_ record: SessionRecord) {
         data.sessions.append(record)
         data.sessions.sort { $0.date > $1.date }
+        Notifier.reschedule(self)
         switch record.feeling {
         case .easy: adjustAll(up: true)
         case .hard: adjustAll(up: false)

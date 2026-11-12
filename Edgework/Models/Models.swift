@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Exercise taxonomy
 
 enum Category: String, Codable, CaseIterable, Identifiable {
-    case warmup, lowerBody, upperBody, core, power, speed, conditioning, balance, mobility, stickhandling, shooting, goalie
+    case warmup, lowerBody, upperBody, core, power, speed, conditioning, balance, mobility, stickhandling, shooting, goalie, running
 
     var id: String { rawValue }
 
@@ -21,6 +21,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .stickhandling: "Stickhandling"
         case .shooting: "Shooting"
         case .goalie: "Goalie"
+        case .running: "Running"
         }
     }
 
@@ -38,6 +39,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .stickhandling: "figure.hockey"
         case .shooting: "scope"
         case .goalie: "shield.lefthalf.filled"
+        case .running: "figure.run"
         }
     }
 
@@ -55,6 +57,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .stickhandling: Color(hex: 0xF5D76E)
         case .shooting: Color(hex: 0xB8F36B)
         case .goalie: Color(hex: 0xB7C4D6)
+        case .running: Color(hex: 0x22D3EE)
         }
     }
 
@@ -72,6 +75,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .stickhandling: 20
         case .shooting: 30
         case .goalie: 40
+        case .running: 90
         }
     }
 
@@ -89,6 +93,7 @@ enum Category: String, Codable, CaseIterable, Identifiable {
         case .balance: 8
         case .core: 9
         case .conditioning: 10
+        case .running: 10
         case .mobility: 11
         }
     }
@@ -186,7 +191,7 @@ enum Measure: String, Codable {
         switch self {
         case .reps: return "\(value)"
         case .seconds: return value >= 60 && value % 60 == 0 ? "\(value / 60):00" : (value >= 60 ? String(format: "%d:%02d", value / 60, value % 60) : "\(value)s")
-        case .meters: return "\(value)m"
+        case .meters: return value >= 1000 ? String(format: "%.1fkm", Double(value) / 1000) : "\(value)m"
         }
     }
 
@@ -195,13 +200,13 @@ enum Measure: String, Codable {
         switch self {
         case .reps: return max(1, Int(raw.rounded()))
         case .seconds: return max(5, Int((raw / 5).rounded()) * 5)
-        case .meters: return max(5, Int((raw / 5).rounded()) * 5)
+        case .meters: return raw >= 1000 ? max(50, Int((raw / 50).rounded()) * 50) : max(5, Int((raw / 5).rounded()) * 5)
         }
     }
 }
 
 enum Tag: String, Hashable {
-    case cooldown, injuryPrevention, explosive, gameDay, noSpace
+    case cooldown, injuryPrevention, explosive, gameDay, noSpace, staticStretch, walking
 }
 
 struct Exercise: Identifiable, Hashable {
@@ -233,11 +238,12 @@ struct Exercise: Identifiable, Hashable {
 // MARK: - Workouts
 
 enum Block: String, Codable, CaseIterable, Identifiable {
-    case warmup, main, finisher, cooldown
+    case warmup, stretch, main, finisher, cooldown
     var id: String { rawValue }
     var title: String {
         switch self {
         case .warmup: "Warm-up"
+        case .stretch: "Static Stretch"
         case .main: "Main Set"
         case .finisher: "Finisher"
         case .cooldown: "Cool-down"
@@ -247,10 +253,11 @@ enum Block: String, Codable, CaseIterable, Identifiable {
 
 enum Focus: String, Codable, CaseIterable, Identifiable {
     case activation, power, strength, speed, conditioning, core, hands, fullBody, goalie, mobility, recovery, custom
+    case upper, legs, abs, hiit, run
 
     var id: String { rawValue }
 
-    static let generatable: [Focus] = [.power, .strength, .speed, .conditioning, .core, .hands, .fullBody, .goalie, .mobility, .recovery, .activation]
+    static let generatable: [Focus] = [.fullBody, .upper, .legs, .abs, .hiit, .run, .strength, .power, .speed, .conditioning, .core, .hands, .goalie, .mobility, .recovery, .activation]
 
     var title: String {
         switch self {
@@ -266,6 +273,11 @@ enum Focus: String, Codable, CaseIterable, Identifiable {
         case .mobility: "Mobility"
         case .recovery: "Recovery Flush"
         case .custom: "Custom"
+        case .upper: "Upper Body"
+        case .legs: "Leg Day"
+        case .abs: "Abs & Core Burn"
+        case .hiit: "HIIT"
+        case .run: "Run Day"
         }
     }
 
@@ -283,6 +295,11 @@ enum Focus: String, Codable, CaseIterable, Identifiable {
         case .mobility: "Mobility"
         case .recovery: "Recovery"
         case .custom: "Custom"
+        case .upper: "Upper"
+        case .legs: "Legs"
+        case .abs: "Abs"
+        case .hiit: "HIIT"
+        case .run: "Run"
         }
     }
 
@@ -300,6 +317,11 @@ enum Focus: String, Codable, CaseIterable, Identifiable {
         case .mobility: "Hips, groin and back that move like they should."
         case .recovery: "Flush the legs and bounce back for the next game."
         case .custom: "Your own build."
+        case .upper: "Chest, back, shoulders and arms."
+        case .legs: "Squats, lunges, hinges. Build the engine."
+        case .abs: "Crunches, holds and twists. Feel the burn."
+        case .hiit: "Short, sweaty intervals. Heart rate up."
+        case .run: "Strides, intervals and distance."
         }
     }
 
@@ -317,6 +339,11 @@ enum Focus: String, Codable, CaseIterable, Identifiable {
         case .mobility: "figure.flexibility"
         case .recovery: "leaf.fill"
         case .custom: "slider.horizontal.3"
+        case .upper: "dumbbell.fill"
+        case .legs: "figure.strengthtraining.functional"
+        case .abs: "figure.core.training"
+        case .hiit: "flame.fill"
+        case .run: "figure.run"
         }
     }
 
@@ -334,6 +361,11 @@ enum Focus: String, Codable, CaseIterable, Identifiable {
         case .mobility: Color(hex: 0x3DDC97)
         case .recovery: Color(hex: 0x4FD1C5)
         case .custom: Color(hex: 0x7CD4FF)
+        case .upper: Color(hex: 0x9B86FF)
+        case .legs: Color(hex: 0x5B8CFF)
+        case .abs: Color(hex: 0xFF8A5B)
+        case .hiit: Color(hex: 0xFF5FA2)
+        case .run: Color(hex: 0x22D3EE)
         }
     }
 }
@@ -409,9 +441,45 @@ struct SessionRecord: Codable, Identifiable, Hashable {
     var rpe: Int
     var feeling: Feeling
     var note: String
+    var activity: Activity?
+    var distance: Double?
 
     var minutes: Int { max(1, Int((Double(duration) / 60).rounded())) }
     var totalSets: Int { entries.reduce(0) { $0 + $1.sets } }
+}
+
+enum Activity: String, Codable, CaseIterable, Identifiable {
+    case run, skate, practice, game, gym, bike, swim, sport, walk, other
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .run: "Run"
+        case .skate: "Skate"
+        case .practice: "Team practice"
+        case .game: "Game"
+        case .gym: "Gym session"
+        case .bike: "Bike"
+        case .swim: "Swim"
+        case .sport: "Other sport"
+        case .walk: "Walk / hike"
+        case .other: "Other"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .run: "figure.run"
+        case .skate: "figure.ice.skating"
+        case .practice: "figure.hockey"
+        case .game: "flag.checkered"
+        case .gym: "dumbbell.fill"
+        case .bike: "figure.outdoor.cycle"
+        case .swim: "figure.pool.swim"
+        case .sport: "sportscourt.fill"
+        case .walk: "figure.hiking"
+        case .other: "star.fill"
+        }
+    }
+    var hasDistance: Bool { self == .run || self == .bike || self == .swim || self == .walk }
 }
 
 // MARK: - Benchmarks
@@ -572,6 +640,88 @@ enum DayType: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum WarmupMode: String, Codable, CaseIterable, Identifiable {
+    case auto, routine, none
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .auto: "Auto"
+        case .routine: "My routine"
+        case .none: "Skip"
+        }
+    }
+}
+
+enum RunMode: String, Codable, CaseIterable, Identifiable {
+    case none, warmupJog, finisher, both
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .none: "No runs"
+        case .warmupJog: "Jog to warm up"
+        case .finisher: "Run finisher"
+        case .both: "Jog + run finisher"
+        }
+    }
+}
+
+enum TrainingStyle: String, Codable, CaseIterable, Identifiable {
+    case mixed, general, hockey
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .mixed: "Mixed"
+        case .general: "General fitness"
+        case .hockey: "Hockey"
+        }
+    }
+    var detail: String {
+        switch self {
+        case .mixed: "Rotates general workouts (upper, legs, abs, HIIT) with hockey days (power, speed, hands)."
+        case .general: "Regular workouts: full body, upper, legs, abs, HIIT, mobility."
+        case .hockey: "Hockey-focused days: strength, speed, power, conditioning, hands."
+        }
+    }
+    /// Auto-focus rotation used when nothing on the calendar says otherwise.
+    var rotation: [Focus] {
+        switch self {
+        case .mixed: [.fullBody, .power, .upper, .speed, .legs, .hiit, .abs, .conditioning, .mobility]
+        case .general: [.fullBody, .upper, .legs, .hiit, .abs, .mobility]
+        case .hockey: [.strength, .speed, .core, .power, .conditioning, .fullBody, .hands, .mobility]
+        }
+    }
+}
+
+enum EventKind: String, Codable, CaseIterable, Identifiable {
+    case game, practice, ignore
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .game: "Game"
+        case .practice: "Practice"
+        case .ignore: "Ignore"
+        }
+    }
+}
+
+struct CalEvent: Codable, Identifiable, Hashable {
+    var id: String
+    var title: String
+    var start: Date
+    var allDay: Bool
+    var location: String
+    var guessed: EventKind
+
+    static func guess(_ title: String) -> EventKind {
+        let t = " " + title.lowercased() + " "
+        let practice = ["practice", "skate", "skills", "clinic", "training", "dryland", "camp", "tryout", "development", "stick time", "stick & puck", "stick and puck"]
+        let game = ["game", " vs", "vs.", " v ", " @ ", " at ", "tournament", "scrimmage", "playoff", "championship", "exhibition", "jamboree", "final", "semi"]
+        if practice.contains(where: { t.contains($0) }) { return .practice }
+        if game.contains(where: { t.contains($0) }) { return .game }
+        return .ignore
+    }
+}
+
 struct Settings: Codable {
     var name = ""
     var position = Position.forward
@@ -580,8 +730,28 @@ struct Settings: Codable {
     var rest = RestLength.normal
     var intensity = 1.0
     var equipment: Set<Equipment> = Equipment.defaults
-    var gameDays: Set<Int> = [7]
-    var practiceDays: Set<Int> = [3, 5]
+    var gameDays: Set<Int> = []
+    var practiceDays: Set<Int> = []
+    var style = TrainingStyle.mixed
+    var calendarURL = ""
+    var warmupMode = WarmupMode.auto
+    var warmupRoutine: [WorkoutItem] = []
+    var warmupCount = 5
+    var stretchCount = 3
+    var cooldownCount = 2
+    var runMode = RunMode.none
+    var runDays = true
+    var extraSets = 0
+    var maxLevel = 3
+    var includeHockey = true
+    var lowImpact = false
+    var excluded: Set<String> = []
+    var reviewFirst = true
+    var remindDaily = false
+    var remindMinute = 17 * 60
+    var remindGame = true
+    var remindStreak = false
+    var autoAdvance = true
     var haptics = true
     var sounds = true
     var countdown = true
@@ -603,6 +773,26 @@ struct Settings: Codable {
         haptics = try c.decodeIfPresent(Bool.self, forKey: .haptics) ?? d.haptics
         sounds = try c.decodeIfPresent(Bool.self, forKey: .sounds) ?? d.sounds
         countdown = try c.decodeIfPresent(Bool.self, forKey: .countdown) ?? d.countdown
+        style = try c.decodeIfPresent(TrainingStyle.self, forKey: .style) ?? d.style
+        calendarURL = try c.decodeIfPresent(String.self, forKey: .calendarURL) ?? d.calendarURL
+        warmupMode = try c.decodeIfPresent(WarmupMode.self, forKey: .warmupMode) ?? d.warmupMode
+        warmupRoutine = try c.decodeIfPresent([WorkoutItem].self, forKey: .warmupRoutine) ?? d.warmupRoutine
+        warmupCount = try c.decodeIfPresent(Int.self, forKey: .warmupCount) ?? d.warmupCount
+        stretchCount = try c.decodeIfPresent(Int.self, forKey: .stretchCount) ?? d.stretchCount
+        cooldownCount = try c.decodeIfPresent(Int.self, forKey: .cooldownCount) ?? d.cooldownCount
+        runMode = try c.decodeIfPresent(RunMode.self, forKey: .runMode) ?? d.runMode
+        runDays = try c.decodeIfPresent(Bool.self, forKey: .runDays) ?? d.runDays
+        extraSets = try c.decodeIfPresent(Int.self, forKey: .extraSets) ?? d.extraSets
+        maxLevel = try c.decodeIfPresent(Int.self, forKey: .maxLevel) ?? d.maxLevel
+        includeHockey = try c.decodeIfPresent(Bool.self, forKey: .includeHockey) ?? d.includeHockey
+        lowImpact = try c.decodeIfPresent(Bool.self, forKey: .lowImpact) ?? d.lowImpact
+        excluded = try c.decodeIfPresent(Set<String>.self, forKey: .excluded) ?? d.excluded
+        reviewFirst = try c.decodeIfPresent(Bool.self, forKey: .reviewFirst) ?? d.reviewFirst
+        remindDaily = try c.decodeIfPresent(Bool.self, forKey: .remindDaily) ?? d.remindDaily
+        remindMinute = try c.decodeIfPresent(Int.self, forKey: .remindMinute) ?? d.remindMinute
+        remindGame = try c.decodeIfPresent(Bool.self, forKey: .remindGame) ?? d.remindGame
+        remindStreak = try c.decodeIfPresent(Bool.self, forKey: .remindStreak) ?? d.remindStreak
+        autoAdvance = try c.decodeIfPresent(Bool.self, forKey: .autoAdvance) ?? d.autoAdvance
     }
 }
 
@@ -624,6 +814,9 @@ struct AppData: Codable {
     var today: TodayState?
     var dayOverrides: [String: DayType] = [:]
     var onboarded = false
+    var events: [CalEvent] = []
+    var eventKinds: [String: EventKind] = [:]
+    var lastSync: Date?
 
     init() {}
 
@@ -638,5 +831,13 @@ struct AppData: Codable {
         today = try? c.decodeIfPresent(TodayState.self, forKey: .today)
         dayOverrides = try c.decodeIfPresent([String: DayType].self, forKey: .dayOverrides) ?? [:]
         onboarded = try c.decodeIfPresent(Bool.self, forKey: .onboarded) ?? false
+        events = try c.decodeIfPresent([CalEvent].self, forKey: .events) ?? []
+        eventKinds = try c.decodeIfPresent([String: EventKind].self, forKey: .eventKinds) ?? [:]
+        lastSync = try c.decodeIfPresent(Date.self, forKey: .lastSync)
     }
+}
+
+extension SessionRecord {
+    var symbol: String { activity?.symbol ?? focus.symbol }
+    var subtitleExtra: String? { distance.map { String(format: "%.1f km", $0) } }
 }

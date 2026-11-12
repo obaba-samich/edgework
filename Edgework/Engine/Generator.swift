@@ -22,6 +22,7 @@ private struct FocusPlan {
     var setsOverride: Int? = nil
     var volume: Double = 1
     var maxMinutes: Int? = nil
+    var restScale: Double = 1
 }
 
 enum Generator {
@@ -40,12 +41,18 @@ enum Generator {
     static func make(focus: Focus, minutes: Int, seed: UInt64, settings: Settings) -> Workout {
         var rng = SeededRNG(seed: seed &+ UInt64(Focus.allCases.firstIndex(of: focus) ?? 0) &* 104_729)
         var plan = plan(for: focus)
-        tune(&plan, for: settings.position, focus: focus)
+        tune(&plan, for: settings.position, focus: focus, settings: settings)
         let minutes = min(minutes, plan.maxMinutes ?? minutes)
 
-        let available = Library.all.filter { ex in
-            ex.equipment.allSatisfy { settings.equipment.contains($0) }
-                && (ex.category != .goalie || settings.position == .goalie || focus == .goalie)
+        let hockeyFocus = focus == .hands || focus == .goalie
+        let hockeyOnly: Set<Category> = [.stickhandling, .shooting, .goalie]
+        let available = Library.all.filter { ex -> Bool in
+            if settings.excluded.contains(ex.id) || ex.level > settings.maxLevel || ex.id == "cooldown-jog" { return false }
+            if !ex.equipment.allSatisfy({ settings.equipment.contains($0) }) { return false }
+            if ex.category == .goalie && settings.position != .goalie && focus != .goalie { return false }
+            if !settings.includeHockey && !hockeyFocus && hockeyOnly.contains(ex.category) { return false }
+            if settings.lowImpact && (ex.tags.contains(.explosive) || ex.category == .power) { return false }
+            return true
         }
         func pool(_ cat: Category) -> [Exercise] { available.filter { $0.category == cat } }
 
@@ -57,12 +64,12 @@ enum Generator {
             var sets = ex.sets
             var volume = 1.0
             if isWork {
-                sets = max(1, ex.sets + settings.phase.setsDelta)
+                sets = max(1, ex.sets + settings.phase.setsDelta + (ex.sets > 1 ? settings.extraSets : 0))
                 volume = settings.phase.volume * plan.volume
                 if let o = plan.setsOverride { sets = min(sets, o) }
             }
             let base = ex.measure.round(Double(ex.base) * volume)
-            let rest = isWork ? Int((Double(ex.category.defaultRest) * settings.rest.multiplier).rounded()) : 5
+            let rest = isWork ? Int((Double(ex.category.defaultRest) * settings.rest.multiplier * plan.restScale).rounded()) : 5
             return WorkoutItem(exerciseID: ex.id, sets: sets, base: base, rest: rest, block: block)
         }
         func cost(_ item: WorkoutItem) -> Int {
@@ -70,6 +77,7 @@ enum Generator {
             return seconds(sets: item.sets, value: item.base, measure: ex.measure, perSide: ex.perSide, rest: item.rest)
         }
         func take(_ n: Int, from candidates: [Exercise], block: Block) -> [WorkoutItem] {
+            guard n > 0 else { return [] }
             var c = candidates.filter { !used.contains($0.id) }
             c.shuffle(using: &rng)
             let picked = Array(c.prefix(n))
@@ -77,16 +85,46 @@ enum Generator {
             return picked.map { makeItem($0, block) }
         }
 
-        // Warm-up
-        let warm = take(plan.warmups, from: pool(.warmup), block: .warmup)
+        let light = focus == .recovery || focus == .mobility
+        let wantsJog = (settings.runMode == .warmupJog || settings.runMode == .both) && focus != .run && !light
+        let wantsRunFinisher = (settings.runMode == .finisher || settings.runMode == .both)
+            && ![.run, .activation, .recovery, .mobility].contains(focus)
+
+        // Warm-up: walking/dynamic moves, then still stretches.
+        var warm: [WorkoutItem] = []
+        if wantsJog, let jog = Library.byID["warmup-jog"], !settings.excluded.contains(jog.id) {
+            used.insert(jog.id)
+            warm.append(makeItem(jog, .warmup))
+        }
+        switch settings.warmupMode {
+        case .routine where !settings.warmupRoutine.isEmpty:
+            for var it in settings.warmupRoutine where it.exercise != nil {
+                it.id = UUID()
+                used.insert(it.exerciseID)
+                warm.append(it)
+            }
+        case .none:
+            break
+        default:
+            let count = light ? min(plan.warmups, settings.warmupCount) : (focus == .activation ? plan.warmups : settings.warmupCount)
+            let walking = pool(.warmup).filter { $0.tags.contains(.walking) && $0.id != "warmup-jog" }
+            let still = pool(.warmup).filter { !$0.tags.contains(.walking) }
+            let nWalk = (count + 1) / 2
+            warm += take(nWalk, from: walking, block: .warmup)
+            warm += take(count - nWalk, from: still, block: .warmup)
+            if !light && focus != .activation {
+                let statics = available.filter { Library.staticStretchIDs.contains($0.id) }
+                warm += take(settings.stretchCount, from: statics, block: .stretch)
+            }
+        }
         items += warm
 
         // Cool-down (picked now so the budget is known)
         let coolPool = available.filter { $0.category == .mobility && $0.tags.contains(.cooldown) }
-        let cool = take(plan.cooldowns, from: coolPool, block: .cooldown)
+        let cool = take(light ? 0 : (focus == .activation ? plan.cooldowns : settings.cooldownCount), from: coolPool, block: .cooldown)
 
         var budget = minutes * 60 - warm.map(cost).reduce(0, +) - cool.map(cost).reduce(0, +)
-        if !plan.finisher.isEmpty { budget -= 200 }
+        if !plan.finisher.isEmpty || wantsRunFinisher { budget -= 200 }
 
         // Main
         var weights = plan.main
@@ -121,7 +159,10 @@ enum Generator {
         items += main
 
         // Finisher
-        if let fCat = plan.finisher.randomElement(using: &rng) {
+        if wantsRunFinisher {
+            let short: Set<String> = ["strides", "sprints-200", "hill-sprints", "shuttle-run", "repeats-400"]
+            items += take(1, from: pool(.running).filter { short.contains($0.id) }, block: .finisher)
+        } else if let fCat = plan.finisher.randomElement(using: &rng) {
             items += take(1, from: pool(fCat), block: .finisher)
         }
         items += cool
@@ -154,13 +195,23 @@ enum Generator {
             return FocusPlan(main: [(.lowerBody, 0.25), (.upperBody, 0.2), (.power, 0.2), (.core, 0.2), (.conditioning, 0.15)], finisher: [.conditioning], warmups: 4, cooldowns: 2, minMain: 5, maxMain: 9)
         case .goalie:
             return FocusPlan(main: [(.goalie, 0.5), (.balance, 0.2), (.mobility, 0.15), (.speed, 0.15)], finisher: [.core], warmups: 4, cooldowns: 2, minMain: 4, maxMain: 8)
+        case .upper:
+            return FocusPlan(main: [(.upperBody, 0.8), (.core, 0.2)], finisher: [.conditioning, .core], warmups: 3, cooldowns: 2, minMain: 4, maxMain: 9)
+        case .legs:
+            return FocusPlan(main: [(.lowerBody, 0.75), (.power, 0.15), (.balance, 0.1)], finisher: [.conditioning], warmups: 4, cooldowns: 2, minMain: 4, maxMain: 9)
+        case .abs:
+            return FocusPlan(main: [(.core, 1)], finisher: [.conditioning], warmups: 3, cooldowns: 2, minMain: 5, maxMain: 10)
+        case .hiit:
+            return FocusPlan(main: [(.conditioning, 0.6), (.power, 0.2), (.core, 0.2)], finisher: [.core], warmups: 3, cooldowns: 2, minMain: 5, maxMain: 10, restScale: 0.6)
+        case .run:
+            return FocusPlan(main: [(.running, 1)], finisher: [.core], warmups: 4, cooldowns: 2, minMain: 1, maxMain: 3)
         case .custom:
             return FocusPlan(main: [(.lowerBody, 0.5), (.core, 0.5)], finisher: [], warmups: 3, cooldowns: 2, minMain: 4, maxMain: 8)
         }
     }
 
-    private static func tune(_ plan: inout FocusPlan, for position: Position, focus: Focus) {
-        guard focus != .recovery && focus != .mobility && focus != .activation else { return }
+    private static func tune(_ plan: inout FocusPlan, for position: Position, focus: Focus, settings: Settings) {
+        guard [.power, .strength, .speed, .conditioning, .fullBody, .core].contains(focus), settings.style != .general else { return }
         let boost: Set<Category>
         switch position {
         case .forward: boost = [.speed, .power]
@@ -178,10 +229,15 @@ enum Generator {
     static func swap(_ item: WorkoutItem, in workout: Workout, settings: Settings) -> WorkoutItem? {
         guard let old = item.exercise else { return nil }
         let inUse = Set(workout.items.map(\.exerciseID))
-        let candidates = Library.all.filter {
-            $0.category == old.category && !inUse.contains($0.id)
-                && $0.equipment.allSatisfy { settings.equipment.contains($0) }
-                && (old.category != .mobility || item.block != .cooldown || $0.tags.contains(.cooldown))
+        let candidates = Library.all.filter { ex -> Bool in
+            if inUse.contains(ex.id) || settings.excluded.contains(ex.id) { return false }
+            if !ex.equipment.allSatisfy({ settings.equipment.contains($0) }) { return false }
+            switch item.block {
+            case .stretch: return Library.staticStretchIDs.contains(ex.id)
+            case .cooldown: return ex.category == old.category && (old.category != .mobility || ex.tags.contains(.cooldown))
+            case .warmup: return ex.category == old.category && old.tags.contains(.walking) == ex.tags.contains(.walking)
+            default: return ex.category == old.category
+            }
         }
         guard let ex = candidates.randomElement() else { return nil }
         let ratio = Double(item.base) / Double(max(1, old.base))

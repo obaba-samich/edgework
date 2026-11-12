@@ -3,6 +3,7 @@ import Charts
 
 struct StatsView: View {
     @EnvironmentObject var store: Store
+    @State private var logging = false
 
     var body: some View {
         NavigationStack {
@@ -21,6 +22,7 @@ struct StatsView: View {
             }
             .screenBackground()
             .navigationTitle("Progress")
+            .sheet(isPresented: $logging) { ManualLogView().environmentObject(store) }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink { BenchmarksView() } label: { Image(systemName: "chart.line.uptrend.xyaxis") }
@@ -239,6 +241,7 @@ struct StatsView: View {
     private var history: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "History", subtitle: nil) {
+                Button { logging = true } label: { Image(systemName: "plus.circle.fill").font(.title3) }
                 if !store.data.sessions.isEmpty {
                     NavigationLink("See all") { HistoryView() }
                         .font(.subheadline.weight(.bold))
@@ -263,7 +266,7 @@ struct SessionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(symbol: session.focus.symbol, color: session.focus.color, size: 44)
+            IconBadge(symbol: session.symbol, color: session.focus.color, size: 44)
             VStack(alignment: .leading, spacing: 3) {
                 Text(session.title).font(.headline).foregroundStyle(Theme.text).lineLimit(1)
                 Text(session.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
@@ -271,7 +274,7 @@ struct SessionRow: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
-                Text("\(session.minutes) min").font(.number(15)).foregroundStyle(Theme.text)
+                Text(session.subtitleExtra ?? "\(session.minutes) min").font(.number(15)).foregroundStyle(Theme.text)
                 Text("RPE \(session.rpe)").font(.caption.weight(.bold)).foregroundStyle(Theme.text3)
             }
         }
@@ -287,7 +290,7 @@ struct HistoryView: View {
             ForEach(store.data.sessions) { s in
                 NavigationLink { SessionDetailView(session: s) } label: {
                     HStack(spacing: 12) {
-                        IconBadge(symbol: s.focus.symbol, color: s.focus.color, size: 36)
+                        IconBadge(symbol: s.symbol, color: s.focus.color, size: 36)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(s.title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
                             Text(s.date.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(Theme.text2)
@@ -318,7 +321,7 @@ struct SessionDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Chip(text: session.focus.shortTitle, symbol: session.focus.symbol, color: session.focus.color)
+                    Chip(text: session.focus.shortTitle, symbol: session.symbol, color: session.focus.color)
                     Text(session.title).font(.display(30)).foregroundStyle(Theme.text)
                     Text(session.date.formatted(date: .complete, time: .shortened)).font(.subheadline).foregroundStyle(Theme.text2)
                 }

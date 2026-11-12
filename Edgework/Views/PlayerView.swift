@@ -149,7 +149,14 @@ final class PlayerEngine: ObservableObject {
             if store.data.settings.sounds { AudioServicesPlaySystemSound(1104) }
             store.haptic(.soft)
         }
-        if left <= 0 { complete(counted: true) }
+        if left <= 0 {
+            if case .rest? = step, !store.data.settings.autoAdvance {
+                stepEnd = nil
+                store.notify(.warning)
+                return
+            }
+            complete(counted: true)
+        }
     }
 
     /// Finish the current step. Work steps add to the completed set count.
@@ -362,33 +369,36 @@ struct PlayerView: View {
                 }
             }
 
-            ZStack {
-                if timed {
-                    Ring(progress: engine.stepProgress, color: color, lineWidth: 16)
-                        .animation(.linear(duration: 0.1), value: engine.stepProgress)
-                    VStack(spacing: 2) {
-                        Text("\(Int(ceil(engine.remaining)))")
-                            .font(.number(84, .heavy)).foregroundStyle(Theme.text)
-                            .contentTransition(.numericText(countsDown: true))
-                        Text(engine.paused ? "paused" : "seconds").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text2)
+            if timed {
+                HStack(spacing: 12) {
+                    FigureView(exercise: ex, animate: !engine.paused)
+                        .frame(width: 150, height: 150)
+                    ZStack {
+                        Ring(progress: engine.stepProgress, color: color, lineWidth: 12)
+                            .animation(.linear(duration: 0.1), value: engine.stepProgress)
+                        VStack(spacing: 0) {
+                            Text("\(Int(ceil(engine.remaining)))")
+                                .font(.number(54, .heavy)).foregroundStyle(Theme.text)
+                                .contentTransition(.numericText(countsDown: true))
+                            Text(engine.paused ? "paused" : "seconds").font(.caption.weight(.semibold)).foregroundStyle(Theme.text2)
+                        }
                     }
-                } else {
-                    Circle().fill(color.opacity(0.08))
-                    Circle().strokeBorder(color.opacity(0.35), lineWidth: 2)
-                    VStack(spacing: 0) {
-                        Text(ex.measure.format(store.target(item)).replacingOccurrences(of: "m", with: ""))
-                            .font(.number(96, .heavy)).foregroundStyle(Theme.text)
+                    .frame(width: 150, height: 150)
+                }
+            } else {
+                VStack(spacing: 4) {
+                    FigureView(exercise: ex, animate: !engine.paused)
+                        .frame(height: 170)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(ex.measure == .meters ? ex.measure.format(store.target(item)) : "\(store.target(item))")
+                            .font(.number(72, .heavy)).foregroundStyle(Theme.text)
                             .contentTransition(.numericText())
-                        Text(ex.measure == .meters ? "meters" : ex.measure.label(store.target(item)))
-                            .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text2)
+                        if ex.measure == .reps {
+                            Text(ex.measure.label(store.target(item))).font(.title3.weight(.semibold)).foregroundStyle(Theme.text2)
+                        }
                     }
-                    Image(systemName: ex.symbol)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(color)
-                        .offset(y: -88)
                 }
             }
-            .frame(width: 230, height: 230)
 
             setDots(item: item, current: set, color: color)
 

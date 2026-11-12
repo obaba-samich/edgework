@@ -460,7 +460,7 @@ struct RoutineEditor: View {
                 .onDelete { routine.wrappedValue.remove(atOffsets: $0) }
                 .onMove { routine.wrappedValue.move(fromOffsets: $0, toOffset: $1) }
             } header: {
-                Text("\(store.data.settings.warmupRoutine.count) moves · ~\(max(1, store.data.settings.warmupRoutine.map(store.estimateSeconds).reduce(0, +) / 60)) min")
+                Text(store.data.settings.warmupRoutine.isEmpty ? "No moves yet" : "\(store.data.settings.warmupRoutine.count) moves · ~\(max(1, store.data.settings.warmupRoutine.map(store.estimateSeconds).reduce(0, +) / 60)) min")
             }
             .listRowBackground(Theme.surface)
         }

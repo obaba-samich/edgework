@@ -34,6 +34,9 @@ jobs:
           xcrun simctl install "$UDID" "$APP"
           shot() { name=$1; shift; xcrun simctl launch "$UDID" $ID "$@"; sleep 6; xcrun simctl io "$UDID" screenshot "shots/$name.png"; xcrun simctl terminate "$UDID" $ID || true; sleep 1; }
           shot 00-onboarding
+          shot 01-onboarding-you -onboardPage you
+          shot 02-onboarding-track -onboardPage track
+          shot 03-onboarding-schedule -onboardPage schedule
           for t in 0 1 2 3 4; do shot "1$t-tab" -demoData YES -startTab $t; done
           shot 28-settings -demoData YES -showScreen settings
           shot 29-shots -demoData YES -showScreen shots
@@ -59,6 +62,10 @@ jobs:
           shot 26-routine -demoData YES -showScreen routine
           shot 27-log -demoData YES -showScreen log
           shot 30-player -demoData YES -autoStart YES
+          shot 53-lunge-twist -demoData YES -showScreen walking-lunge-twist
+          shot 54-tuck -demoData YES -showScreen tuck-jump
+          shot 55-howto -demoData YES -showScreen howto
+          shot 56-reminders -demoData YES -showScreen reminders
           shot 45-stick-topdown -demoData YES -showScreen figure-8
           shot 46-diet -demoData YES -showScreen diet
           shot 47-drink -demoData YES -showScreen drink

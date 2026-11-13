@@ -86,6 +86,10 @@ struct RootView: View {
                     ShotTrackerView()
                 } else if screen.id == "addfood" {
                     AddFoodView(meal: .breakfast, date: Date())
+                } else if screen.id == "howto" {
+                    HowToSheet(exercise: Library.byID["walking-lunge-twist"]!)
+                } else if screen.id == "reminders" {
+                    SettingsView(debugPage: "reminders")
                 } else if screen.id == "diet" {
                     DietNotesView()
                 } else if screen.id == "drink" {

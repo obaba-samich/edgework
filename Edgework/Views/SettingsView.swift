@@ -34,7 +34,7 @@ struct SettingsView: View {
 
     var body: some View {
         if let debugPage {
-            Form { if debugPage == "track" { trackPage } else { hockey } }
+            Form { if debugPage == "track" { trackPage } else if debugPage == "reminders" { notifications } else { hockey } }
                 .scrollContentBackground(.hidden)
                 .screenBackground()
                 .navigationTitle(debugPage == "track" ? "Track & meets" : "Hockey")

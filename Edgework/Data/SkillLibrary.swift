@@ -159,7 +159,7 @@ extension Library {
            steps: ["Run with big, powerful strides.", "Drive the knee up and push off hard.", "Hang in the air on each stride."],
            cues: ["Distance per stride", "Opposite arm drives"],
            why: "Stride power that carries over to skating."),
-        ex("hill-repeats", "Hill Repeats", .running, .seconds, 6, 30, level: 2, p: [.glutes, .quads], s: [.calves],
+        ex("hill-repeats", "Hill Repeats", .running, .seconds, 6, 30, level: 2, p: [.glutes, .quads], s: [.calves], eq: [.hill],
            sum: "Strong runs up a hill, jog down.",
            steps: ["Find a hill that takes 20–40 seconds.", "Run up strong (not all-out).", "Jog down to recover."],
            cues: ["Short stride, fast cadence", "Lean from the ankles"],

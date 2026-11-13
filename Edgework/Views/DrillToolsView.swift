@@ -19,6 +19,16 @@ struct AimTrainerView: View {
             case .topMiddle: "Bar down"
             }
         }
+        var short: String {
+            switch self {
+            case .topLeft: "TL"
+            case .topRight: "TR"
+            case .lowLeft: "LL"
+            case .lowRight: "LR"
+            case .fiveHole: "5H"
+            case .topMiddle: "BD"
+            }
+        }
         var point: CGPoint {
             switch self {
             case .topLeft: CGPoint(x: 0.16, y: 0.22)
@@ -31,132 +41,381 @@ struct AimTrainerView: View {
         }
     }
 
+    /// One called shot: a shot type at a target.
+    struct Shot: Hashable {
+        var type: ShotType
+        var zone: Zone
+        var text: String { "\(type.rawValue):\(zone.rawValue)" }
+        init(type: ShotType, zone: Zone) { self.type = type; self.zone = zone }
+        init?(_ s: Substring) {
+            let p = s.split(separator: ":")
+            guard p.count == 2, let t = ShotType(rawValue: String(p[0])), let z = Zone(rawValue: String(p[1])) else { return nil }
+            type = t; zone = z
+        }
+    }
+
+    enum Phase { case setup, calling, pickup, done }
+
+    private static let lime = Color(hex: 0xB8F36B)
+
+    @AppStorage("aimRandomize") private var randomize = true
+    @AppStorage("aimUseCustom") private var useCustom = false
+    @AppStorage("aimCustomShots") private var customRaw = ""
+    @AppStorage("aimGoal") private var goal = 50
+    @AppStorage("aimInterval") private var interval = 4.0
+    @AppStorage("puckShotType") private var fixedType = ShotType.wrist
     @State private var zones: Set<Zone> = Set(Zone.allCases)
-    @State private var interval = 4.0
-    @State private var startedAt: Date?
-    @State private var calls: [Zone] = []
+    @State private var types: Set<ShotType> = [.wrist, .snap, .backhand]
+    @State private var newType = ShotType.wrist
+    @State private var newZone = Zone.topLeft
+
+    @State private var phase = Phase.setup
+    @State private var calls: [Shot] = []
+    @State private var bucketStart: Date?
+    @State private var bucketSize = 0
+    @State private var called = 0          // shots called so far this session
+    @State private var shotsBefore = 0     // shots called before this bucket
+    @State private var byType: [ShotType: Int] = [:]
     @State private var hits = 0
     @State private var misses = 0
     @State private var lastIndex = -1
-    @State private var saved = false
+    @State private var pickedUp = 0
+    @State private var lost = 0
+    @State private var logged = false
 
+    private var custom: [Shot] {
+        get { customRaw.split(separator: ",").compactMap(Shot.init) }
+        nonmutating set { customRaw = newValue.map(\.text).joined(separator: ",") }
+    }
+    private var pucks: Int { store.data.settings.puckCount }
+    private var activePucks: Int { max(0, pucks - lost) }
+    private var remaining: Int { max(0, goal - called) }
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Overline("Shooting", color: Color(hex: 0xB8F36B))
+                    Overline("Shooting", color: Self.lime)
                     Text("Aim Trainer").font(.display(32)).foregroundStyle(Theme.text)
-                    Text("A random target lights up. Hit it before the next call.").font(.subheadline).foregroundStyle(Theme.text2)
+                    Text("A target and shot get called. Shoot a bucket, pick them up, repeat. Every shot counts toward today.")
+                        .font(.subheadline).foregroundStyle(Theme.text2)
                 }
-
-                TimelineView(.periodic(from: .now, by: 0.1)) { tl in
-                    let elapsed = startedAt.map { tl.date.timeIntervalSince($0) } ?? 0
-                    let index = startedAt == nil ? -1 : Int(elapsed / interval)
-                    let zone: Zone? = index >= 0 && index < calls.count ? calls[index] : nil
-                    let phase = startedAt == nil ? 0 : (elapsed / interval).truncatingRemainder(dividingBy: 1)
-                    VStack(spacing: 12) {
-                        NetView(target: zone, enabled: zones, progress: phase)
-                            .frame(height: 220)
-                        Text(zone?.title.uppercased() ?? "READY")
-                            .font(.display(40))
-                            .foregroundStyle(zone == nil ? Theme.text3 : Color(hex: 0xB8F36B))
-                            .contentTransition(.numericText())
-                    }
-                    .onChange(of: index) { _, new in
-                        guard new != lastIndex, new >= 0 else { return }
-                        lastIndex = new
-                        if store.data.settings.sounds { AudioServicesPlaySystemSound(1057) }
-                        store.haptic(.medium)
-                    }
+                progressCard
+                switch phase {
+                case .setup: setup
+                case .calling: calling
+                case .pickup:
+                    PuckPickupPanel(inHand: bucketSize, pickedUp: $pickedUp, isLast: remaining == 0,
+                                    onLost: { lost += $0 }, onNext: nextBucket)
+                case .done: done
                 }
-                .cardStyle()
-
-                HStack(spacing: 10) {
-                    Button { hits += 1; store.haptic(.light) } label: {
-                        VStack(spacing: 2) {
-                            Text("\(hits)").font(.number(28))
-                            Text("Hit").font(.caption.weight(.bold))
-                        }
-                        .frame(maxWidth: .infinity).frame(height: 76)
-                        .foregroundStyle(Theme.bg)
-                        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.green))
-                    }
-                    Button { misses += 1; store.haptic(.light) } label: {
-                        VStack(spacing: 2) {
-                            Text("\(misses)").font(.number(28))
-                            Text("Miss").font(.caption.weight(.bold))
-                        }
-                        .frame(maxWidth: .infinity).frame(height: 76)
-                        .foregroundStyle(Theme.text)
-                        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.surface2))
-                    }
-                }
-                .buttonStyle(PressableStyle())
-
-                if hits + misses > 0 {
-                    Text("Accuracy \(Int(Double(hits) / Double(hits + misses) * 100))% · \(hits + misses) shots")
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text2)
-                        .frame(maxWidth: .infinity)
-                }
-
-                HStack(spacing: 10) {
-                    Button {
-                        if startedAt == nil {
-                            let pool = Array(zones.isEmpty ? Set(Zone.allCases) : zones)
-                            var list: [Zone] = []
-                            for _ in 0..<400 {
-                                var z = pool.randomElement()!
-                                if pool.count > 1 { while z == list.last { z = pool.randomElement()! } }
-                                list.append(z)
-                            }
-                            calls = list
-                            lastIndex = -1
-                            startedAt = Date()
-                            UIApplication.shared.isIdleTimerDisabled = true
-                        } else {
-                            startedAt = nil
-                            UIApplication.shared.isIdleTimerDisabled = false
-                        }
-                    } label: { Label(startedAt == nil ? "Start calling" : "Stop", systemImage: startedAt == nil ? "play.fill" : "stop.fill") }
-                        .buttonStyle(PrimaryButtonStyle(color: startedAt == nil ? Color(hex: 0xB8F36B) : Theme.red))
-                    if hits + misses > 0 {
-                        Button {
-                            store.addShots(.wrist, hits + misses)
-                            store.updateDaily { $0.onTarget += hits }
-                            hits = 0
-                            misses = 0
-                            saved = true
-                        } label: { Text("Log") }
-                            .buttonStyle(SecondaryButtonStyle())
-                            .frame(width: 90)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Call every").font(.headline).foregroundStyle(Theme.text)
-                        Spacer()
-                        TargetStepper(value: String(format: "%.1fs", interval), minus: { interval = max(1.5, interval - 0.5) }, plus: { interval = min(15, interval + 0.5) })
-                    }
-                    Overline("Targets")
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
-                        ForEach(Zone.allCases) { z in
-                            Button {
-                                if zones.contains(z) { zones.remove(z) } else { zones.insert(z) }
-                            } label: { Chip(text: z.title, color: Color(hex: 0xB8F36B), filled: zones.contains(z)) }
-                                .buttonStyle(PressableStyle())
-                        }
-                    }
-                }
-                .cardStyle()
-                .disabled(startedAt != nil)
             }
             .padding(16)
         }
         .screenBackground()
         .navigationBarTitleDisplayMode(.inline)
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
-        .alert("Logged to your shot tracker", isPresented: $saved) { Button("OK", role: .cancel) {} }
+        .toolbar {
+            if phase == .calling || phase == .pickup {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("End & log") { finish() }
+                }
+            }
+        }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
+            if phase == .calling || phase == .pickup { logShots() }
+        }
+    }
+
+    // MARK: Pieces
+
+    private var progressCard: some View {
+        HStack(spacing: 18) {
+            ZStack {
+                Ring(progress: Double(called) / Double(max(1, goal)), color: Self.lime, lineWidth: 12)
+                VStack(spacing: 0) {
+                    Text("\(called)").font(.number(34, .heavy)).foregroundStyle(Theme.text).contentTransition(.numericText())
+                    Text("of \(goal)").font(.caption.weight(.semibold)).foregroundStyle(Theme.text2)
+                }
+            }
+            .frame(width: 110, height: 110)
+            VStack(alignment: .leading, spacing: 8) {
+                row("Pucks in play", "\(activePucks)", Theme.text)
+                row("Rounds left", "\(activePucks == 0 ? 0 : Int((Double(remaining) / Double(activePucks)).rounded(.up)))", Theme.text)
+                if hits + misses > 0 { row("Accuracy", "\(Int(Double(hits) / Double(hits + misses) * 100))%", Theme.green) }
+                if lost > 0 { row("Lost", "\(lost)", Theme.red) }
+            }
+        }
+        .cardStyle()
+    }
+
+    private func row(_ label: String, _ value: String, _ color: Color) -> some View {
+        HStack {
+            Text(label).font(.subheadline).foregroundStyle(Theme.text2)
+            Spacer()
+            Text(value).font(.number(16)).foregroundStyle(color)
+        }
+    }
+
+    private var setup: some View {
+        VStack(spacing: 14) {
+            VStack(spacing: 12) {
+                HStack {
+                    Text("Shots to take").font(.headline).foregroundStyle(Theme.text)
+                    Spacer()
+                    TargetStepper(value: "\(goal)", minus: { goal = max(5, goal - 5) }, plus: { goal = min(2000, goal + 5) })
+                }
+                HStack {
+                    Text("Pucks I have").font(.headline).foregroundStyle(Theme.text)
+                    Spacer()
+                    TargetStepper(value: "\(pucks)", minus: { store.data.settings.puckCount = max(1, pucks - 1) },
+                                  plus: { store.data.settings.puckCount = min(200, pucks + 1) })
+                }
+                HStack {
+                    Text("Call every").font(.headline).foregroundStyle(Theme.text)
+                    Spacer()
+                    TargetStepper(value: String(format: "%.1fs", interval), minus: { interval = max(1.5, interval - 0.5) }, plus: { interval = min(15, interval + 0.5) })
+                }
+            }
+            .cardStyle()
+
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle("Randomize shots", isOn: $randomize.animation())
+                    .font(.headline).tint(Self.lime)
+                if randomize {
+                    Text("Random targets and shot types from what you pick below.").font(.caption).foregroundStyle(Theme.text2)
+                    zonePicker
+                    typePicker
+                } else {
+                    Toggle("Select custom shots", isOn: $useCustom.animation())
+                        .font(.headline).tint(Self.lime)
+                    if useCustom {
+                        customBuilder
+                    } else {
+                        Text("Goes through your targets in order, one shot type.").font(.caption).foregroundStyle(Theme.text2)
+                        zonePicker
+                        Picker("Shot", selection: $fixedType) {
+                            ForEach(ShotType.allCases) { Text($0.title).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                }
+            }
+            .cardStyle()
+
+            Button { start() } label: { Label("Start calling", systemImage: "play.fill") }
+                .buttonStyle(PrimaryButtonStyle(color: Self.lime))
+                .disabled(!randomize && useCustom && custom.isEmpty)
+        }
+    }
+
+    private var zonePicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Overline("Targets")
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
+                ForEach(Zone.allCases) { z in
+                    Button {
+                        if zones.contains(z) { if zones.count > 1 { zones.remove(z) } } else { zones.insert(z) }
+                    } label: { Chip(text: z.title, color: Self.lime, filled: zones.contains(z)) }
+                        .buttonStyle(PressableStyle())
+                }
+            }
+        }
+    }
+
+    private var typePicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Overline("Shot types")
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
+                ForEach(ShotType.allCases) { t in
+                    Button {
+                        if types.contains(t) { if types.count > 1 { types.remove(t) } } else { types.insert(t) }
+                    } label: { Chip(text: t.title, color: t.color, filled: types.contains(t)) }
+                        .buttonStyle(PressableStyle())
+                }
+            }
+        }
+    }
+
+    private var customBuilder: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Build your own list. It's called in order and repeats until you hit your shot count.")
+                .font(.caption).foregroundStyle(Theme.text2)
+            HStack(spacing: 8) {
+                Picker("Shot", selection: $newType) { ForEach(ShotType.allCases) { Text($0.title).tag($0) } }
+                Picker("Target", selection: $newZone) { ForEach(Zone.allCases) { Text($0.title).tag($0) } }
+                Spacer()
+                Button { custom.append(Shot(type: newType, zone: newZone)); store.haptic(.light) } label: {
+                    Image(systemName: "plus.circle.fill").font(.title2).foregroundStyle(Self.lime)
+                }
+                .accessibilityLabel("Add shot")
+            }
+            .tint(Theme.text)
+            if custom.isEmpty {
+                Text("No shots yet. Pick a shot and a target, then tap +.").font(.footnote).foregroundStyle(Theme.text3)
+            } else {
+                ForEach(Array(custom.enumerated()), id: \.offset) { i, shot in
+                    HStack(spacing: 10) {
+                        Text("\(i + 1)").font(.number(13)).foregroundStyle(Theme.bg)
+                            .frame(width: 24, height: 24).background(Circle().fill(shot.type.color))
+                        Text("\(shot.type.title) · \(shot.zone.title)").foregroundStyle(Theme.text)
+                        Spacer()
+                        Button { var c = custom; c.remove(at: i); custom = c } label: {
+                            Image(systemName: "minus.circle.fill").foregroundStyle(Theme.text3)
+                        }
+                        .accessibilityLabel("Remove shot \(i + 1)")
+                    }
+                    .font(.subheadline)
+                }
+                Button("Clear list", role: .destructive) { custom = [] }.font(.footnote)
+            }
+        }
+    }
+
+    private var calling: some View {
+        VStack(spacing: 14) {
+            TimelineView(.periodic(from: .now, by: 0.1)) { tl in
+                let elapsed = bucketStart.map { tl.date.timeIntervalSince($0) } ?? 0
+                let index = bucketStart == nil ? -1 : Int(elapsed / interval)
+                let phaseFrac = (elapsed / interval).truncatingRemainder(dividingBy: 1)
+                let shot = index >= 0 && index < bucketSize && shotsBefore + index < calls.count ? calls[shotsBefore + index] : nil
+                VStack(spacing: 10) {
+                    Overline("Round \(shotsBefore / max(1, activePucks) + 1) · shot \(min(index + 1, bucketSize)) of \(bucketSize)", color: Self.lime)
+                    NetView(target: shot?.zone, enabled: randomize || !useCustom ? zones : Set(calls.map(\.zone)), progress: phaseFrac)
+                        .frame(height: 210)
+                    Text(shot?.zone.title.uppercased() ?? "READY")
+                        .font(.display(40))
+                        .foregroundStyle(shot == nil ? Theme.text3 : Self.lime)
+                    if let shot {
+                        Chip(text: shot.type.title, color: shot.type.color, filled: true)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .onChange(of: index) { _, new in callChanged(new) }
+            }
+            .cardStyle()
+
+            HStack(spacing: 10) {
+                scoreButton("Hit", hits, Theme.green, Theme.bg) { hits += 1 }
+                scoreButton("Miss", misses, Theme.surface2, Theme.text) { misses += 1 }
+            }
+            .buttonStyle(PressableStyle())
+            Text("Hit and miss are optional. Shots count either way.").font(.caption).foregroundStyle(Theme.text3)
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func scoreButton(_ label: String, _ n: Int, _ bg: Color, _ fg: Color, _ action: @escaping () -> Void) -> some View {
+        Button { action(); store.haptic(.light) } label: {
+            VStack(spacing: 2) {
+                Text("\(n)").font(.number(28))
+                Text(label).font(.caption.weight(.bold))
+            }
+            .frame(maxWidth: .infinity).frame(height: 76)
+            .foregroundStyle(fg)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(bg))
+        }
+    }
+
+    private var done: some View {
+        VStack(spacing: 14) {
+            VStack(spacing: 8) {
+                Image(systemName: "checkmark.seal.fill").font(.system(size: 46)).foregroundStyle(Theme.green)
+                Text("\(called) shots done").font(.display(34)).foregroundStyle(Theme.text)
+                if !byType.isEmpty {
+                    Text(ShotType.allCases.compactMap { t in byType[t].map { "\($0) \(t.title.lowercased())" } }.joined(separator: " · "))
+                        .font(.subheadline).foregroundStyle(Theme.text2)
+                }
+                if hits + misses > 0 {
+                    Text("\(hits) of \(hits + misses) on target").font(.subheadline).foregroundStyle(Theme.text2)
+                }
+                Text(lost == 0 ? "All \(pucks) pucks accounted for." : "\(lost) \(lost == 1 ? "puck" : "pucks") lost.")
+                    .font(.footnote).foregroundStyle(lost == 0 ? Theme.text3 : Theme.red)
+                Text("Added to today's shots.").font(.caption).foregroundStyle(Theme.text3)
+            }
+            .frame(maxWidth: .infinity)
+            .cardStyle()
+            if lost > 0 {
+                Button { store.data.settings.puckCount = activePucks; lost = 0 } label: {
+                    Label("Update my puck count to \(activePucks)", systemImage: "pencil")
+                }
+                .buttonStyle(SecondaryButtonStyle(color: Theme.amber))
+            }
+            Button { phase = .setup } label: { Label("New session", systemImage: "arrow.counterclockwise") }
+                .buttonStyle(PrimaryButtonStyle(color: Self.lime))
+        }
+    }
+
+    // MARK: Flow
+
+    private func makeCalls() -> [Shot] {
+        let zoneList = Zone.allCases.filter { zones.contains($0) }
+        if randomize {
+            let typeList = ShotType.allCases.filter { types.contains($0) }
+            var list: [Shot] = []
+            for _ in 0..<goal {
+                var s = Shot(type: typeList.randomElement() ?? .wrist, zone: zoneList.randomElement() ?? .topLeft)
+                if zoneList.count > 1 { while s.zone == list.last?.zone { s.zone = zoneList.randomElement()! } }
+                list.append(s)
+            }
+            return list
+        }
+        let pattern = useCustom ? custom : zoneList.map { Shot(type: fixedType, zone: $0) }
+        guard !pattern.isEmpty else { return [] }
+        return (0..<goal).map { pattern[$0 % pattern.count] }
+    }
+
+    private func start() {
+        calls = makeCalls()
+        guard !calls.isEmpty else { return }
+        called = 0; shotsBefore = 0; byType = [:]; hits = 0; misses = 0; lost = 0; logged = false
+        UIApplication.shared.isIdleTimerDisabled = true
+        startBucket()
+    }
+
+    private func startBucket() {
+        bucketSize = min(activePucks, remaining)
+        guard bucketSize > 0 else { finish(); return }
+        shotsBefore = called
+        lastIndex = -1
+        bucketStart = Date()
+        phase = .calling
+    }
+
+    private func callChanged(_ index: Int) {
+        guard index != lastIndex, index >= 0, phase == .calling else { return }
+        lastIndex = index
+        if index < bucketSize {
+            let shot = calls[shotsBefore + index]
+            called += 1
+            byType[shot.type, default: 0] += 1
+            if store.data.settings.sounds { AudioServicesPlaySystemSound(1057) }
+            store.haptic(.medium)
+        } else {
+            // Bucket's empty: go pick them up.
+            bucketStart = nil
+            pickedUp = 0
+            phase = .pickup
+            store.notify(.success)
+        }
+    }
+
+    private func nextBucket() {
+        if remaining == 0 || activePucks == 0 { finish() } else { startBucket() }
+    }
+
+    private func finish() {
+        bucketStart = nil
+        logShots()
+        UIApplication.shared.isIdleTimerDisabled = false
+        phase = .done
+    }
+
+    /// Each shot type goes to the shot tracker separately, so it counts toward today's shot goal.
+    private func logShots() {
+        guard !logged else { return }
+        logged = true
+        for (t, n) in byType where n > 0 { store.addShots(t, n) }
+        if hits > 0 { store.updateDaily { $0.onTarget += hits } }
     }
 }
 

@@ -422,7 +422,6 @@ struct OnboardingView: View {
     private var features: some View {
         VStack(alignment: .leading, spacing: 12) {
             title("Make it yours", "Turn on what you'll use", "Everything here is in Profile › Features later.")
-            toggleRow("3D exercise figures", "Drag to rotate, with a speed slider. Off shows simple icons.", s.figures3D)
             toggleRow("Daily readiness check-in", "Sleep, soreness and energy. Lightens hard days.", s.showReadiness)
             toggleRow("Daily goals card", "Water, running and sport goals on Today.", s.showDailyGoals)
             toggleRow("Coach's notes", "Short tips that cycle on Today.", s.showTips)

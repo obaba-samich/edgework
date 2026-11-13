@@ -12,7 +12,7 @@ func ex(
 }
 
 enum Library {
-    static let all: [Exercise] = Array(([warmups, walkingWarmups, extraWalking, lower, generalLower, upper, generalUpper, core, generalCore, power, speed, conditioning, generalCardio, balance, mobility, generalMobility, stillStretches, running, skillRunning, hands, skillHands, shooting, skillShooting, goalie, trackSprints, trackHurdles, trackJumps, trackThrows, trackDistance] as [[Exercise]]).joined())
+    static let all: [Exercise] = Array(([warmups, walkingWarmups, extraWalking, lower, generalLower, upper, generalUpper, core, generalCore, power, speed, conditioning, generalCardio, balance, mobility, generalMobility, stillStretches, running, skillRunning, hands, skillHands, shooting, skillShooting, goalie, trackSprints, trackHurdles, trackJumps, trackThrows, trackDistance, hillWork] as [[Exercise]]).joined())
 
     /// Moves you can do travelling from line to line (rink, gym or field lines).
     static let travelIDs: Set<String> = [

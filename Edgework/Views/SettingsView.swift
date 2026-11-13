@@ -209,8 +209,6 @@ struct SettingsView: View {
             Toggle("Meal generator", isOn: s.showMealGenerator)
             Toggle("Daily readiness check-in", isOn: s.showReadiness)
             Toggle("Daily goals card", isOn: s.showDailyGoals)
-            Toggle("Animated exercise figures", isOn: s.showFigures)
-            if st.showFigures { Toggle("3D figures (drag to rotate)", isOn: s.figures3D) }
             Toggle("Coach's tips", isOn: s.showTips)
         } header: { Text("Features") } footer: {
             Text("Turn off anything you don't use. Your data is kept, it's just hidden.")
@@ -370,6 +368,15 @@ struct SettingsView: View {
                     Label(st.sport == .track ? "Track calendar" : "Team calendar", systemImage: "calendar")
                     Spacer()
                     Text(store.data.events.isEmpty ? "Not set up" : "\(store.upcomingEvents.count) upcoming").foregroundStyle(Theme.text2)
+                }
+            }
+            NavigationLink {
+                KeywordsView()
+            } label: {
+                HStack {
+                    Label("Keywords", systemImage: "textformat")
+                    Spacer()
+                    Text("\(st.keywords.game.count + st.keywords.practice.count + st.keywords.meeting.count + st.keywords.ignore.count) words").foregroundStyle(Theme.text2)
                 }
             }
             Toggle(st.sport == .track ? "Keep my normal workouts on meet days" : "Keep my normal workouts on game days", isOn: s.normalOnEventDays)
@@ -614,10 +621,6 @@ struct SettingsView: View {
             Section {
                 Toggle("Show a coaching cue under each exercise", isOn: s.showCues)
                 Stepper("\"+ rest\" adds \(st.addRestSeconds) s", value: s.addRestSeconds, in: 5...60, step: 5)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Demo figure speed")
-                    SpeedSlider(color: Theme.ice)
-                }
             } header: { Text("Screen") }
             .listRowBackground(Theme.surface)
         }
@@ -901,29 +904,7 @@ struct CalendarView: View {
             Section {
                 Toggle("Hide past events", isOn: $store.data.settings.hidePastEvents)
                 Toggle("All-day events are placeholders", isOn: $store.data.settings.allDayIgnore)
-                let k = $store.data.settings.keywords
-                KeywordEditor(title: store.data.settings.sport == .track ? "Meets" : "Games", words: k.game, color: Theme.red, placeholder: "e.g. vs, tournament")
-                KeywordEditor(title: "Practices", words: k.practice, color: Theme.ice, placeholder: "e.g. B2, power skate")
-                if store.data.settings.sport == .hockey {
-                    Toggle(isOn: $store.data.settings.teamCodes) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Ice codes count as practices").font(.subheadline)
-                            Text("Titles like \"B2 solo\", \"12U\" or \"xxU B1\"").font(.caption).foregroundStyle(Theme.text3)
-                        }
-                    }
-                    .padding(.leading, 12)
-                    .overlay(alignment: .leading) { Capsule().fill(Theme.ice.opacity(0.5)).frame(width: 3) }
-                }
-                KeywordEditor(title: "Meetings", words: k.meeting, color: Theme.amber, placeholder: "e.g. banquet")
-                KeywordEditor(title: "Ignore", words: k.ignore, color: Theme.text2, placeholder: "e.g. reminder, goalie")
-                Button("Reset words to Edgework's defaults") {
-                    store.data.settings.keywords = Keywords.defaults(for: store.data.settings.sport)
-                }
-                if !store.data.eventKinds.isEmpty {
-                    Button("Reset my manual tags (\(store.data.eventKinds.count))") { store.data.eventKinds = [:] }
-                }
-            } header: { Text("Detection rules") } footer: {
-                Text("An event's title is checked against Ignore, then \(store.data.settings.sport == .track ? "Meets" : "Games"), Meetings and Practices, in that order. Tap a word to remove it. \(store.data.settings.sport == .hockey ? "Goalie-only sessions are skipped unless you're a goalie." : "")")
+                NavigationLink { KeywordsView() } label: { Label("Keywords for games & practices", systemImage: "textformat") }
             }
             .listRowBackground(Theme.surface)
 
@@ -1160,6 +1141,47 @@ struct NutritionSettingsView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.surface))
+    }
+}
+
+/// The word lists that decide whether a calendar event is a game/meet, practice, meeting or ignored.
+struct KeywordsView: View {
+    @EnvironmentObject var store: Store
+
+    var body: some View {
+        List {
+            Section {
+                let k = $store.data.settings.keywords
+                KeywordEditor(title: store.data.settings.sport == .track ? "Meets" : "Games", words: k.game, color: Theme.red, placeholder: "e.g. vs, tournament")
+                KeywordEditor(title: "Practices", words: k.practice, color: Theme.ice, placeholder: "e.g. B2, power skate")
+                if store.data.settings.sport == .hockey {
+                    Toggle(isOn: $store.data.settings.teamCodes) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Ice codes count as practices").font(.subheadline)
+                            Text("Titles like \"B2 solo\", \"12U\" or \"xxU B1\"").font(.caption).foregroundStyle(Theme.text3)
+                        }
+                    }
+                    .padding(.leading, 12)
+                    .overlay(alignment: .leading) { Capsule().fill(Theme.ice.opacity(0.5)).frame(width: 3) }
+                }
+                KeywordEditor(title: "Meetings", words: k.meeting, color: Theme.amber, placeholder: "e.g. banquet")
+                KeywordEditor(title: "Ignore", words: k.ignore, color: Theme.text2, placeholder: "e.g. reminder, goalie")
+                Button("Reset words to Edgework's defaults") {
+                    store.data.settings.keywords = Keywords.defaults(for: store.data.settings.sport)
+                }
+                if !store.data.eventKinds.isEmpty {
+                    Button("Reset my manual tags (\(store.data.eventKinds.count))") { store.data.eventKinds = [:] }
+                }
+            } header: { Text("Words that sort your events") } footer: {
+                Text("An event's title is checked against Ignore, then \(store.data.settings.sport == .track ? "Meets" : "Games"), Meetings and Practices, in that order. Tap a word to remove it. \(store.data.settings.sport == .hockey ? "Goalie-only sessions are skipped unless you're a goalie." : "")")
+            }
+            .listRowBackground(Theme.surface)
+        }
+        .scrollContentBackground(.hidden)
+        .screenBackground()
+        .scrollDismissesKeyboard(.immediately)
+        .navigationTitle("Keywords")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

@@ -577,8 +577,8 @@ struct HowToSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    FigureView(exercise: ex).frame(height: 230)
-                    SpeedSlider(color: color)
+                    FigureView(exercise: ex).frame(height: 120).frame(maxWidth: .infinity)
+                    DemoVideoLink(exercise: ex, color: color)
                     Text(ex.summary).font(.subheadline).foregroundStyle(Theme.text2)
                     VStack(alignment: .leading, spacing: 12) {
                         Overline("How to do it")

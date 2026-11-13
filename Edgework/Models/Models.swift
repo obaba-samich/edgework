@@ -153,7 +153,7 @@ enum Muscle: String, Codable, CaseIterable, Identifiable {
 }
 
 enum Equipment: String, Codable, CaseIterable, Identifiable {
-    case dumbbells, kettlebell, band, barbell, bench, box, medBall, pullupBar, jumpRope, cones, foamRoller, slideBoard, stickBall, shootingPad, tennisBall
+    case dumbbells, kettlebell, band, barbell, bench, box, medBall, pullupBar, jumpRope, cones, foamRoller, slideBoard, stickBall, shootingPad, tennisBall, hill
 
     var id: String { rawValue }
 
@@ -174,6 +174,7 @@ enum Equipment: String, Codable, CaseIterable, Identifiable {
         case .stickBall: "Stick & Ball"
         case .shootingPad: "Shooting Pad & Net"
         case .tennisBall: "Tennis Ball & Wall"
+        case .hill: "Hill / Ramp"
         }
     }
 
@@ -194,6 +195,7 @@ enum Equipment: String, Codable, CaseIterable, Identifiable {
         case .stickBall: "figure.hockey"
         case .shootingPad: "sportscourt.fill"
         case .tennisBall: "tennisball.fill"
+        case .hill: "mountain.2.fill"
         }
     }
 

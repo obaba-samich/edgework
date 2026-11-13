@@ -1,11 +1,11 @@
 # Edgework
 
-**A free training app for hockey players, track & field athletes and anyone who wants a real workout every day.** It generates a daily workout that fits your schedule, your equipment and your events, with 3D demos of every exercise, plus food logging and GPS runs. SwiftUI, iOS 17+.
+**A free training app for hockey players, track & field athletes and anyone who wants a real workout every day.** It generates a daily workout that fits your schedule, your equipment and your events, with step-by-step instructions and video demos for every exercise, plus food logging and GPS runs. SwiftUI, iOS 17+.
 
 <p>
   <img src="docs/screenshots/onboarding.png" width="200" alt="Onboarding">
   <img src="docs/screenshots/today.png" width="200" alt="Today">
-  <img src="docs/screenshots/exercise-3d.png" width="200" alt="3D exercise demo">
+  <img src="docs/screenshots/exercise-3d.png" width="200" alt="Exercise instructions">
   <img src="docs/screenshots/how-to.png" width="200" alt="How-to during a workout">
 </p>
 <p>
@@ -34,15 +34,16 @@ The app includes a small widget extension (`com.pizza.edgework.widgets`) for the
 - Set any exercise as **priority** (comes up more often) or **required** (in every workout) from the Library.
 - Line mode for travelling warm-ups (high knees, carioca, side lunges) instead of time.
 
-**285 exercises in 3D**
-- Every exercise has a 3D figure you can drag around, with Front, Side and Back views and a speed slider.
-- Each exercise also has written steps, coaching cues, a muscle map and why it helps.
-- Stickhandling drills use a top-down view of the stick, blade and puck.
+**290+ exercises with instructions**
+- Every exercise has written steps, coaching cues, a muscle map and why it helps.
+- "Watch a demo" opens real form videos for that exercise on YouTube.
+- Hill workouts (rolling-hills runs, long repeats, power walks, bounds) show up when you add Hill / Ramp to your equipment.
 - In the guided player, "How to" opens the steps without leaving your workout. The current set or rest timer shows on the Lock Screen and Dynamic Island.
 
 **Hockey**
 - Shot tracker and a puck counter that plans rounds for the pucks you own and catches lost ones.
-- Aim trainer, hands caller, shift timer and combine tests.
+- Aim trainer with random or custom shot lists (shot type + target), using the same puck rounds as the counter. Every called shot counts toward today's shots.
+- Hands caller, shift timer and combine tests.
 - Position-aware training for forwards, defense and goalies.
 
 **Track & field**
@@ -63,14 +64,14 @@ The app includes a small widget extension (`com.pizza.edgework.widgets`) for the
 
 **Schedule & reminders**
 - Import any team calendar (TeamSnap, Crossbar, SportsEngine, Google…) by link or `.ics` file.
-- Events are sorted with editable word lists for games or meets, practices, meetings and things to ignore.
+- Events are sorted with editable keyword lists (Settings › Schedule › Keywords) for games or meets, practices, meetings and things to ignore.
 - Reminders for workout times by day, streak saver, water (your hours), runs, game lead time and meet warm-up.
 
 **Progress**: streaks, charts, muscle heat map, history, benchmarks, JSON backup.
 
 ## Privacy
 
-Everything stays on your phone, and there's no account and no analytics. The only network requests are food searches to Open Food Facts and the calendar link you add.
+Everything stays on your phone, and there's no account and no analytics. The only network requests are food searches to Open Food Facts and the calendar link you add. "Watch a demo" just opens YouTube in your browser.
 
 ## Building
 
@@ -84,31 +85,20 @@ open Edgework.xcodeproj
 
 CI (`.github/workflows/build.yml`) builds an unsigned IPA on every push to `main` and publishes it to the `latest` release. `screenshots.yml` runs the app in the simulator with demo data (`-demoData YES`, `-startTab N`, `-sport track`, `-showScreen <exercise-id | settings | howto | diet | …>`).
 
-### Editing the 3D moves
-
-The moves live in `Edgework/Data/moves.json`. Edit them through `tools/build_moves.py` and preview them without a Mac (needs Python 3 and ffmpeg):
-
-```bash
-python3 tools/build_moves.py
-python3 tools/posepreview.py squat walkingLungeTwist
-```
-
-Poses are joint angles: hip and knee bend, arm raise, torso lean and twist, and so on. The script header explains each one.
-
 ## Layout
 
 ```
 Edgework/
   App/        entry point, tabs, debug launch hooks
   Models/     exercises, workouts, settings, sport profiles, food
-  Data/       exercise library, track library, programs, foods, moves.json
+  Data/       exercise library, track and hill libraries, programs, foods
   Engine/     workout generator
   Store/      persistence, scheduling, calendar, notifications, Live Activity
-  UI/         theme, components, body map, 3D figure + motion system
+  UI/         theme, components, body map
   Views/      screens
 EdgeworkWidgets/  Lock Screen + Dynamic Island
 Shared/           code shared with the widget
-tools/            move authoring and preview, icon renderer
+tools/            icon renderer
 ```
 
 ## Credits & license

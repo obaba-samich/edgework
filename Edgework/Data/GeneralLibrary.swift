@@ -121,7 +121,7 @@ extension Library {
            steps: ["Run 400 m at a hard but controlled pace.", "Recover for the rest period.", "Match your time each rep."],
            cues: ["Don't go out too fast", "Strong finish"],
            why: "Boosts VO2 max and lactate tolerance."),
-        ex("hill-sprints", "Hill Sprints", .running, .seconds, 6, 15, level: 2, p: [.glutes, .quads], s: [.calves, .hamstrings],
+        ex("hill-sprints", "Hill Sprints", .running, .seconds, 6, 15, level: 2, p: [.glutes, .quads], s: [.calves, .hamstrings], eq: [.hill],
            tags: [.explosive],
            sum: "Max effort up a hill, walk down.",
            steps: ["Find a moderate hill.", "Sprint up hard for the full time.", "Walk back down to recover."],

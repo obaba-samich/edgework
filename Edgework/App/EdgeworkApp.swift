@@ -64,6 +64,14 @@ struct RootView: View {
                     ExerciseDetailView(exercise: ex)
                 } else if screen.id == "calendar" {
                     CalendarView()
+                } else if screen.id == "keywords" {
+                    KeywordsView()
+                } else if screen.id == "aimcustom" {
+                    AimTrainerView().onAppear {
+                        UserDefaults.standard.set(false, forKey: "aimRandomize")
+                        UserDefaults.standard.set(true, forKey: "aimUseCustom")
+                        UserDefaults.standard.set("wrist:topLeft,snap:lowRight,backhand:fiveHole", forKey: "aimCustomShots")
+                    }
                 } else if screen.id == "routine" {
                     RoutineEditor()
                 } else if screen.id == "log" {

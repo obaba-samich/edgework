@@ -47,6 +47,8 @@ final class Store: ObservableObject {
         }
     }
     @Published var activeWorkout: Workout?
+    private var kindCache: [String: EventKind] = [:]
+    private var kindCacheSignature = 0
 
     private var pendingSave: Task<Void, Never>?
     private let url: URL = {
@@ -61,7 +63,7 @@ final class Store: ObservableObject {
             data = AppData()
         }
         if UserDefaults.standard.bool(forKey: "demoData") { seedDemo() }
-        if let s = UserDefaults.standard.string(forKey: "sport"), let sport = Sport(rawValue: s) { data.settings.sport = sport }
+        if let s = UserDefaults.standard.string(forKey: "sport"), let sport = Sport(rawValue: s) { setSport(sport) }
         Theme.sport = data.settings.sport
         Appearance.apply()
         ensureToday()
@@ -225,13 +227,23 @@ final class Store: ObservableObject {
     // MARK: Schedule
 
     func kind(_ e: CalEvent) -> EventKind {
-        data.eventKinds[e.id] ?? CalEvent.guess(e.title, allDay: e.allDay, settings: data.settings)
+        if let k = data.eventKinds[e.id] { return k }
+        // Guessing runs a lot of string checks and is called for every event on every redraw, so cache it.
+        let st = data.settings
+        var h = Hasher()
+        h.combine(st.keywords); h.combine(st.sport); h.combine(st.position); h.combine(st.allDayIgnore); h.combine(st.teamCodes)
+        let sig = h.finalize()
+        if sig != kindCacheSignature { kindCache = [:]; kindCacheSignature = sig }
+        if let k = kindCache[e.id] { return k }
+        let k = CalEvent.guess(e.title, allDay: e.allDay, settings: st)
+        kindCache[e.id] = k
+        return k
     }
 
     /// Games and practices from the imported calendar on a given day.
     func events(on date: Date) -> [CalEvent] {
-        let k = Day.key(date)
-        return data.events.filter { Day.key($0.start) == k && kind($0).counts }.sorted { $0.start < $1.start }
+        let start = Day.start(date), end = Day.add(1, to: start)
+        return data.events.filter { $0.start >= start && $0.start < end && kind($0).counts }.sorted { $0.start < $1.start }
     }
 
     var upcomingEvents: [CalEvent] {
@@ -311,7 +323,33 @@ final class Store: ObservableObject {
         return t == .game || t == .practice ? t : nil
     }
 
+    /// Track only: the day before a meet gets its own plan.
+    func isDayBeforeMeet(_ date: Date) -> Bool {
+        guard data.settings.sport == .track, !data.settings.normalOnEventDays else { return false }
+        let t = focusDayType(for: date)
+        return t != .game && dayType(for: Day.add(1, to: date)) == .game
+    }
+
+    /// The meet plan that applies to this day, if any (track only).
+    func meetPlan(for date: Date) -> MeetPlan? {
+        guard data.settings.sport == .track else { return nil }
+        if isDayBeforeMeet(date) { return data.settings.meetDayBefore }
+        switch focusDayType(for: date) {
+        case .game: return data.settings.meetDay
+        case .postGame: return data.settings.meetDayAfter
+        default: return nil
+        }
+    }
+
     func autoFocus(for date: Date) -> Focus {
+        if let plan = meetPlan(for: date) {
+            switch plan {
+            case .activation: return .activation
+            case .light: return .mobility
+            case .recovery, .rest: return .recovery
+            case .normal: return rotationFocus(for: date)
+            }
+        }
         switch focusDayType(for: date) {
         case .game: return .activation
         case .postGame: return .recovery
@@ -320,14 +358,27 @@ final class Store: ObservableObject {
                 : (data.settings.style == .general ? [.abs, .upper, .mobility] : [.core, .mobility, .upper])
             return options[Day.seed(date) % options.count]
         case .off:
-            let today = Day.start(Date())
-            let ahead = max(0, Day.cal.dateComponents([.day], from: today, to: Day.start(date)).day ?? 0)
-            let ranked = rankedFocuses(before: ahead == 0 ? date : today)
-            return ranked[ahead % ranked.count]
+            return rotationFocus(for: date)
         }
     }
 
+    private func rotationFocus(for date: Date) -> Focus {
+        let today = Day.start(Date())
+        let ahead = max(0, Day.cal.dateComponents([.day], from: today, to: Day.start(date)).day ?? 0)
+        let ranked = rankedFocuses(before: ahead == 0 ? date : today)
+        return ranked[ahead % ranked.count]
+    }
+
     func defaultDuration(for date: Date) -> Int {
+        if let plan = meetPlan(for: date) {
+            switch plan {
+            case .activation: return min(20, data.settings.duration)
+            case .light: return min(20, data.settings.duration)
+            case .recovery: return min(25, data.settings.duration)
+            case .rest: return 10
+            case .normal: return data.settings.duration
+            }
+        }
         switch focusDayType(for: date) {
         case .game: return min(20, data.settings.duration)
         case .postGame: return min(25, data.settings.duration)
@@ -340,7 +391,18 @@ final class Store: ObservableObject {
     func generate(focus: Focus, minutes: Int, seed: Int, date: Date? = nil) -> Workout {
         var w = Generator.make(focus: focus, minutes: minutes, seed: UInt64(max(0, seed)), settings: data.settings,
                                afterEvent: date.flatMap { afterEvent(for: $0) })
-        if focus == .activation && data.settings.sport == .track { w.title = "Pre-Meet Activation" }
+        if data.settings.sport == .track, let d = date, let plan = meetPlan(for: d) {
+            let before = isDayBeforeMeet(d)
+            switch (plan, focus) {
+            case (.activation, .activation): w.title = "Pre-Meet Activation"
+            case (.light, .mobility): w.title = before ? "Day Before the Meet" : "Meet Day Shakeout"
+            case (.recovery, .recovery): w.title = before ? "Easy Day" : "Post-Meet Recovery"
+            case (.rest, .recovery): w.title = "Rest Day Stretch"
+            default: break
+            }
+            if before && plan == .light { w.subtitle = "Loosen up, a few strides, off your feet early." }
+            if !before && plan == .recovery { w.subtitle = "Flush the legs: easy movement, long stretches, foam roll." }
+        } else if focus == .activation && data.settings.sport == .track { w.title = "Pre-Meet Activation" }
         return w
     }
 
@@ -363,12 +425,38 @@ final class Store: ObservableObject {
     }
 
     func setSport(_ sport: Sport) {
-        guard sport != data.settings.sport else { return }
-        data.settings.sport = sport
+        let old = data.settings.sport
+        guard sport != old else { return }
+        // Each sport keeps its own settings, calendar and day marks. Personal stuff (name, nutrition, features) carries over.
+        var d = data
+        d.profiles[old.rawValue] = SportProfile(settings: d.settings, events: d.events, lastSync: d.lastSync, dayOverrides: d.dayOverrides)
+        let saved = d.profiles[sport.rawValue]
+        var next = saved?.settings ?? Self.freshSettings(for: sport, onboarded: d.settings)
+        next.copyShared(from: d.settings)
+        next.sport = sport
+        d.settings = next
+        d.events = saved?.events ?? []
+        d.lastSync = saved?.lastSync
+        d.dayOverrides = saved?.dayOverrides ?? [:]
+        data = d
         Theme.sport = sport
         Appearance.apply()
         rebuildToday(seed: data.today?.seed ?? Day.seed(Date()), focus: nil, duration: defaultDuration(for: Date()))
         haptic(.medium)
+    }
+
+    /// Starting settings for a sport the first time it's picked.
+    static func freshSettings(for sport: Sport, onboarded o: Settings) -> Settings {
+        var s = Settings()
+        s.sport = sport
+        s.keywords = Keywords.defaults(for: sport)
+        s.duration = o.duration
+        s.phase = o.phase
+        s.trainTimes = o.trainTimes
+        s.remindDaily = o.remindDaily
+        s.remindMinute = o.remindMinute
+        if sport == .track { s.runMode = .warmupJog; s.lineMode = true }
+        return s
     }
 
     func dayTitle(_ t: DayType) -> String {

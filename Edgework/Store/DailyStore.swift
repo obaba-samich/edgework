@@ -65,7 +65,8 @@ extension Store {
     func addFood(_ food: Food, servings: Double, meal: Meal, date: Date) {
         let stamp = Day.key(date) == Day.key(Date()) ? Date() : Day.start(date).addingTimeInterval(12 * 3600)
         data.foods.append(FoodEntry(food: food, servings: servings, meal: meal, date: stamp))
-        if food.id == "water" { updateDaily(date) { $0.water += max(1, Int(servings.rounded())) } }
+        // Water-like drinks fill the water goal, 8 oz to a glass.
+        if food.hydrates { updateDaily(date) { $0.water += max(1, Int((servings * (food.servingOz ?? 8) / 8).rounded())) } }
         haptic(.light)
     }
 
@@ -134,6 +135,37 @@ extension Store {
         }
         return w
     }
+
+    // MARK: Required + priority (set from the library)
+
+    func isRequired(_ id: String) -> Bool { data.settings.mustDos.contains { $0.exerciseID == id } }
+
+    func setRequired(_ ex: Exercise, _ on: Bool) {
+        if on {
+            guard !isRequired(ex.id) else { return }
+            var item = self.item(for: ex, block: .main)
+            item.block = .musts
+            data.settings.mustDos.append(item)
+        } else {
+            data.settings.mustDos.removeAll { $0.exerciseID == ex.id }
+        }
+        rebuildTodayIfAuto()
+    }
+
+    func priority(_ id: String) -> Int { data.settings.priorities[id] ?? 0 }
+
+    func setPriority(_ id: String, _ p: Int) {
+        data.settings.priorities[id] = p <= 0 ? nil : min(3, p)
+        if p > 0 { data.settings.excluded.remove(id) }
+        rebuildTodayIfAuto()
+    }
+
+    func rebuildTodayIfAuto() {
+        guard let t = data.today else { return }
+        rebuildToday(seed: t.seed, focus: t.focus, duration: t.duration)
+    }
+
+    static let priorityNames = ["Normal", "Often", "A lot", "Every time it fits"]
 
     static let mustDoPresets: [(title: String, items: [(String, Int, Int)])] = [
         ("100 shots", [("wrist-shots", 2, 25), ("snap-shots", 1, 25), ("backhands", 1, 25)]),

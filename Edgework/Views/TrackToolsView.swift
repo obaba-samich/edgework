@@ -54,14 +54,18 @@ struct TrackPRsView: View {
                     Overline("Track & Field")
                     Text("Personal Records").font(.display(32)).foregroundStyle(Theme.text)
                 }
-                ForEach(TrackEventDef.all) { ev in
+                let mine = store.data.settings.trackEvents
+                ForEach(TrackEventDef.all.filter { mine.contains($0.id) } + TrackEventDef.all.filter { !mine.contains($0.id) }) { ev in
                     let entries = store.data.trackPRs.filter { $0.event == ev.id }.sorted { $0.date < $1.date }
                     let best = ev.isTime ? entries.map(\.value).min() : entries.map(\.value).max()
                     Button { logging = ev } label: {
                         HStack(spacing: 12) {
                             IconBadge(symbol: ev.isTime ? "stopwatch.fill" : "ruler.fill", color: Theme.ice, size: 40)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(ev.name).font(.headline).foregroundStyle(Theme.text)
+                                HStack(spacing: 6) {
+                                    Text(ev.name).font(.headline).foregroundStyle(Theme.text)
+                                    if mine.contains(ev.id) { Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(Theme.amber) }
+                                }
                                 Text(entries.isEmpty ? "No marks yet" : "\(entries.count) logged").font(.caption).foregroundStyle(Theme.text2)
                             }
                             Spacer()
@@ -88,7 +92,39 @@ struct TrackPRsView: View {
     }
 
     private func format(_ ev: TrackEventDef, _ v: Double) -> String {
-        ev.isTime ? TrackFormat.time(v) : TrackFormat.mark(v, imperial: store.data.settings.units == .imperial)
+        guard ev.isTime else { return TrackFormat.mark(v, imperial: store.data.settings.units == .imperial) }
+        // Hand times run fast; +0.24 s is the usual conversion for sprints up to 400 m.
+        let sprint = ["60", "100", "200", "400", "100h", "110h", "300h", "400h"].contains(ev.id)
+        if store.data.settings.handTimed && sprint { return TrackFormat.time(v) + "h" }
+        return TrackFormat.time(v)
+    }
+}
+
+struct TrackEventsPicker: View {
+    @EnvironmentObject var store: Store
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(TrackEventDef.all) { ev in
+                    let on = store.data.settings.trackEvents.contains(ev.id)
+                    Button {
+                        if on { store.data.settings.trackEvents.removeAll { $0 == ev.id } } else { store.data.settings.trackEvents.append(ev.id) }
+                    } label: {
+                        HStack {
+                            Text(ev.name).foregroundStyle(Theme.text)
+                            Spacer()
+                            Image(systemName: on ? "checkmark.circle.fill" : "circle").foregroundStyle(on ? Theme.ice : Theme.text3)
+                        }
+                    }
+                }
+            } footer: { Text("Pick the events you compete in.") }
+            .listRowBackground(Theme.surface)
+        }
+        .scrollContentBackground(.hidden)
+        .screenBackground()
+        .navigationTitle("My events")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

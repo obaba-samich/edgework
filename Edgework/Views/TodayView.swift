@@ -22,6 +22,9 @@ struct TodayView: View {
                     if let next = store.upcomingEvents.first(where: { $0.start < Day.add(8, to: Date()) }) {
                         NextEventCard(event: next)
                     }
+                    if store.data.settings.sport == .track, store.dayType(for: Date()) == .game || store.dayType(for: Date()) == .postGame {
+                        MeetDayCard(after: store.dayType(for: Date()) == .postGame)
+                    }
                     if let today = store.data.today {
                         TodayHero(state: today)
                     }
@@ -105,17 +108,47 @@ struct TodayView: View {
         }
     }
 
-    private var tipCard: some View {
-        let tip = Tips.forToday
-        return HStack(alignment: .top, spacing: 12) {
-            IconBadge(symbol: "lightbulb.fill", color: Theme.amber, size: 36)
-            VStack(alignment: .leading, spacing: 4) {
-                Overline("Coach's note", color: Theme.amber)
-                Text(tip).font(.subheadline).foregroundStyle(Theme.text)
-                    .fixedSize(horizontal: false, vertical: true)
+    private var tipCard: some View { TipCard(tips: Tips.list(for: store.data.settings.sport)) }
+}
+
+/// Coach's notes that cycle on their own every few seconds. Tap for the next one.
+struct TipCard: View {
+    let tips: [String]
+    @State private var index = Day.seed(Date())
+
+    var body: some View {
+        let i = ((index % tips.count) + tips.count) % tips.count
+        Button {
+            withAnimation(.easeInOut(duration: 0.3)) { index += 1 }
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                IconBadge(symbol: "lightbulb.fill", color: Theme.amber, size: 36)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Overline("Coach's note", color: Theme.amber)
+                        Spacer()
+                        Text("\(i + 1)/\(tips.count)").font(.number(11, .semibold)).foregroundStyle(Theme.text3)
+                    }
+                    Text(tips[i]).font(.subheadline).foregroundStyle(Theme.text)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .id(i)
+                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
+                                                removal: .move(edge: .leading).combined(with: .opacity)))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .clipped()
+            .cardStyle()
+        }
+        .buttonStyle(PressableStyle())
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 9_000_000_000)
+                if Task.isCancelled { break }
+                withAnimation(.easeInOut(duration: 0.4)) { index += 1 }
             }
         }
-        .cardStyle()
     }
 }
 
@@ -149,9 +182,10 @@ struct WeekStrip: View {
                             .frame(width: 34, height: 34)
                             .background(Circle().fill(isToday ? Theme.ice : Color.clear))
                             .overlay(Circle().strokeBorder(done && !isToday ? Theme.green : Color.clear, lineWidth: 2))
-                        Image(systemName: type == .off ? store.autoFocus(for: d).symbol : type.symbol)
+                        let showEvent = type != .off && store.data.settings.weekEventIcons
+                        Image(systemName: showEvent ? type.symbol : store.autoFocus(for: d).symbol)
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(type == .off ? Theme.text3 : type.color)
+                            .foregroundStyle(showEvent ? type.color : Theme.text3)
                             .frame(height: 14)
                     }
                     .frame(maxWidth: .infinity)
@@ -166,6 +200,61 @@ struct WeekStrip: View {
     }
 }
 
+// MARK: - Meet day
+
+/// Track meet day timeline, or the recovery checklist the day after.
+struct MeetDayCard: View {
+    @EnvironmentObject var store: Store
+    let after: Bool
+    @State private var checked: Set<Int> = []
+
+    var body: some View {
+        let st = store.data.settings
+        let meet = store.events(on: Date()).first { store.kind($0) == .game }
+        let start = meet.flatMap { $0.allDay ? nil : $0.start }
+        let steps: [(String, String)] = after ? [
+            ("figure.walk", "10–15 min easy jog or walk"),
+            ("figure.flexibility", "Long stretches: hamstrings, hips, calves"),
+            ("circle.dotted", "Foam roll quads, calves, glutes"),
+            ("drop.fill", "Rehydrate: \(st.waterGoal)+ glasses"),
+            ("fork.knife", "Protein at every meal today"),
+            ("moon.fill", "Early night, 8+ hours"),
+        ] : [
+            ("fork.knife", start.map { "Carb-heavy meal by \($0.addingTimeInterval(-3.5 * 3600).formatted(date: .omitted, time: .shortened))" } ?? "Carb-heavy meal 3–4 h before"),
+            ("bag.fill", "Spikes, bib, water, snack, jacket"),
+            ("figure.run", start.map { "Start warm-up at \($0.addingTimeInterval(TimeInterval(-st.meetWarmupMinutes * 60)).formatted(date: .omitted, time: .shortened))" } ?? "Warm up \(st.meetWarmupMinutes) min before your event"),
+            ("flame.fill", "Stay warm between events, strides 10 min before"),
+            ("figure.cooldown", "After your last event: 10 min cool-down jog"),
+            ("leaf.fill", "Recovery snack with protein within an hour"),
+        ]
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Overline(after ? "Day after the meet" : "Meet day", color: Theme.red)
+                Spacer()
+                if let meet { Text(meet.title).font(.caption.weight(.semibold)).foregroundStyle(Theme.text2).lineLimit(1) }
+            }
+            ForEach(steps.indices, id: \.self) { i in
+                Button {
+                    if checked.contains(i) { checked.remove(i) } else { checked.insert(i); store.haptic(.light) }
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: checked.contains(i) ? "checkmark.circle.fill" : steps[i].0)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(checked.contains(i) ? Theme.green : Theme.red)
+                            .frame(width: 22)
+                        Text(steps[i].1).font(.subheadline).foregroundStyle(checked.contains(i) ? Theme.text3 : Theme.text)
+                            .strikethrough(checked.contains(i))
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .cardStyle()
+    }
+}
+
 // MARK: - Next event
 
 struct NextEventCard: View {
@@ -175,10 +264,12 @@ struct NextEventCard: View {
     var body: some View {
         let game = store.kind(event) == .game
         let color = game ? Theme.red : Theme.ice
+        let track = store.data.settings.sport == .track
+        let word = game ? (track ? "meet" : "game") : "practice"
         HStack(spacing: 12) {
-            IconBadge(symbol: game ? "flag.checkered" : "figure.ice.skating", color: color, size: 40)
+            IconBadge(symbol: game ? "flag.checkered" : (track ? "figure.run" : "figure.ice.skating"), color: color, size: 40)
             VStack(alignment: .leading, spacing: 2) {
-                Overline(Day.key(event.start) == Day.key(Date()) ? (game ? "Game today" : "Practice today") : (game ? "Next game" : "Next practice"), color: color)
+                Overline(Day.key(event.start) == Day.key(Date()) ? "\(word.capitalized) today" : "Next \(word)", color: color)
                 Text(event.title).font(.headline).foregroundStyle(Theme.text).lineLimit(1)
                 Text(event.allDay ? event.start.formatted(.dateTime.weekday(.wide).month().day())
                                   : event.start.formatted(.dateTime.weekday(.wide).hour().minute()))
@@ -487,6 +578,23 @@ enum Tips {
         "Eat protein within a couple of hours after training: around 20–40 g.",
         "A 2-minute walk between periods beats sitting still for recovery.",
     ]
+
+    static let track = [
+        "Sprinting is a skill. Drills like A-skips and wall drives are speed practice, not just a warm-up.",
+        "Full recovery between max sprints: about a minute of rest for every 10 m you run fast.",
+        "The day after a meet, flush the legs: an easy jog, long stretches and a foam roller.",
+        "Eat a carb-heavy meal 3–4 hours before you race, then something small and simple an hour out.",
+        "Stay warm between events. Jacket on, a few strides 10 minutes before your heat.",
+        "Tempo runs build fitness without stealing speed. Keep them at about 70% and relaxed.",
+        "Hurdlers: three steps is rhythm. Drill it at low heights before raising the bar.",
+        "Jumpers: a consistent approach beats a fast one. Mark your check points.",
+        "Throwers: the power comes from the ground up. Legs, hips, then arm.",
+        "Hand times are about 0.24 s fast. Compare FAT to FAT.",
+        "Sleep is when you get faster. Aim for 8+ hours in meet weeks.",
+        "Too hard? Tap − on the exercise. The app remembers it for next time.",
+    ]
+
+    static func list(for sport: Sport) -> [String] { sport == .track ? track : all }
 
     static var forToday: String { all[Day.seed(Date()) % all.count] }
 }

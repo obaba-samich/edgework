@@ -34,6 +34,7 @@ struct ExerciseDetailView: View {
                 .padding(.horizontal, -16)
 
                 targetCard(ex, color)
+                planCard(ex, color)
 
                 VStack(alignment: .leading, spacing: 14) {
                     Overline("Muscles worked")
@@ -128,15 +129,6 @@ struct ExerciseDetailView: View {
                         addedTo = w.title
                     } label: { Label("New workout with this", systemImage: "plus") }
                 } label: { Image(systemName: "text.badge.plus") }
-                Menu {
-                    let excluded = store.data.settings.excluded.contains(ex.id)
-                    Button {
-                        if excluded { store.data.settings.excluded.remove(ex.id) } else { store.data.settings.excluded.insert(ex.id) }
-                    } label: {
-                        Label(excluded ? "Allow in generated workouts" : "Never show in generated workouts",
-                              systemImage: excluded ? "eye" : "eye.slash")
-                    }
-                } label: { Image(systemName: "ellipsis.circle") }
                 Button { store.toggleFavorite(ex.id) } label: {
                     Image(systemName: store.isFavorite(ex.id) ? "star.fill" : "star")
                         .foregroundStyle(store.isFavorite(ex.id) ? Theme.amber : Theme.text)
@@ -208,6 +200,48 @@ struct ExerciseDetailView: View {
                 }
                 .pickerStyle(.segmented)
             }
+        }
+        .cardStyle()
+    }
+
+    /// How often this shows up in generated workouts: priority, required, or never.
+    private func planCard(_ ex: Exercise, _ color: Color) -> some View {
+        let p = store.priority(ex.id)
+        let required = store.isRequired(ex.id)
+        let excluded = store.data.settings.excluded.contains(ex.id)
+        return VStack(alignment: .leading, spacing: 12) {
+            Overline("In my workouts")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Priority").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                Picker("Priority", selection: Binding(get: { p }, set: { store.setPriority(ex.id, $0); store.haptic(.light) })) {
+                    Text("Normal").tag(0)
+                    Text("Often").tag(1)
+                    Text("A lot").tag(2)
+                    Text("Max").tag(3)
+                }
+                .pickerStyle(.segmented)
+                .disabled(excluded)
+                Text(p == 0 ? "Picked like everything else."
+                     : p == 3 ? "Added whenever today's workout trains \(ex.category.title.lowercased())."
+                     : "Comes up \(p == 1 ? "about twice" : "about five times") as often as normal.")
+                    .font(.caption).foregroundStyle(Theme.text3)
+            }
+            Divider().overlay(Theme.stroke)
+            Toggle(isOn: Binding(get: { required }, set: { store.setRequired(ex, $0); store.haptic(.medium) })) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Required in every workout").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                    Text(required ? "Added to every generated workout. Change sets in Library › Required." : "Like a mandatory run or 100 shots.")
+                        .font(.caption).foregroundStyle(Theme.text3)
+                }
+            }
+            .tint(color)
+            Toggle(isOn: Binding(get: { excluded }, set: { on in
+                if on { store.data.settings.excluded.insert(ex.id); store.setPriority(ex.id, 0); store.setRequired(ex, false) }
+                else { store.data.settings.excluded.remove(ex.id) }
+            })) {
+                Text("Never show me this").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+            }
+            .tint(Theme.red)
         }
         .cardStyle()
     }

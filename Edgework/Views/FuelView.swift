@@ -38,6 +38,7 @@ struct FuelView: View {
                         .buttonStyle(PressableStyle())
                     }
                     WaterCard(date: date)
+                    DietNotesCard()
                     ForEach(Meal.allCases) { meal in
                         mealSection(meal)
                     }
@@ -133,7 +134,7 @@ struct FuelView: View {
                                 IconBadge(symbol: e.food.group.symbol, color: meal.color, size: 34)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(e.food.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
-                                    Text("\(servingsText(e.servings)) × \(e.food.serving) · \(Int(e.protein))g protein")
+                                    Text(e.food.isDrink ? "\(drinkText(e)) · \(Int(e.protein))g protein" : "\(servingsText(e.servings)) × \(e.food.serving) · \(Int(e.protein))g protein")
                                         .font(.caption).foregroundStyle(Theme.text2).lineLimit(1)
                                 }
                                 Spacer()
@@ -284,8 +285,11 @@ struct FuelView: View {
         .cardStyle()
     }
 
-    private func servingsText(_ v: Double) -> String {
-        v == v.rounded() ? "\(Int(v))" : String(format: "%.2g", v)
+    private func servingsText(_ v: Double) -> String { AmountField.format(v) }
+
+    private func drinkText(_ e: FoodEntry) -> String {
+        let oz = e.servings * (e.food.servingOz ?? 8)
+        return store.data.settings.units == .imperial ? "\(Int(oz.rounded())) oz" : "\(Int((oz * 29.5735).rounded())) ml"
     }
 }
 
@@ -381,11 +385,8 @@ struct AddFoodView: View {
     @State private var searching = false
     @State private var searchedFor = ""
     @State private var selected: Food?
-    @State private var scanning = false
     @State private var quickAdd = false
-    @State private var scanMessage: String?
     @State private var group: FoodGroup?
-    @State private var photoScan: FoodScanView.Mode?
 
     private var local: [Food] {
         let all = store.searchFoods(query)
@@ -399,11 +400,7 @@ struct AddFoodView: View {
                     Picker("Meal", selection: $meal) {
                         ForEach(Meal.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
                     }
-                    if DataScannerViewController.isSupported {
-                        Button { scanning = true } label: { Label("Scan barcode", systemImage: "barcode.viewfinder") }
-                    }
-                    Button { photoScan = .barcode } label: { Label("Barcode from a photo", systemImage: "barcode") }
-                    Button { photoScan = .label } label: { Label("Scan nutrition label (camera or photo)", systemImage: "doc.text.viewfinder") }
+                    ScanButtons { food in selected = food }
                     Button { quickAdd = true } label: { Label("Quick add", systemImage: "square.and.pencil") }
                 }
                 .listRowBackground(Theme.surface)
@@ -467,33 +464,8 @@ struct AddFoodView: View {
                 FoodDetailSheet(food: food, meal: meal, date: date, existing: nil) { dismiss() }
                     .environmentObject(store)
             }
-            .sheet(item: Binding(get: { photoScan.map { ScanMode(mode: $0) } }, set: { photoScan = $0?.mode })) { m in
-                FoodScanView(mode: m.mode) { food in
-                    Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 400_000_000)
-                        selected = food
-                    }
-                }
-                .environmentObject(store)
-            }
             .sheet(isPresented: $quickAdd) {
                 QuickAddFood(meal: meal, date: date) { dismiss() }.environmentObject(store)
-            }
-            .fullScreenCover(isPresented: $scanning) {
-                ScannerScreen { code in
-                    scanning = false
-                    Task {
-                        if let food = await FoodAPI.barcode(code) {
-                            store.saveToLibrary(food)
-                            selected = food
-                        } else {
-                            scanMessage = "Couldn't find barcode \(code). Try searching or quick add."
-                        }
-                    }
-                }
-            }
-            .alert(scanMessage ?? "", isPresented: Binding(get: { scanMessage != nil }, set: { if !$0 { scanMessage = nil } })) {
-                Button("OK", role: .cancel) {}
             }
         }
     }
@@ -537,12 +509,21 @@ struct AddFoodView: View {
 struct FoodDetailSheet: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
-    let food: Food
+    @State var food: Food
     @State var meal: Meal
     let date: Date
     let existing: FoodEntry?
     var onDone: (() -> Void)? = nil
     @State private var servings: Double = 1
+    @State private var customizing = false
+
+    private var imperial: Bool { store.data.settings.units == .imperial }
+    private var ozPerServing: Double { food.servingOz ?? 8 }
+    /// Drinks are picked by volume; this maps it onto servings.
+    private var volume: Binding<Double> {
+        Binding(get: { (servings * ozPerServing * (imperial ? 1 : 29.5735)).rounded() },
+                set: { servings = max(0.05, $0 / (imperial ? 1 : 29.5735) / ozPerServing) })
+    }
 
     var body: some View {
         NavigationStack {
@@ -559,12 +540,16 @@ struct FoodDetailSheet: View {
                         stat(fmt(food.carbs * servings), "carbs", Theme.amber)
                         stat(fmt(food.fat * servings), "fat", Theme.ice)
                     }
-                    HStack {
-                        Text("Servings").font(.headline).foregroundStyle(Theme.text)
-                        Spacer()
-                        TargetStepper(value: fmt(servings), minus: { servings = max(0.25, servings - 0.25) }, plus: { servings = min(20, servings + 0.25) })
+                    if food.isDrink {
+                        drinkAmount
+                    } else {
+                        HStack {
+                            Text("Servings").font(.headline).foregroundStyle(Theme.text)
+                            Spacer()
+                            AmountField(value: $servings, step: 0.25, range: 0.1...50)
+                        }
+                        .cardStyle(padding: 14)
                     }
-                    .cardStyle(padding: 14)
                     Picker("Meal", selection: $meal) {
                         ForEach(Meal.allCases) { Text($0.title).tag($0) }
                     }
@@ -589,6 +574,11 @@ struct FoodDetailSheet: View {
                     if food.fiber > 0 {
                         Text("Fiber \(fmt(food.fiber * servings)) g").font(.caption).foregroundStyle(Theme.text3)
                     }
+                    Button { customizing = true } label: {
+                        Label(store.data.customFoods.contains { $0.id == food.id } ? "Edit this food" : "Customize & save as my own",
+                              systemImage: "slider.horizontal.3")
+                    }
+                    .buttonStyle(SecondaryButtonStyle(color: Theme.amber))
                     Button {
                         if let existing {
                             store.removeFood(existing.id)
@@ -619,9 +609,50 @@ struct FoodDetailSheet: View {
                     }
                 }
             }
-            .onAppear { if let existing { servings = existing.servings } }
+            .onAppear {
+                if let existing { servings = existing.servings }
+                if existing == nil && food.isDrink && meal != .preGame && meal != .postWorkout { meal = .drinks }
+            }
+            .sheet(isPresented: $customizing) {
+                FoodEditor(food: food, editingSaved: store.data.customFoods.contains { $0.id == food.id }) { food = $0 }
+                    .environmentObject(store)
+            }
         }
         .presentationDetents([.large])
+    }
+
+    private var drinkAmount: some View {
+        let presets: [Double] = imperial ? [8, 12, 16, 20, 32] : [250, 330, 500, 750, 1000]
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("How much").font(.headline).foregroundStyle(Theme.text)
+                Spacer()
+                AmountField(value: volume, step: imperial ? 4 : 50, range: 1...(imperial ? 128 : 4000), unit: imperial ? "oz" : "ml")
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(presets, id: \.self) { p in
+                        Button { volume.wrappedValue = p } label: {
+                            Chip(text: "\(Int(p)) \(imperial ? "oz" : "ml")", color: Theme.ice, filled: abs(volume.wrappedValue - p) < 0.5)
+                        }
+                        .buttonStyle(PressableStyle())
+                    }
+                }
+            }
+            if food.hydrates {
+                Label("Counts toward water: +\(max(1, Int((servings * ozPerServing / 8).rounded()))) glass\(Int((servings * ozPerServing / 8).rounded()) == 1 ? "" : "es")",
+                      systemImage: "drop.fill")
+                    .font(.footnote.weight(.semibold)).foregroundStyle(Theme.ice)
+            } else if food.sugaryDrink {
+                Label("\(Int(food.carbs * servings)) g of sugar you drink. Water or zero-sugar electrolytes hydrate without it.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.footnote).foregroundStyle(Theme.amber)
+            } else if food.id == "sports-drink" {
+                Label("Best during long practices, tournaments and hot days.", systemImage: "info.circle")
+                    .font(.footnote).foregroundStyle(Theme.text2)
+            }
+        }
+        .cardStyle(padding: 14)
     }
 
     private func stat(_ v: String, _ label: String, _ color: Color) -> some View {

@@ -40,7 +40,7 @@ enum ICS {
         let uid = c["UID"]?.value ?? "\(title)-\(start.value)"
         let end = c["DTEND"].flatMap { parseDate($0.value, params: $0.params) }
         return CalEvent(id: uid + "|" + start.value, title: title, start: date, allDay: allDay,
-                        location: unescape(c["LOCATION"]?.value ?? ""), guessed: CalEvent.guess(title, allDay: allDay), end: end)
+                        location: unescape(c["LOCATION"]?.value ?? ""), guessed: .ignore, end: end)
     }
 
     private static func unescape(_ s: String) -> String {
@@ -216,16 +216,28 @@ enum Notifier {
                 }
             }
         }
-        if st.shotGoal > 0 && st.remindDaily {
+        if st.shotGoal > 0 && st.remindDaily && st.sport == .hockey {
             let shots = store.daily().totalShots
             if shots < st.shotGoal, let at = cal.date(bySettingHour: 19, minute: 0, second: 0, of: now) {
                 add("shots", "\(st.shotGoal - shots) shots to go", "Your daily goal is \(st.shotGoal). Grab the pucks.", at: at)
             }
         }
-        if st.remindGame {
+        if st.remindGame && st.sport == .hockey {
             for e in store.upcomingEvents.prefix(20) where store.kind(e) == .game && !e.allDay {
                 add("game-\(e.id)", "Game day: \(e.title)", "Do your 15-minute activation about 2–3 hours before puck drop.",
                     at: e.start.addingTimeInterval(-3 * 3600))
+            }
+        }
+        if st.sport == .track {
+            for e in store.upcomingEvents.prefix(20) where store.kind(e) == .game && !e.allDay {
+                if st.remindMeetWarmup {
+                    add("meet-warm-\(e.id)", "Warm-up time: \(e.title)", "Jog, drills, strides. Stay warm between events.",
+                        at: e.start.addingTimeInterval(TimeInterval(-st.meetWarmupMinutes * 60)))
+                }
+                if st.remindGame {
+                    add("meet-\(e.id)", "Meet day: \(e.title)", "Eat a carb-heavy meal 3–4 h before, pack spikes, water and a snack.",
+                        at: e.start.addingTimeInterval(-4 * 3600))
+                }
             }
         }
         if st.remindStreak && store.currentStreak > 0 && store.sessions(on: now).isEmpty {

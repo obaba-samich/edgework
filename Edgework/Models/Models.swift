@@ -271,7 +271,7 @@ enum Block: String, Codable, CaseIterable, Identifiable {
         case .warmup: "Warm-up"
         case .stretch: "Static Stretch"
         case .main: "Main Set"
-        case .musts: "Must-Dos"
+        case .musts: "Required"
         case .finisher: "Finisher"
         case .cooldown: "Cool-down"
         }
@@ -807,26 +807,52 @@ struct CalEvent: Codable, Identifiable, Hashable {
     var guessed: EventKind
     var end: Date?
 
-    /// Best guess from the title. Order matters: ignore rules, goalie-only, games, meetings, then practices.
+    /// Best guess from the title. Order matters: ignore words, goalie-only, games, meetings, then practices.
     static func guess(_ title: String, allDay: Bool = false, settings: Settings? = nil) -> EventKind {
         let t = " " + title.lowercased().replacingOccurrences(of: "/", with: " ") + " "
-        func has(_ words: [String]) -> Bool { words.contains { t.contains($0) } }
-        let extraIgnore = settings?.ignoreKeywords ?? []
-        let extraPractice = settings?.practiceKeywords ?? []
-        if has(["reminder", " tbd", "tba", "placeholder", " bye ", "no ice", "cancel", "postpone", "holiday", "off day"] + extraIgnore.map { $0.lowercased() }) { return .ignore }
-        if has(["goalie", "goaltend"]) && !has([" vs", " @ ", "game"]) {
+        func has(_ words: [String]) -> Bool { words.contains { !$0.isEmpty && t.contains($0.lowercased()) } }
+        let sport = settings?.sport ?? .hockey
+        let words = settings?.keywords ?? Keywords.defaults(for: sport)
+        if has(words.ignore) { return .ignore }
+        if sport == .hockey && has(["goalie", "goaltend"]) && !has([" vs", " @ ", "game"]) {
             return settings?.position == .goalie ? .practice : .ignore
         }
-        let gameWords = ["game", " vs", "vs.", " v ", " @ ", " at ", "tournament", "scrimmage", "playoff", "championship", "exhibition", "jamboree", "final", "semi", "meet ", "invitational", "relays", "race"]
-        if has(gameWords) { return allDay && (settings?.allDayIgnore ?? true) ? .ignore : .game }
-        if has(["meeting", "parent", "photo", "picture", "fundraiser", "banquet", "party", "registration", "dinner", "social", "volunteer", "orientation", "zoom", "jersey", "uniform", "info session", "sign up", "signup", "team bonding", "potluck"]) {
-            return .meeting
-        }
-        let practiceWords = ["practice", "skate", "skills", "clinic", "training", "dryland", "camp", "tryout", "development", "stick time", "stick & puck", "stick and puck", " solo", "shared", " ice ", "ice time", "power skating", "workout", "conditioning", "lift"]
-        if has(practiceWords + extraPractice.map { $0.lowercased() }) { return allDay ? .ignore : .practice }
+        if has(words.game) { return allDay && (settings?.allDayIgnore ?? true) ? .ignore : .game }
+        if has(words.meeting) { return .meeting }
+        if has(words.practice) { return allDay ? .ignore : .practice }
         // Team ice codes like "B2", "A1", "12U", "xxU b1".
-        if t.range(of: #"\b([abc][0-9]|[0-9]{1,2}u|xxu)\b"#, options: .regularExpression) != nil { return allDay ? .ignore : .practice }
+        if sport == .hockey, settings?.teamCodes ?? true,
+           t.range(of: #"\b([abc][0-9]|[0-9]{1,2}u|xxu)\b"#, options: .regularExpression) != nil { return allDay ? .ignore : .practice }
         return .ignore
+    }
+}
+
+/// Words that sort calendar events. Each sport starts with Edgework's lists and the user can edit them.
+struct Keywords: Codable, Hashable {
+    var game: [String]
+    var practice: [String]
+    var meeting: [String]
+    var ignore: [String]
+
+    static func defaults(for sport: Sport) -> Keywords {
+        let meeting = ["meeting", "parent", "photo", "picture", "fundraiser", "banquet", "party", "registration", "dinner", "social",
+                       "volunteer", "orientation", "zoom", "jersey", "uniform", "info session", "sign up", "signup", "team bonding", "potluck"]
+        let ignore = ["reminder", " tbd", "tba", "placeholder", " bye ", "no ice", "cancel", "postpone", "holiday", "off day"]
+        switch sport {
+        case .hockey:
+            return Keywords(game: ["game", " vs", "vs.", " v ", " @ ", " at ", "tournament", "scrimmage", "playoff", "championship",
+                                   "exhibition", "jamboree", "final", "semi"],
+                            practice: ["practice", "skate", "skills", "clinic", "training", "dryland", "camp", "tryout", "development",
+                                       "stick time", "stick & puck", "stick and puck", " solo", "shared", " ice ", "ice time", "power skating",
+                                       "workout", "conditioning", "lift"],
+                            meeting: meeting, ignore: ignore)
+        case .track:
+            return Keywords(game: ["meet", "invitational", "relays", "championship", "sectional", "regional", "state", "conference",
+                                   "dual", "quad", "tri ", " vs", " @ ", "race", "classic", "open", "xc ", "cross country"],
+                            practice: ["practice", "training", "workout", "sprints", "hurdles", "jumps", "throws", "distance", "tempo",
+                                       "lift", "weights", "conditioning", "track"],
+                            meeting: meeting, ignore: ignore + ["no practice"])
+        }
     }
 }
 
@@ -880,6 +906,21 @@ struct TrackPR: Codable, Identifiable, Hashable {
     var note: String = ""
 }
 
+/// What to do on the days around a track meet.
+enum MeetPlan: String, Codable, CaseIterable, Identifiable {
+    case activation, light, recovery, rest, normal
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .activation: "Activation"
+        case .light: "Light (mobility + strides)"
+        case .recovery: "Recovery"
+        case .rest: "Rest"
+        case .normal: "Normal workout"
+        }
+    }
+}
+
 struct Settings: Codable {
     var name = ""
     var position = Position.forward
@@ -911,13 +952,27 @@ struct Settings: Codable {
     var remindStreak = false
     var autoAdvance = true
     var lineMode = true
-    var puckCount = 18
+    var puckCount = 10
     var sport = Sport.hockey
     var trackGroup = TrackGroup.sprints
     var normalOnEventDays = false
     var adjustAfterEvents = true
     var ignoreKeywords: [String] = []
     var practiceKeywords: [String] = []
+    var keywords = Keywords.defaults(for: .hockey)
+    var teamCodes = true
+    var weekEventIcons = true
+    var priorities: [String: Int] = [:]
+    var meetDayBefore = MeetPlan.light
+    var meetDay = MeetPlan.activation
+    var meetDayAfter = MeetPlan.recovery
+    var meetWarmupMinutes = 45
+    var remindMeetWarmup = true
+    var trackEvents: [String] = []
+    var handTimed = false
+    var gpsAutoPause = true
+    var gpsAnnounce = true
+    var liveActivities = true
     var hidePastEvents = true
     var allDayIgnore = true
     var showFuel = true
@@ -997,6 +1052,19 @@ struct Settings: Codable {
         adjustAfterEvents = try c.decodeIfPresent(Bool.self, forKey: .adjustAfterEvents) ?? d.adjustAfterEvents
         ignoreKeywords = try c.decodeIfPresent([String].self, forKey: .ignoreKeywords) ?? d.ignoreKeywords
         practiceKeywords = try c.decodeIfPresent([String].self, forKey: .practiceKeywords) ?? d.practiceKeywords
+        teamCodes = try c.decodeIfPresent(Bool.self, forKey: .teamCodes) ?? d.teamCodes
+        weekEventIcons = try c.decodeIfPresent(Bool.self, forKey: .weekEventIcons) ?? d.weekEventIcons
+        priorities = try c.decodeIfPresent([String: Int].self, forKey: .priorities) ?? d.priorities
+        meetDayBefore = try c.decodeIfPresent(MeetPlan.self, forKey: .meetDayBefore) ?? d.meetDayBefore
+        meetDay = try c.decodeIfPresent(MeetPlan.self, forKey: .meetDay) ?? d.meetDay
+        meetDayAfter = try c.decodeIfPresent(MeetPlan.self, forKey: .meetDayAfter) ?? d.meetDayAfter
+        meetWarmupMinutes = try c.decodeIfPresent(Int.self, forKey: .meetWarmupMinutes) ?? d.meetWarmupMinutes
+        remindMeetWarmup = try c.decodeIfPresent(Bool.self, forKey: .remindMeetWarmup) ?? d.remindMeetWarmup
+        trackEvents = try c.decodeIfPresent([String].self, forKey: .trackEvents) ?? d.trackEvents
+        handTimed = try c.decodeIfPresent(Bool.self, forKey: .handTimed) ?? d.handTimed
+        gpsAutoPause = try c.decodeIfPresent(Bool.self, forKey: .gpsAutoPause) ?? d.gpsAutoPause
+        gpsAnnounce = try c.decodeIfPresent(Bool.self, forKey: .gpsAnnounce) ?? d.gpsAnnounce
+        liveActivities = try c.decodeIfPresent(Bool.self, forKey: .liveActivities) ?? d.liveActivities
         hidePastEvents = try c.decodeIfPresent(Bool.self, forKey: .hidePastEvents) ?? d.hidePastEvents
         allDayIgnore = try c.decodeIfPresent(Bool.self, forKey: .allDayIgnore) ?? d.allDayIgnore
         showFuel = try c.decodeIfPresent(Bool.self, forKey: .showFuel) ?? d.showFuel
@@ -1027,7 +1095,36 @@ struct Settings: Codable {
         nutritionGoal = try c.decodeIfPresent(NutritionGoal.self, forKey: .nutritionGoal) ?? d.nutritionGoal
         kcalOverride = try c.decodeIfPresent(Int.self, forKey: .kcalOverride) ?? d.kcalOverride
         proteinOverride = try c.decodeIfPresent(Int.self, forKey: .proteinOverride) ?? d.proteinOverride
+        if let k = try c.decodeIfPresent(Keywords.self, forKey: .keywords) {
+            keywords = k
+        } else {
+            // Older versions only stored extra words on top of the built-in lists.
+            keywords = Keywords.defaults(for: sport)
+            keywords.ignore += ignoreKeywords.filter { !keywords.ignore.contains($0) }
+            keywords.practice += practiceKeywords.filter { !keywords.practice.contains($0) }
+            ignoreKeywords = []
+            practiceKeywords = []
+        }
     }
+
+    /// Settings that belong to the person, not the sport. Kept the same when switching sports.
+    mutating func copyShared(from o: Settings) {
+        name = o.name; units = o.units; weightKg = o.weightKg; heightCm = o.heightCm; age = o.age; sex = o.sex
+        nutritionGoal = o.nutritionGoal; kcalOverride = o.kcalOverride; proteinOverride = o.proteinOverride
+        haptics = o.haptics; sounds = o.sounds; countdown = o.countdown; autoAdvance = o.autoAdvance
+        showFuel = o.showFuel; showMealGenerator = o.showMealGenerator; showReadiness = o.showReadiness
+        showDailyGoals = o.showDailyGoals; showFigures = o.showFigures; showTips = o.showTips
+        waterGoal = o.waterGoal; remindWater = o.remindWater; equipment = o.equipment
+        gpsAutoPause = o.gpsAutoPause; gpsAnnounce = o.gpsAnnounce; liveActivities = o.liveActivities
+    }
+}
+
+/// Everything that's kept separately per sport: settings, calendar and day marks.
+struct SportProfile: Codable {
+    var settings: Settings
+    var events: [CalEvent] = []
+    var lastSync: Date?
+    var dayOverrides: [String: DayType] = [:]
 }
 
 struct TodayState: Codable {
@@ -1058,6 +1155,8 @@ struct AppData: Codable {
     var dayScale: [String: Double] = [:]
     var pantry: Set<String> = []
     var trackPRs: [TrackPR] = []
+    var profiles: [String: SportProfile] = [:]
+    var runs: [RunTrack] = []
 
     init() {}
 
@@ -1082,6 +1181,8 @@ struct AppData: Codable {
         dayScale = try c.decodeIfPresent([String: Double].self, forKey: .dayScale) ?? [:]
         pantry = try c.decodeIfPresent(Set<String>.self, forKey: .pantry) ?? []
         trackPRs = try c.decodeIfPresent([TrackPR].self, forKey: .trackPRs) ?? []
+        profiles = (try? c.decodeIfPresent([String: SportProfile].self, forKey: .profiles)) ?? [:]
+        runs = (try? c.decodeIfPresent([RunTrack].self, forKey: .runs)) ?? []
     }
 }
 

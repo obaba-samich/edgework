@@ -18,30 +18,34 @@ struct EdgeworkApp: App {
 
 struct RootView: View {
     @EnvironmentObject var store: Store
+    static let tabTitles = ["Today", "Train", "Library", "Fuel", "Progress"]
+    static let tabSymbols = ["figure.hockey", "square.stack.3d.up.fill", "books.vertical.fill", "fork.knife", "chart.bar.xaxis"]
+
+    private var visibleTabs: [Int] { store.data.settings.showFuel ? [0, 1, 2, 3, 4] : [0, 1, 2, 4] }
+
+    @ViewBuilder
+    private func tabContent(_ t: Int) -> some View {
+        switch t {
+        case 0: TodayView()
+        case 1: TrainView()
+        case 2: LibraryView()
+        case 3: FuelView()
+        default: StatsView()
+        }
+    }
     @Environment(\.scenePhase) private var scenePhase
     @State private var tab = UserDefaults.standard.integer(forKey: "startTab")
     @State private var debugSheet = UserDefaults.standard.string(forKey: "showScreen")
     @State private var calendarMessage: String?
 
     var body: some View {
+        // Tabs come from a stable list (not an `if` inside the TabView), which kept eating the first tap on Library and Fuel.
         TabView(selection: $tab) {
-            TodayView()
-                .tabItem { Label("Today", systemImage: "figure.hockey") }
-                .tag(0)
-            TrainView()
-                .tabItem { Label("Train", systemImage: "square.stack.3d.up.fill") }
-                .tag(1)
-            LibraryView()
-                .tabItem { Label("Library", systemImage: "books.vertical.fill") }
-                .tag(2)
-            if store.data.settings.showFuel {
-                FuelView()
-                    .tabItem { Label("Fuel", systemImage: "fork.knife") }
-                    .tag(3)
+            ForEach(visibleTabs, id: \.self) { t in
+                tabContent(t)
+                    .tabItem { Label(Self.tabTitles[t], systemImage: t == 0 ? store.data.settings.sport.symbol : Self.tabSymbols[t]) }
+                    .tag(t)
             }
-            StatsView()
-                .tabItem { Label("Progress", systemImage: "chart.bar.xaxis") }
-                .tag(4)
         }
         .id(store.data.settings.sport)
         .tint(Theme.ice)

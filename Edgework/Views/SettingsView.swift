@@ -35,18 +35,28 @@ struct SettingsView: View {
             Form {
                 profile
                 sportSection
-                player
-                workout
-                goals
-                warmup
-                lineWork
-                running
-                difficulty
+                Section {
+                    page("Workouts", "dumbbell.fill", Theme.ice, detail: "\(st.duration) min") { player; workout; difficulty }
+                    page("Warm-up & line work", "figure.walk", Color(hex: 0x4FD1C5), detail: st.warmupMode.title) { warmup; lineWork }
+                    page("Running & GPS", "figure.run", Color(hex: 0x22D3EE), detail: st.runMode.title) { running; gps }
+                    if st.sport == .hockey {
+                        page("Hockey", "figure.hockey", Theme.ice, detail: "\(st.puckCount) pucks") { hockey }
+                    } else {
+                        page("Track & meets", "figure.track.and.field", Theme.red, detail: st.trackGroup.title) { trackPage }
+                    }
+                    page("Goals", "target", Theme.green, detail: nil) { goals }
+                } header: { Text("Training") } footer: {
+                    Text("Required and priority exercises are set in the Library: long-press any exercise, or open it.")
+                }
+                .listRowBackground(Theme.surface)
                 schedule
-                notifications
-                nutrition
-                features
-                during
+                Section {
+                    page("Reminders", "bell.badge.fill", Theme.amber, detail: reminderCount == 0 ? "Off" : "\(reminderCount) on") { notifications }
+                    page("Nutrition", "fork.knife", Theme.amber, detail: "\(Int(store.targets.kcal)) kcal") { nutrition }
+                    page("Features", "square.grid.2x2.fill", Color(hex: 0x9B86FF), detail: nil) { features }
+                    page("During workouts", "timer", Theme.text2, detail: nil) { during }
+                } header: { Text("App") }
+                .listRowBackground(Theme.surface)
                 data
                 about
             }
@@ -94,6 +104,34 @@ struct SettingsView: View {
         }
     }
 
+    private var reminderCount: Int {
+        [st.remindDaily, st.runRemind, st.remindWater, st.remindGame, st.remindStreak, st.sport == .track && st.remindMeetWarmup].filter { $0 }.count
+    }
+
+    /// A row that opens a sub-page of settings.
+    private func page<Content: View>(_ title: String, _ symbol: String, _ color: Color, detail: String?,
+                                     @ViewBuilder content: @escaping () -> Content) -> some View {
+        NavigationLink {
+            Form { content() }
+                .scrollContentBackground(.hidden)
+                .screenBackground()
+                .scrollDismissesKeyboard(.immediately)
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: symbol)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.bg)
+                    .frame(width: 30, height: 30)
+                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(color))
+                Text(title)
+                Spacer()
+                if let detail { Text(detail).foregroundStyle(Theme.text2) }
+            }
+        }
+    }
+
     private func rebuildIfAuto() {
         guard let t = store.data.today else { return }
         store.rebuildToday(seed: t.seed, focus: t.focus, duration: t.duration)
@@ -137,18 +175,10 @@ struct SettingsView: View {
                 ForEach(Sport.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
             }
             .pickerStyle(.segmented)
-            if st.sport == .track {
-                Picker("Event group", selection: s.trackGroup) {
-                    ForEach(TrackGroup.allCases) { Text($0.title).tag($0) }
-                }
-            }
         } header: { Text("Sport") } footer: {
-            Text(st.sport == .track
-                 ? "Track mode: sprint, hurdle, jump, throw and distance workouts, track tools and a red theme. The event group decides what the daily workout rotates through."
-                 : "Hockey mode: on-ice skill tools, hockey drills and the ice-blue theme.")
+            Text("Hockey and track each keep their own settings, calendar and workouts. Your name, nutrition and features are shared.")
         }
         .listRowBackground(Theme.surface)
-        .onChange(of: st.trackGroup) { _, _ in rebuildIfAuto() }
     }
 
     private var features: some View {
@@ -159,7 +189,6 @@ struct SettingsView: View {
             Toggle("Daily goals card", isOn: s.showDailyGoals)
             Toggle("Animated exercise figures", isOn: s.showFigures)
             Toggle("Coach's tips", isOn: s.showTips)
-            Toggle("Hockey skill tools", isOn: s.showHockeyTools)
         } header: { Text("Features") } footer: {
             Text("Turn off anything you don't use. Your data is kept, it's just hidden.")
         }
@@ -278,7 +307,6 @@ struct SettingsView: View {
             }
             Stepper("Extra sets: \(st.extraSets > 0 ? "+" : "")\(st.extraSets)", value: s.extraSets, in: -2...3)
             Toggle("Low impact (no jumping)", isOn: s.lowImpact)
-            Toggle("Hockey drills (stickhandling, shooting)", isOn: s.includeHockey)
             NavigationLink {
                 ExclusionsView()
             } label: {
@@ -316,15 +344,16 @@ struct SettingsView: View {
                 CalendarView()
             } label: {
                 HStack {
-                    Label("Team calendar", systemImage: "calendar")
+                    Label(st.sport == .track ? "Track calendar" : "Team calendar", systemImage: "calendar")
                     Spacer()
                     Text(store.data.events.isEmpty ? "Not set up" : "\(store.upcomingEvents.count) upcoming").foregroundStyle(Theme.text2)
                 }
             }
-            Toggle("Keep my normal workouts on game days", isOn: s.normalOnEventDays)
+            Toggle(st.sport == .track ? "Keep my normal workouts on meet days" : "Keep my normal workouts on game days", isOn: s.normalOnEventDays)
             if st.normalOnEventDays {
-                Toggle("Make workouts after games/practices lighter", isOn: s.adjustAfterEvents)
+                Toggle(st.sport == .track ? "Make workouts after meets/practices lighter" : "Make workouts after games/practices lighter", isOn: s.adjustAfterEvents)
             }
+            Toggle(st.sport == .track ? "Show meet icons on the week" : "Show game icons on the week", isOn: s.weekEventIcons)
             NavigationLink {
                 WeeklyScheduleView()
             } label: {
@@ -337,7 +366,9 @@ struct SettingsView: View {
         } header: { Text("Schedule") } footer: {
             Text(st.normalOnEventDays
                  ? "Games and practices won't change your workout. You'll train after the event, and the reminder comes after it ends. With lighter workouts on, after a game you get about 15% less volume, no jumping or heavy legs, and extra stretching."
-                 : "Import your Crossbar calendar so game days get an activation and the next day a recovery session. Or tap any day on Today to mark it by hand.")
+                 : (st.sport == .track
+                    ? "Track has its own calendar, separate from hockey. Meet days and the days around them follow your plan in Track & meets."
+                    : "Import your Crossbar calendar so game days get an activation and the next day a recovery session. Or tap any day on Today to mark it by hand."))
         }
         .listRowBackground(Theme.surface)
     }
@@ -381,21 +412,83 @@ struct SettingsView: View {
 
     private var goals: some View {
         Section {
-            Stepper("Shots per day: \(st.shotGoal)", value: s.shotGoal, in: 0...1000, step: 25)
-            Stepper("Stickhandling: \(st.stickGoal) min/day", value: s.stickGoal, in: 0...120, step: 5)
             Stepper("Water: \(st.waterGoal) glasses/day", value: s.waterGoal, in: 0...20)
             Stepper("Running: \(store.distanceText(st.runGoalKm))/week", value: s.runGoalKm, in: 0...150, step: 1)
-            NavigationLink {
-                MustDosEditor()
-            } label: {
-                HStack {
-                    Label("Must-dos in every workout", systemImage: "checklist")
-                    Spacer()
-                    Text(st.mustDos.isEmpty ? "None" : "\(st.mustDos.count)").foregroundStyle(Theme.text2)
-                }
+            if st.sport == .hockey {
+                Stepper("Shots per day: \(st.shotGoal)", value: s.shotGoal, in: 0...1000, step: 25)
+                Stepper("Stickhandling: \(st.stickGoal) min/day", value: s.stickGoal, in: 0...120, step: 5)
             }
-        } header: { Text("Goals & must-dos") } footer: {
-            Text("Must-dos are mandatory items, like a required run or 100 shots, added to every generated workout.")
+        } header: { Text("Daily goals") } footer: { Text("These fill the rings on the Today and Progress tabs.") }
+        .listRowBackground(Theme.surface)
+    }
+
+    private var hockey: some View {
+        Group {
+            Section {
+                Stepper("Pucks I have: \(st.puckCount)", value: s.puckCount, in: 1...200)
+                Stepper("Shots per day: \(st.shotGoal)", value: s.shotGoal, in: 0...1000, step: 25)
+                Stepper("Stickhandling: \(st.stickGoal) min/day", value: s.stickGoal, in: 0...120, step: 5)
+            } header: { Text("On-ice goals") } footer: { Text("The puck counter uses your puck count to plan rounds.") }
+            .listRowBackground(Theme.surface)
+            Section {
+                Toggle("Hockey drills in workouts", isOn: s.includeHockey)
+                Toggle("Hockey skill tools on Train", isOn: s.showHockeyTools)
+            } footer: { Text("Stickhandling and shooting drills can show up in generated workouts.") }
+            .listRowBackground(Theme.surface)
+        }
+    }
+
+    private var trackPage: some View {
+        Group {
+            Section {
+                Picker("Event group", selection: s.trackGroup) {
+                    ForEach(TrackGroup.allCases) { Text($0.title).tag($0) }
+                }
+                NavigationLink {
+                    TrackEventsPicker()
+                } label: {
+                    HStack {
+                        Text("My events")
+                        Spacer()
+                        Text(st.trackEvents.isEmpty ? "None" : st.trackEvents.compactMap { TrackEventDef.byID[$0]?.name }.joined(separator: ", "))
+                            .foregroundStyle(Theme.text2).lineLimit(1)
+                    }
+                }
+            } header: { Text("Athlete") } footer: { Text("The event group decides what the daily workout rotates through. Your events show first in PRs.") }
+            .listRowBackground(Theme.surface)
+            Section {
+                Picker("Day before", selection: s.meetDayBefore) { ForEach(MeetPlan.allCases) { Text($0.title).tag($0) } }
+                Picker("Meet day", selection: s.meetDay) { ForEach(MeetPlan.allCases) { Text($0.title).tag($0) } }
+                Picker("Day after", selection: s.meetDayAfter) { ForEach(MeetPlan.allCases) { Text($0.title).tag($0) } }
+            } header: { Text("Around meets") } footer: {
+                Text("Recovery is easy movement, long stretches and foam rolling. Light is mobility plus a few strides. Rest is a 10-minute stretch.")
+            }
+            .listRowBackground(Theme.surface)
+            Section {
+                Toggle("Warm-up reminder", isOn: s.remindMeetWarmup)
+                if st.remindMeetWarmup {
+                    Stepper("Start warm-up \(st.meetWarmupMinutes) min before", value: s.meetWarmupMinutes, in: 15...120, step: 5)
+                }
+                Toggle("Hand-timed marks", isOn: s.handTimed)
+            } header: { Text("Meet day") } footer: {
+                Text("The reminder uses the meet's start time from your calendar. Hand-timed sprint marks get an \"h\" (they usually run about 0.24 s fast).")
+            }
+            .listRowBackground(Theme.surface)
+        }
+        .onChange(of: st.meetDayBefore) { _, _ in rebuildIfAuto() }
+        .onChange(of: st.meetDay) { _, _ in rebuildIfAuto() }
+        .onChange(of: st.meetDayAfter) { _, _ in rebuildIfAuto() }
+        .onChange(of: st.remindMeetWarmup) { _, _ in refreshNotifications() }
+        .onChange(of: st.trackGroup) { _, _ in rebuildIfAuto() }
+    }
+
+    private var gps: some View {
+        Section {
+            Toggle("Auto-pause when you stop", isOn: s.gpsAutoPause)
+            Toggle("Announce each \(st.units == .imperial ? "mile" : "kilometre")", isOn: s.gpsAnnounce)
+            Toggle("Live Activity & Dynamic Island", isOn: s.liveActivities)
+        } header: { Text("GPS runs") } footer: {
+            Text("Start a GPS run from Train › Running. Your route, pace and splits are saved. The Dynamic Island shows the run or workout timer.")
         }
         .listRowBackground(Theme.surface)
     }
@@ -706,15 +799,22 @@ struct CalendarView: View {
             Section {
                 Toggle("Hide past events", isOn: $store.data.settings.hidePastEvents)
                 Toggle("All-day events are placeholders", isOn: $store.data.settings.allDayIgnore)
-                KeywordEditor(title: "Always ignore titles containing", words: $store.data.settings.ignoreKeywords,
-                              placeholder: "e.g. reminder, goalie")
-                KeywordEditor(title: "Also count as practice", words: $store.data.settings.practiceKeywords,
-                              placeholder: "e.g. B2, power skate")
+                let k = $store.data.settings.keywords
+                KeywordEditor(title: store.data.settings.sport == .track ? "Meets" : "Games", words: k.game, color: Theme.red, placeholder: "e.g. vs, tournament")
+                KeywordEditor(title: "Practices", words: k.practice, color: Theme.ice, placeholder: "e.g. B2, power skate")
+                KeywordEditor(title: "Meetings", words: k.meeting, color: Theme.amber, placeholder: "e.g. banquet")
+                KeywordEditor(title: "Ignore", words: k.ignore, color: Theme.text2, placeholder: "e.g. reminder, goalie")
+                if store.data.settings.sport == .hockey {
+                    Toggle("Ice codes (B2, 12U, xxU) are practices", isOn: $store.data.settings.teamCodes)
+                }
+                Button("Reset words to Edgework's defaults") {
+                    store.data.settings.keywords = Keywords.defaults(for: store.data.settings.sport)
+                }
                 if !store.data.eventKinds.isEmpty {
                     Button("Reset my manual tags (\(store.data.eventKinds.count))") { store.data.eventKinds = [:] }
                 }
             } header: { Text("Detection rules") } footer: {
-                Text("Built in: reminders, TBD and cancelled are ignored; goalie-only sessions are ignored unless you're a goalie; meetings, photos and parent events get a Meeting tag; ice slots like \"B2 solo\" or \"12U shared\" count as practice.")
+                Text("An event's title is checked against Ignore, then \(store.data.settings.sport == .track ? "Meets" : "Games"), Meetings and Practices, in that order. Tap a word to remove it. \(store.data.settings.sport == .hockey ? "Goalie-only sessions are skipped unless you're a goalie." : "")")
             }
             .listRowBackground(Theme.surface)
 
@@ -957,18 +1057,23 @@ struct NutritionSettingsView: View {
 struct KeywordEditor: View {
     let title: String
     @Binding var words: [String]
+    var color = Theme.ice
     var placeholder = ""
     @State private var draft = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.subheadline)
+            HStack {
+                Text(title).font(.subheadline.weight(.semibold))
+                Spacer()
+                Text("\(words.count)").font(.caption).foregroundStyle(Theme.text3)
+            }
             if !words.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(words, id: \.self) { w in
                             Button { words.removeAll { $0 == w } } label: {
-                                Chip(text: w, symbol: "xmark", color: Theme.ice)
+                                Chip(text: w.trimmingCharacters(in: .whitespaces), symbol: "xmark", color: color)
                             }
                             .buttonStyle(.plain)
                         }

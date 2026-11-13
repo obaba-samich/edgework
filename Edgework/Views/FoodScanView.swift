@@ -1,4 +1,5 @@
 import SwiftUI
+import VisionKit
 import PhotosUI
 import Vision
 
@@ -89,15 +90,19 @@ enum LabelParser {
 
 struct FoodScanView: View {
     enum Mode { case label, barcode }
+    enum Source { case camera, library }
 
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
     let mode: Mode
+    var source: Source = .library
     /// Called with the saved food so the caller can show it or log it.
     let onFood: (Food) -> Void
 
     @State private var photo: PhotosPickerItem?
     @State private var showCamera = false
+    @State private var showLibrary = false
+    @State private var opened = false
     @State private var working = false
     @State private var message: String?
 
@@ -114,12 +119,9 @@ struct FoodScanView: View {
         NavigationStack {
             Form {
                 Section {
-                    Button { showCamera = true } label: {
-                        Label(mode == .label ? "Take a photo of the label" : "Take a photo of the barcode", systemImage: "camera.fill")
-                    }
-                    .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-                    PhotosPicker(selection: $photo, matching: .images) {
-                        Label("Choose from photos", systemImage: "photo.on.rectangle")
+                    Button { open() } label: {
+                        Label(scanned || message != nil ? "Scan again" : (source == .camera ? "Open camera" : "Choose a photo"),
+                              systemImage: source == .camera ? "camera.fill" : "photo.on.rectangle")
                     }
                     if working { HStack { ProgressView(); Text("Reading…").foregroundStyle(Theme.text2) } }
                     if let message { Text(message).font(.footnote).foregroundStyle(Theme.amber) }
@@ -162,6 +164,12 @@ struct FoodScanView: View {
                 CameraPicker { image in Task { await handle(image) } }
                     .ignoresSafeArea()
             }
+            .photosPicker(isPresented: $showLibrary, selection: $photo, matching: .images)
+            .onAppear {
+                guard !opened else { return }
+                opened = true
+                open()
+            }
             .onChange(of: photo) { _, item in
                 guard let item else { return }
                 Task {
@@ -182,6 +190,10 @@ struct FoodScanView: View {
             Spacer()
             TextField("0", text: text).keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 90)
         }
+    }
+
+    private func open() {
+        if source == .camera && UIImagePickerController.isSourceTypeAvailable(.camera) { showCamera = true } else { showLibrary = true }
     }
 
     private func fmt(_ v: Double?) -> String {
@@ -269,22 +281,23 @@ struct CameraPicker: UIViewControllerRepresentable {
 
 struct MyFoodsView: View {
     @EnvironmentObject var store: Store
-    @State private var scanning: FoodScanView.Mode?
+    @State private var editing: Food?
 
     var body: some View {
         List {
             Section {
-                Button { scanning = .label } label: { Label("Scan a nutrition label", systemImage: "doc.text.viewfinder") }
-                Button { scanning = .barcode } label: { Label("Barcode from a photo", systemImage: "barcode") }
+                ScanButtons { _ in }
             } footer: { Text("Scanned labels, barcodes and quick-adds you saved live here and show up first when you search.") }
             .listRowBackground(Theme.surface)
             Section("\(store.data.customFoods.count) saved") {
                 if store.data.customFoods.isEmpty { Text("Nothing saved yet.").foregroundStyle(Theme.text2) }
                 ForEach(store.data.customFoods) { f in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(f.name).font(.subheadline.weight(.semibold))
-                        Text("\(f.serving) · \(Int(f.kcal)) kcal · P \(Int(f.protein)) · C \(Int(f.carbs)) · F \(Int(f.fat))")
-                            .font(.caption).foregroundStyle(Theme.text2)
+                    Button { editing = f } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(f.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                            Text("\(f.serving) · \(Int(f.kcal)) kcal · P \(Int(f.protein)) · C \(Int(f.carbs)) · F \(Int(f.fat))")
+                                .font(.caption).foregroundStyle(Theme.text2)
+                        }
                     }
                 }
                 .onDelete { store.data.customFoods.remove(atOffsets: $0) }
@@ -296,13 +309,66 @@ struct MyFoodsView: View {
         .navigationTitle("My Foods")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { EditButton() }
-        .sheet(item: Binding(get: { scanning.map { ScanMode(mode: $0) } }, set: { scanning = $0?.mode })) { m in
-            FoodScanView(mode: m.mode) { _ in }.environmentObject(store)
+        .sheet(item: $editing) { f in
+            FoodEditor(food: f, editingSaved: true) { _ in }.environmentObject(store)
         }
     }
 }
 
 struct ScanMode: Identifiable {
     let mode: FoodScanView.Mode
-    var id: String { mode == .label ? "label" : "barcode" }
+    var source: FoodScanView.Source = .library
+    var id: String { "\(mode == .label ? "label" : "barcode")-\(source == .camera ? "cam" : "lib")" }
+}
+
+/// "Scan barcode" and "Scan nutrition facts". Each asks camera or photo library, then saves the food to My Foods.
+struct ScanButtons: View {
+    @EnvironmentObject var store: Store
+    let onFood: (Food) -> Void
+    @State private var asking: FoodScanView.Mode?
+    @State private var sheet: ScanMode?
+    @State private var live = false
+    @State private var message: String?
+
+    var body: some View {
+        Button { asking = .label } label: { Label("Scan nutrition facts", systemImage: "doc.text.viewfinder") }
+        Button { asking = .barcode } label: { Label("Scan barcode", systemImage: "barcode.viewfinder") }
+        .confirmationDialog(asking == .label ? "Scan nutrition facts" : "Scan barcode",
+                            isPresented: Binding(get: { asking != nil }, set: { if !$0 { asking = nil } }), titleVisibility: .visible) {
+            let mode = asking ?? .barcode
+            Button("Camera") {
+                if mode == .barcode && DataScannerViewController.isSupported { live = true }
+                else { sheet = ScanMode(mode: mode, source: .camera) }
+                asking = nil
+            }
+            Button("Photo library") { sheet = ScanMode(mode: mode, source: .library); asking = nil }
+            Button("Cancel", role: .cancel) { asking = nil }
+        }
+        .sheet(item: $sheet) { m in
+            FoodScanView(mode: m.mode, source: m.source) { food in
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                    onFood(food)
+                }
+            }
+            .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: $live) {
+            ScannerScreen { code in
+                live = false
+                Task {
+                    if let food = await FoodAPI.barcode(code) {
+                        store.saveToLibrary(food)
+                        try? await Task.sleep(nanoseconds: 400_000_000)
+                        onFood(food)
+                    } else {
+                        message = "Couldn't find barcode \(code). Try Scan nutrition facts instead."
+                    }
+                }
+            }
+        }
+        .alert(message ?? "", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+            Button("OK", role: .cancel) {}
+        }
+    }
 }

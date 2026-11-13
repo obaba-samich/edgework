@@ -236,6 +236,8 @@ struct ExerciseRowLabel: View {
     let exercise: Exercise
     var trailing: String? = nil
     var showFavorite = false
+    var priority = 0
+    var required = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -246,6 +248,17 @@ struct ExerciseRowLabel: View {
                         .lineLimit(1)
                     if showFavorite {
                         Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(Theme.amber)
+                    }
+                    if required {
+                        Image(systemName: "checklist").font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.red)
+                    }
+                    if priority > 0 {
+                        HStack(spacing: 1) {
+                            ForEach(0..<priority, id: \.self) { _ in
+                                Image(systemName: "chevron.up").font(.system(size: 8, weight: .black))
+                            }
+                        }
+                        .foregroundStyle(Theme.green)
                     }
                 }
                 Text(exercise.primary.map(\.title).joined(separator: " · "))

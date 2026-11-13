@@ -86,6 +86,18 @@ struct RootView: View {
                     ShotTrackerView()
                 } else if screen.id == "addfood" {
                     AddFoodView(meal: .breakfast, date: Date())
+                } else if screen.id == "diet" {
+                    DietNotesView()
+                } else if screen.id == "drink" {
+                    FoodDetailSheet(food: FoodDB.byID["sports-drink"]!, meal: .drinks, date: Date(), existing: nil)
+                } else if screen.id == "editfood" {
+                    FoodEditor(food: FoodDB.byID["donut"] ?? FoodDB.all[0]) { _ in }
+                } else if screen.id == "gps" {
+                    GPSRunView()
+                } else if screen.id == "trackmeet" {
+                    SettingsView(debugPage: "track")
+                } else if screen.id == "hockeysettings" {
+                    SettingsView(debugPage: "hockey")
                 } else if screen.id == "food" {
                     FoodDetailSheet(food: FoodDB.byID["pbj"]!, meal: .preGame, date: Date(), existing: nil)
                 } else {

@@ -1,74 +1,80 @@
 # Edgework
 
-A personal training app for iOS (SwiftUI, iOS 17+). It started as off-ice hockey training and now covers general fitness, running, shooting and stickhandling work, and nutrition. Sideloaded, not on the App Store.
+A training app for iOS (SwiftUI, iOS 17+) for hockey and track & field. It covers general fitness, running, shooting and stickhandling, track events, and nutrition. Sideloaded, not on the App Store.
 
 ## Features
 
+**Two sports**
+- Pick Hockey (ice blue) or Track & Field (red) from the menu at the top of Today or Train.
+- Each sport keeps its own settings, calendar, day marks, required and priority exercises. Your name, nutrition profile and feature toggles are shared between them.
+
 **Today**
-- Daily workout generator. Picks whatever you've trained least recently, and adapts to game days (short activation), the day after a game (recovery) and practice days.
-- Readiness check-in (sleep, soreness, energy). On a rough day you can lighten the workout by 15% or switch to recovery.
-- Daily goals: shots, stickhandling minutes, water, weekly running distance.
-- Next game/practice from your team calendar, and your planned workout time.
+- Daily workout generator. It picks whatever you've trained least recently and adapts to game or meet days, the day after, and practices.
+- Optional "keep my normal workouts" mode: you train after the event and the workout is lighter when you're sore.
+- Track meets: separate plans for the day before, meet day and the day after (activation, light, recovery, rest or normal), a meet-day checklist, and a warm-up reminder.
+- Readiness check-in, daily goals, next event, coach's notes that cycle on their own.
 
 **Workouts**
-- 249 exercises: strength, power, speed, conditioning, core, balance, mobility, walking warm-ups, standing stretches, running, stickhandling, shooting and goalie work. Every one has steps, coaching cues, a front/back muscle map and an animated demo figure.
-- Structure: walking dynamic warm-up → static stretches → main set → must-dos → finisher/run → cool-down.
-- Review before starting: reorder, swap, refresh blocks, add or remove exercises, change sets.
-- Difficulty: global intensity (40–200%) plus per-exercise − / + that the app remembers. "Too easy/too hard" after a workout nudges intensity ±5%.
-- Line mode: travelling moves (high knees, carioca, side lunges…) can count line to line instead of time or reps. Global switch, lines-per-set setting and per-exercise override.
-- Focuses: Full Body, Upper, Legs, Abs, HIIT, Run Day, Strength, Power, Speed, Conditioning, Core, Hands, Goalie, Mobility, Recovery, Pre-Game Activation.
-- 13 built-in programs, a custom workout builder, and your own team warm-up routine.
-- Must-dos: mandatory items (e.g. a 2 km run, 100 shots) added to every generated workout.
-- Guided player: timers, rest countdowns, set tracking, haptics, sounds, animated figure, easier/harder buttons mid-workout.
+- 285 exercises, each with steps, cues, a muscle map and a **3D figure you can drag around**. Stickhandling drills use a **top-down view** of the stick, blade and puck.
+- Structure: walking warm-up, static stretches, main set, required items, finisher or run, cool-down.
+- Review before starting: reorder, swap, refresh, add or remove exercises.
+- Global intensity plus per-exercise − / +. Line mode for travelling moves.
+- From the Library: set an exercise's **priority** (it shows up more often) or make it **required** in every workout. Long-press a row, or use the card on the exercise's page.
+- Guided player with timers, rest countdowns and haptics. The current set or rest timer also shows on the **Lock Screen and Dynamic Island**.
 
-**Hockey skills**
-- Shot Tracker (by shot type, on-target count, 14-day chart).
-- Puck Counter: set your shot goal and how many pucks you own. It runs rounds, counts every puck you pick up, flags missing ones, and logs the shots.
-- Aim Trainer: net graphic with random target calls (corners, five hole, bar down), hit/miss accuracy.
-- Hands Caller: random stickhandling moves called out on a timer.
-- Stickhandling timer, Shift Timer (work/rest intervals), combine tests (vertical, broad jump, sprint, 5-10-5, plank…).
+**Hockey tools**: Shot Tracker, Puck Counter (shot type can change each round), Aim Trainer, Hands Caller, Stickhandling timer, Shift Timer, Combine tests.
+
+**Track tools**: PRs per event (your events first, hand-timed marks), Stopwatch, Pace Calculator, Interval Timer.
+
+**Running**
+- GPS runs: live route map, distance, current and average pace, auto-pause, spoken splits, saved history with maps. The run also shows in the Dynamic Island.
+- Weekly distance goal and manual run logging.
 
 **Fuel**
-- 154 built-in foods with macros and what each helps (energy, recovery, hydration, immunity, bones, iron…).
-- Online search and barcode scanning through Open Food Facts.
-- Meals: breakfast, lunch, dinner, snacks, pre-game, post-workout, drinks.
-- Calorie and macro targets from your profile (Mifflin-St Jeor), water tracker, weight log, fuel ideas.
+- 154 built-in foods plus Open Food Facts search.
+- **Scan barcode** and **Scan nutrition facts**: each asks camera or photo library, and the result is saved to My Foods.
+- Type any amount of servings, or step with − / +.
+- Drinks are logged by volume. Water-like drinks count toward the water goal, and sugary drinks are flagged.
+- **Customize** any food and save it as your own (e.g. a plain donut becomes "Lau's maple long john").
+- **Diet notes** from the last week: what to eat more of, what to cut back on, and foods to try.
+- Meal generator built from your pantry, calorie and macro targets, water and weight tracking.
 
 **Schedule & reminders**
-- Team calendar: open an `.ics` export (e.g. from Crossbar) with Edgework or paste a webcal/https subscription link. Events are guessed as game/practice and can be corrected.
-- Workout time for each weekday, run reminders, water reminders, game-day activation reminder, streak saver, shot-goal nudge.
+- Calendar from an `.ics` file (e.g. Crossbar) or a subscription link. Events are sorted by four editable word lists: games/meets, practices, meetings and ignore. Each sport has its own defaults.
+- Workout time for each weekday, plus run, water, game/meet and streak reminders.
 
-**Progress**
-- Streaks, minutes chart, 15-week consistency grid, weekly muscle heat map, training mix, achievements, full history, manual activity logging (runs, skates, games, gym…).
-- JSON backup export/import (worth doing now and then, since sideloaded apps can lose data).
+**Progress**: streaks, charts, muscle heat map, history, achievements, JSON backup.
 
 ## Building
 
 There's no Xcode on the dev machine, so builds run on GitHub Actions macOS runners:
 
-- `build.yml`: on every push to `main`, generates the project with XcodeGen (`project.yml`), builds unsigned for `iphoneos`, and publishes `Edgework.ipa` on the `latest` release.
-- `screenshots.yml` (manual): builds for the simulator, seeds demo data, and captures screens. Launch arguments: `-demoData YES`, `-startTab N`, `-showScreen <exercise-id | today | settings | calendar | routine | log | shots | pucks | aim | addfood | food>`, `-autoStart YES`.
+- `build.yml`: on every push to `main`, generates the project with XcodeGen (`project.yml`), builds unsigned for `iphoneos`, and publishes `Edgework.ipa` on the `latest` release. The IPA includes the `EdgeworkWidgets` extension, which provides the Live Activity.
+- `screenshots.yml` (manual): builds for the simulator, seeds demo data, and captures screens. Launch arguments:
+  - `-demoData YES`
+  - `-startTab N`
+  - `-sport track`
+  - `-autoStart YES`
+  - `-showScreen <exercise-id | today | settings | calendar | routine | log | shots | pucks | aim | addfood | food | diet | drink | editfood | gps | trackmeet | hockeysettings | mealgen | scan | prs | pace>`
 
 ```bash
 gh workflow run screenshots.yml
 ```
 
-Sideload the IPA with AltStore, Sideloadly or TrollStore. Bundle ID: `com.pizza.edgework`.
+Sideload the IPA with AltStore, Sideloadly, a signing service or TrollStore. Bundle IDs: `com.pizza.edgework` and `com.pizza.edgework.widgets`. Your certificate's profile has to allow both (a wildcard profile does).
 
 ## Layout
 
 ```
 Edgework/
   App/        entry point, tabs, debug launch hooks
-  Models/     exercises, workouts, settings, daily logs, food
-  Data/       exercise library (Library, GeneralLibrary, SkillLibrary), programs, food database + Open Food Facts
+  Models/     exercises, workouts, settings, sport profiles, daily logs, food
+  Data/       exercise library, track library, programs, food database + Open Food Facts
   Engine/     workout generator
-  Store/      persistence, scheduling, calendar (.ics), notifications, daily tracking
-  UI/         theme, components, body map, animated figures
+  Store/      persistence, scheduling, calendar (.ics), notifications, daily tracking, Live Activity
+  UI/         theme, components, body map, 2D and 3D figures, top-down stickhandling
   Views/      screens
+EdgeworkWidgets/  Lock Screen + Dynamic Island Live Activity
+Shared/           code used by the app and the widget extension
 tools/make_icon.py   renders the app icon (needs numpy)
 ```
-
-## Planned
-
-- Track & field mode (events, sprint/jump/throw work, meet schedule).

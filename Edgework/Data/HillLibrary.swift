@@ -1,0 +1,42 @@
+import Foundation
+
+/// Workouts that need a hill (or a steep ramp / parking garage). Only picked when "Hill / Ramp" is in your equipment.
+extension Library {
+    static let hillWork: [Exercise] = [
+        ex("hill-rolling-run", "Rolling Hills Run", .running, .seconds, 1, 1500, level: 2, p: [.quads, .glutes], s: [.calves, .hamstrings], eq: [.hill],
+           sym: "mountain.2.fill",
+           sum: "A steady endurance run over a hilly route.",
+           steps: ["Pick a loop with a few climbs.", "Run at an easy, conversational pace on the flats.", "On climbs, keep the same effort and let your pace slow down.", "Run the downhills relaxed with short, quick steps."],
+           cues: ["Same effort, not same pace", "Short steps uphill", "Quick feet downhill"],
+           why: "Builds aerobic endurance and leg strength together, so long shifts and races feel easier."),
+        ex("hill-long-repeats", "Long Hill Repeats", .conditioning, .seconds, 5, 90, level: 2, p: [.glutes, .quads], s: [.calves, .hamstrings], eq: [.hill],
+           sym: "mountain.2.fill",
+           sum: "90 seconds up at a hard, steady effort, jog down.",
+           steps: ["Find a long, steady hill.", "Run up at about 80% effort for the full time.", "Turn around and jog or walk down slowly to recover.", "Try to reach the same spot every rep."],
+           cues: ["Lean from the ankles", "Drive the arms", "Even effort every rep"],
+           why: "Raises your aerobic ceiling and lactate tolerance with less pounding than flat intervals."),
+        ex("hill-power-walk", "Uphill Power Walk", .conditioning, .seconds, 1, 600, p: [.glutes, .calves], s: [.quads, .hamstrings], eq: [.hill],
+           sym: "figure.hiking",
+           sum: "Fast walking up a steep hill or ramp.",
+           steps: ["Walk up a steep hill as fast as you can without running.", "Push through the whole foot and squeeze your glutes at the top of each step.", "Walk down easy and repeat until time is up."],
+           cues: ["Long strides", "Swing the arms", "Stay tall"],
+           why: "Low-impact endurance work that builds glutes and calves. Good on recovery days."),
+        ex("hill-backward-walk", "Backward Hill Walk", .conditioning, .seconds, 4, 45, p: [.quads], s: [.calves, .glutes], eq: [.hill],
+           sym: "mountain.2.fill",
+           sum: "Walk backwards up the hill.",
+           steps: ["Face down the hill.", "Walk backwards up it, landing on the balls of your feet.", "Keep your knees bent and chest up.", "Turn and walk down normally."],
+           cues: ["Look over your shoulder", "Stay on the toes", "Knees soft"],
+           why: "Strengthens the quads and knees with very little stress on the joints."),
+        ex("hill-bounds", "Hill Bounds", .power, .reps, 3, 8, level: 3, p: [.glutes, .quads], s: [.calves, .hamstrings], eq: [.hill],
+           tags: [.explosive],
+           sum: "Long, springy bounds up a gentle slope.",
+           steps: ["Use a gentle hill.", "Push off one leg and drive the other knee up and forward.", "Land on the opposite foot and keep bounding.", "Walk back down and rest fully."],
+           cues: ["Big knee drive", "Push the ground away", "Quality over speed"],
+           why: "Builds single-leg power and stride length. The slope makes landings softer."),
+        ex("hill-lateral-shuffle", "Uphill Lateral Shuffle", .speed, .seconds, 4, 20, side: true, level: 2, p: [.adductors, .glutes], s: [.quads, .calves], eq: [.hill],
+           sum: "Shuffle sideways up the hill in a low stance.",
+           steps: ["Stand sideways to the hill in an athletic stance.", "Shuffle up without crossing your feet.", "Walk down and repeat facing the other way."],
+           cues: ["Stay low", "Push with the bottom leg", "Feet never touch"],
+           why: "Trains the lateral push used in skating strides and defensive slides."),
+    ]
+}

@@ -34,6 +34,11 @@ jobs:
           xcrun simctl install "$UDID" "$APP"
           shot() { name=$1; shift; xcrun simctl launch "$UDID" $ID "$@"; sleep 6; xcrun simctl io "$UDID" screenshot "shots/$name.png"; xcrun simctl terminate "$UDID" $ID || true; sleep 1; }
           shot 00-onboarding
+          # Crash check: run once with the console attached and print any crash report.
+          (xcrun simctl launch --console-pty --terminate-running-process "$UDID" $ID -demoData YES -startTab 0 > console.log 2>&1 &) ; sleep 12
+          echo "----- console -----"; tail -60 console.log || true
+          echo "----- crash -----"; f=$(ls -t ~/Library/Logs/DiagnosticReports/Edgework* 2>/dev/null | head -1); [ -n "$f" ] && head -120 "$f" || echo "no crash report"
+          xcrun simctl terminate "$UDID" $ID || true
           for t in 0 1 2 3 4; do shot "1$t-tab" -demoData YES -startTab $t; done
           shot 28-settings -demoData YES -showScreen settings
           shot 29-shots -demoData YES -showScreen shots

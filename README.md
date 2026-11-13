@@ -1,80 +1,118 @@
 # Edgework
 
-A training app for iOS (SwiftUI, iOS 17+) for hockey and track & field. It covers general fitness, running, shooting and stickhandling, track events, and nutrition. Sideloaded, not on the App Store.
+**A free training app for hockey players, track & field athletes and anyone who wants a real workout every day.** It generates a daily workout that fits your schedule, your equipment and your events, with 3D demos of every exercise, plus food logging and GPS runs. SwiftUI, iOS 17+.
 
-## Features
+<p>
+  <img src="docs/screenshots/onboarding.png" width="200" alt="Onboarding">
+  <img src="docs/screenshots/today.png" width="200" alt="Today">
+  <img src="docs/screenshots/exercise-3d.png" width="200" alt="3D exercise demo">
+  <img src="docs/screenshots/how-to.png" width="200" alt="How-to during a workout">
+</p>
+<p>
+  <img src="docs/screenshots/track.png" width="200" alt="Track mode">
+  <img src="docs/screenshots/library.png" width="200" alt="Library">
+  <img src="docs/screenshots/fuel.png" width="200" alt="Food log">
+  <img src="docs/screenshots/diet-notes.png" width="200" alt="Diet notes">
+</p>
 
-**Two sports**
-- Pick Hockey (ice blue) or Track & Field (red) from the menu at the top of Today or Train.
-- Each sport keeps its own settings, calendar, day marks, required and priority exercises. Your name, nutrition profile and feature toggles are shared between them.
+## Install
 
-**Today**
-- Daily workout generator. It picks whatever you've trained least recently and adapts to game or meet days, the day after, and practices.
-- Optional "keep my normal workouts" mode: you train after the event and the workout is lighter when you're sore.
-- Track meets: separate plans for the day before, meet day and the day after (activation, light, recovery, rest or normal), a meet-day checklist, and a warm-up reminder.
-- Readiness check-in, daily goals, next event, coach's notes that cycle on their own.
+Edgework isn't on the App Store. Download `Edgework.ipa` from the [latest release](../../releases/latest) and sideload it with one of these:
 
-**Workouts**
-- 285 exercises, each with steps, cues, a muscle map and a **3D figure you can drag around**. Stickhandling drills use a **top-down view** of the stick, blade and puck.
-- Structure: walking warm-up, static stretches, main set, required items, finisher or run, cool-down.
-- Review before starting: reorder, swap, refresh, add or remove exercises.
-- Global intensity plus per-exercise − / +. Line mode for travelling moves.
-- From the Library: set an exercise's **priority** (it shows up more often) or make it **required** in every workout. Long-press a row, or use the card on the exercise's page.
-- Guided player with timers, rest countdowns and haptics. The current set or rest timer also shows on the **Lock Screen and Dynamic Island**.
+- [AltStore](https://altstore.io) or [Sideloadly](https://sideloadly.io) with a free Apple ID. You have to re-sign every 7 days.
+- A paid Apple Developer account or a signing service.
+- [TrollStore](https://github.com/opa334/TrollStore), on supported iOS versions.
 
-**Hockey tools**: Shot Tracker, Puck Counter (shot type can change each round), Aim Trainer, Hands Caller, Stickhandling timer, Shift Timer, Combine tests.
+The app includes a small widget extension (`com.pizza.edgework.widgets`) for the Lock Screen and Dynamic Island timers. A wildcard provisioning profile covers it. If your signer drops it, the app still works, just without Live Activities.
 
-**Track tools**: PRs per event (your events first, hand-timed marks), Stopwatch, Pace Calculator, Interval Timer.
+## What's inside
+
+**Daily workouts**
+- A generator that rotates strength, power, speed, conditioning, core and mobility, picking whatever you've trained least recently.
+- Adapts to game and meet days (short activation), the day after (recovery), practices and rest days. Or keep your normal workouts and train after the event, with less volume when you're sore.
+- Review before starting: reorder, swap, refresh or remove anything. Global intensity slider plus −/+ on any single exercise, which the app remembers.
+- Set any exercise as **priority** (comes up more often) or **required** (in every workout) from the Library.
+- Line mode for travelling warm-ups (high knees, carioca, side lunges) instead of time.
+
+**285 exercises in 3D**
+- Every exercise has a 3D figure you can drag around, with Front, Side and Back views and a speed slider.
+- Each exercise also has written steps, coaching cues, a muscle map and why it helps.
+- Stickhandling drills use a top-down view of the stick, blade and puck.
+- In the guided player, "How to" opens the steps without leaving your workout. The current set or rest timer shows on the Lock Screen and Dynamic Island.
+
+**Hockey**
+- Shot tracker and a puck counter that plans rounds for the pucks you own and catches lost ones.
+- Aim trainer, hands caller, shift timer and combine tests.
+- Position-aware training for forwards, defense and goalies.
+
+**Track & field**
+- Pick your events in setup. Daily workouts and drill priorities are built around them: sprints, hurdles, distance, jumps, throws.
+- Plans for the day before, the day of and the day after a meet, a meet-day checklist and a warm-up reminder.
+- PRs per event, stopwatch, pace calculator, interval timer.
 
 **Running**
-- GPS runs: live route map, distance, current and average pace, auto-pause, spoken splits, saved history with maps. The run also shows in the Dynamic Island.
-- Weekly distance goal and manual run logging.
+- GPS runs with a live route map, pace, auto-pause, spoken splits and saved history.
 
 **Fuel**
-- 154 built-in foods plus Open Food Facts search.
-- **Scan barcode** and **Scan nutrition facts**: each asks camera or photo library, and the result is saved to My Foods.
-- Type any amount of servings, or step with − / +.
-- Drinks are logged by volume. Water-like drinks count toward the water goal, and sugary drinks are flagged.
-- **Customize** any food and save it as your own (e.g. a plain donut becomes "Lau's maple long john").
-- **Diet notes** from the last week: what to eat more of, what to cut back on, and foods to try.
-- Meal generator built from your pantry, calorie and macro targets, water and weight tracking.
+- 150+ built-in foods with what each helps (energy, recovery, iron and so on), plus Open Food Facts search.
+- Scan a barcode or a nutrition label, from the camera or a photo. Scans are saved to My Foods.
+- Customize any food and save your own version.
+- Drinks are logged by volume, and water-like drinks count toward your water goal.
+- Diet notes from your last week: what to eat more of, what to cut back on, and foods to try.
+- A meal generator that uses your pantry.
 
 **Schedule & reminders**
-- Calendar from an `.ics` file (e.g. Crossbar) or a subscription link. Events are sorted by four editable word lists: games/meets, practices, meetings and ignore. Each sport has its own defaults.
-- Workout time for each weekday, plus run, water, game/meet and streak reminders.
+- Import any team calendar (TeamSnap, Crossbar, SportsEngine, Google…) by link or `.ics` file.
+- Events are sorted with editable word lists for games or meets, practices, meetings and things to ignore.
+- Reminders for workout times by day, streak saver, water (your hours), runs, game lead time and meet warm-up.
 
-**Progress**: streaks, charts, muscle heat map, history, achievements, JSON backup.
+**Progress**: streaks, charts, muscle heat map, history, benchmarks, JSON backup.
+
+## Privacy
+
+Everything stays on your phone, and there's no account and no analytics. The only network requests are food searches to Open Food Facts and the calendar link you add.
 
 ## Building
 
-There's no Xcode on the dev machine, so builds run on GitHub Actions macOS runners:
-
-- `build.yml`: on every push to `main`, generates the project with XcodeGen (`project.yml`), builds unsigned for `iphoneos`, and publishes `Edgework.ipa` on the `latest` release. The IPA includes the `EdgeworkWidgets` extension, which provides the Live Activity.
-- `screenshots.yml` (manual): builds for the simulator, seeds demo data, and captures screens. Launch arguments:
-  - `-demoData YES`
-  - `-startTab N`
-  - `-sport track`
-  - `-autoStart YES`
-  - `-showScreen <exercise-id | today | settings | calendar | routine | log | shots | pucks | aim | addfood | food | diet | drink | editfood | gps | trackmeet | hockeysettings | mealgen | scan | prs | pace>`
+The project is generated with [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
 ```bash
-gh workflow run screenshots.yml
+brew install xcodegen
+xcodegen generate
+open Edgework.xcodeproj
 ```
 
-Sideload the IPA with AltStore, Sideloadly, a signing service or TrollStore. Bundle IDs: `com.pizza.edgework` and `com.pizza.edgework.widgets`. Your certificate's profile has to allow both (a wildcard profile does).
+CI (`.github/workflows/build.yml`) builds an unsigned IPA on every push to `main` and publishes it to the `latest` release. `screenshots.yml` runs the app in the simulator with demo data (`-demoData YES`, `-startTab N`, `-sport track`, `-showScreen <exercise-id | settings | howto | diet | …>`).
+
+### Editing the 3D moves
+
+The moves live in `Edgework/Data/moves.json`. Edit them through `tools/build_moves.py` and preview them without a Mac (needs Python 3 and ffmpeg):
+
+```bash
+python3 tools/build_moves.py
+python3 tools/posepreview.py squat walkingLungeTwist
+```
+
+Poses are joint angles: hip and knee bend, arm raise, torso lean and twist, and so on. The script header explains each one.
 
 ## Layout
 
 ```
 Edgework/
   App/        entry point, tabs, debug launch hooks
-  Models/     exercises, workouts, settings, sport profiles, daily logs, food
-  Data/       exercise library, track library, programs, food database + Open Food Facts
+  Models/     exercises, workouts, settings, sport profiles, food
+  Data/       exercise library, track library, programs, foods, moves.json
   Engine/     workout generator
-  Store/      persistence, scheduling, calendar (.ics), notifications, daily tracking, Live Activity
-  UI/         theme, components, body map, 2D and 3D figures, top-down stickhandling
+  Store/      persistence, scheduling, calendar, notifications, Live Activity
+  UI/         theme, components, body map, 3D figure + motion system
   Views/      screens
-EdgeworkWidgets/  Lock Screen + Dynamic Island Live Activity
-Shared/           code used by the app and the widget extension
-tools/make_icon.py   renders the app icon (needs numpy)
+EdgeworkWidgets/  Lock Screen + Dynamic Island
+Shared/           code shared with the widget
+tools/            move authoring and preview, icon renderer
 ```
+
+## Credits & license
+
+- Food data: [Open Food Facts](https://world.openfoodfacts.org), available under the [ODbL](https://opendatacommons.org/licenses/odbl/1-0/).
+- Not medical advice. Warm up, and stop if something hurts.
+- MIT licensed. See [LICENSE](LICENSE).

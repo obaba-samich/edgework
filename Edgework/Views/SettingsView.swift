@@ -102,7 +102,7 @@ struct SettingsView: View {
         Section {
             page("Workouts", "dumbbell.fill", Theme.ice, detail: "\(st.duration) min") { player; workout; difficulty }
             page("Warm-up & line work", "figure.walk", Color(hex: 0x4FD1C5), detail: st.warmupMode.title) { warmup; lineWork }
-            page("Running & GPS", "figure.run", Color(hex: 0x22D3EE), detail: st.runMode.title) { running; gps }
+            page("Running & GPS", "figure.run", Color(hex: 0x22D3EE), detail: nil) { running; gps }
             if st.sport == .hockey {
                 page("Hockey", "figure.hockey", Theme.ice, detail: "\(st.puckCount) pucks") { hockey }
             } else {
@@ -146,9 +146,9 @@ struct SettingsView: View {
                     .foregroundStyle(Theme.bg)
                     .frame(width: 30, height: 30)
                     .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(color))
-                Text(title)
+                Text(title).lineLimit(1)
                 Spacer()
-                if let detail { Text(detail).foregroundStyle(Theme.text2) }
+                if let detail { Text(detail).foregroundStyle(Theme.text2).lineLimit(1) }
             }
         }
     }

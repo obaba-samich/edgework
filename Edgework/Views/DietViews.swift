@@ -243,8 +243,10 @@ struct DietReport {
         var r = DietReport()
         let t = store.targets
         let st = store.data.settings
-        let start = Day.add(-6, to: Day.start(Date()))
-        let entries = store.data.foods.filter { $0.date >= start }
+        // Whole days only: today is still in progress, so it would always look like under-eating.
+        let start = Day.add(-7, to: Day.start(Date()))
+        let todayStart = Day.start(Date())
+        let entries = store.data.foods.filter { $0.date >= start && $0.date < todayStart }
         let dayKeys = Set(entries.map { Day.key($0.date) })
         r.days = dayKeys.count
         guard r.days > 0 else { return r }
@@ -364,7 +366,7 @@ struct DietNotesCard: View {
                     Image(systemName: "chevron.right").font(.footnote.weight(.bold)).foregroundStyle(Theme.text3)
                 }
                 if r.days == 0 {
-                    Text("Log a few days of food and you'll get notes on what to eat more of, what to cut back on, and foods to try.")
+                    Text("Log a full day or two of food and you'll get notes on what to eat more of, what to cut back on, and foods to try. Today counts once it's over.")
                         .font(.subheadline).foregroundStyle(Theme.text2)
                         .multilineTextAlignment(.leading)
                 } else {
@@ -395,7 +397,7 @@ struct DietNotesView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text(r.days == 0 ? "Nothing logged this week yet." : "Based on the \(r.days) day\(r.days == 1 ? "" : "s") you logged this week.")
+                    Text(r.days == 0 ? "Nothing logged in the last week yet. Today counts once it's over." : "Based on the \(r.days) full day\(r.days == 1 ? "" : "s") you logged in the last week.")
                         .font(.subheadline).foregroundStyle(Theme.text2)
                     group("Eat more", r.more, Theme.green)
                     group("Cut back on", r.less, Theme.red)

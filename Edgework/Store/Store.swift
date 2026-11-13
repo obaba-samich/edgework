@@ -129,6 +129,13 @@ final class Store: ObservableObject {
         for (id, servings, meal) in eaten {
             if let f = FoodDB.byID[id] { d.foods.append(FoodEntry(food: f, servings: servings, meal: meal, date: today.addingTimeInterval(9 * 3600))) }
         }
+        let past: [(String, Double, Meal)] = [("eggs", 2, .breakfast), ("wheat-bread", 2, .breakfast), ("turkey-sandwich", 1, .lunch),
+                                              ("soda", 1, .drinks), ("pasta", 2, .dinner), ("chicken-breast", 1, .dinner), ("donut", 1, .snack)]
+        for back in 1...3 {
+            for (id, servings, meal) in past {
+                if let f = FoodDB.byID[id] { d.foods.append(FoodEntry(food: f, servings: servings, meal: meal, date: Day.add(-back, to: today).addingTimeInterval(12 * 3600))) }
+            }
+        }
         data = d
         addMustDoPreset(1)
         addMustDoPreset(0)

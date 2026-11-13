@@ -109,6 +109,7 @@ struct LibraryView: View {
                 .padding(.horizontal, 16)
             }
             .padding(.horizontal, -16)
+            ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 Button { onlyMine.toggle() } label: {
                     Chip(text: "My equipment", symbol: onlyMine ? "checkmark" : "dumbbell", color: Theme.text, filled: onlyMine)
@@ -124,6 +125,9 @@ struct LibraryView: View {
                 }
             }
             .buttonStyle(PressableStyle())
+            .padding(.horizontal, 16)
+            }
+            .padding(.horizontal, -16)
         }
     }
 }

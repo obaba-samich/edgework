@@ -5,7 +5,7 @@
 <p>
   <img src="docs/screenshots/onboarding.png" width="200" alt="Onboarding">
   <img src="docs/screenshots/today.png" width="200" alt="Today">
-  <img src="docs/screenshots/exercise-3d.png" width="200" alt="Exercise instructions">
+  <img src="docs/screenshots/exercise.png" width="200" alt="Exercise instructions">
   <img src="docs/screenshots/how-to.png" width="200" alt="How-to during a workout">
 </p>
 <p>

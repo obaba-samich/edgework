@@ -117,6 +117,7 @@ final class PlayerEngine: ObservableObject {
     func stop() {
         timer?.invalidate()
         timer = nil
+        LiveActivity.end()
         UIApplication.shared.isIdleTimerDisabled = false
     }
 
@@ -137,6 +138,30 @@ final class PlayerEngine: ObservableObject {
             stepDuration = 0
             stepEnd = nil
         }
+        syncLiveActivity()
+    }
+
+    /// Mirrors the current step to the Lock Screen and Dynamic Island.
+    func syncLiveActivity() {
+        guard started, !finished, let step else { return }
+        typealias S = EdgeworkActivityAttributes.ContentState
+        var s: S
+        switch step {
+        case .rest(_, let label):
+            let next = nextWork?.item.exercise?.name ?? ""
+            s = S(kind: .rest, title: label, detail: next.isEmpty ? workout.title : "Next: \(next)")
+            s.timerEnd = paused ? nil : stepEnd
+        case .work(let i, let set, let side):
+            let item = items[i]
+            let name = item.exercise?.name ?? "Exercise"
+            let sideText = side.map { $0 == .left ? " · left" : " · right" } ?? ""
+            s = S(kind: .workout, title: name, detail: "Set \(set) of \(item.sets) · \(store.targetText(item))\(sideText)")
+            if isTimed(step) { s.timerEnd = paused ? nil : stepEnd } else { s.timerStart = Date().addingTimeInterval(-TimeInterval(elapsed)) }
+        }
+        s.paused = paused
+        s.pausedText = paused ? (pausedRemaining.map { Int(ceil($0)).clock } ?? "Paused") : ""
+        s.progress = progress
+        LiveActivity.show(s, enabled: store.data.settings.liveActivities)
     }
 
     private func tick() {
@@ -207,6 +232,7 @@ final class PlayerEngine: ObservableObject {
         if let r = pausedRemaining { pausedRemaining = r + seconds }
         stepEnd = stepEnd?.addingTimeInterval(seconds)
         stepDuration += seconds
+        syncLiveActivity()
     }
 
     func togglePause() {
@@ -221,6 +247,7 @@ final class PlayerEngine: ObservableObject {
             pausedAt = Date()
             paused = true
         }
+        syncLiveActivity()
         store.haptic(.medium)
     }
 
@@ -372,7 +399,7 @@ struct PlayerView: View {
 
             if timed {
                 HStack(spacing: 12) {
-                    FigureView(exercise: ex, animate: !engine.paused)
+                    FigureView(exercise: ex, animate: !engine.paused, controls: false)
                         .frame(width: 150, height: 150)
                     ZStack {
                         Ring(progress: engine.stepProgress, color: color, lineWidth: 12)
@@ -388,7 +415,7 @@ struct PlayerView: View {
                 }
             } else {
                 VStack(spacing: 4) {
-                    FigureView(exercise: ex, animate: !engine.paused)
+                    FigureView(exercise: ex, animate: !engine.paused, controls: false)
                         .frame(height: 170)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(m == .meters ? m.format(store.target(item)) : "\(store.target(item))")

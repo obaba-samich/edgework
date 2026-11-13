@@ -4,3 +4,4 @@ Payload/
 *.ipa
 .DS_Store
 Edgework/Info.plist
+EdgeworkWidgets/Info.plist

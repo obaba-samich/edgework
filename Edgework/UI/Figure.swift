@@ -293,17 +293,29 @@ struct FigureView: View {
     let symbol: String
     var color: Color = Theme.ice
     var animate = true
+    var exerciseID = ""
+    var stickhandling = false
+    var controls = true
 
-    init(exercise: Exercise, color: Color? = nil, animate: Bool = true) {
+    init(exercise: Exercise, color: Color? = nil, animate: Bool = true, controls: Bool = true) {
         move = Moves.move(for: exercise)
         symbol = exercise.symbol
+        exerciseID = exercise.id
+        stickhandling = exercise.category == .stickhandling
+        self.controls = controls
         self.color = color ?? exercise.category.color
         self.animate = animate
     }
 
     var body: some View {
         if store.data.settings.showFigures {
-            animated
+            if stickhandling {
+                StickTopDownView(exerciseID: exerciseID, color: color, animate: animate)
+            } else if store.data.settings.figures3D {
+                Figure3DView(move: move, moveID: exerciseID, color: color, animate: animate, showControls: controls)
+            } else {
+                animated
+            }
         } else {
             Image(systemName: symbol)
                 .resizable().scaledToFit()

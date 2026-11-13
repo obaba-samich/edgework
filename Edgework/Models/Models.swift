@@ -973,6 +973,7 @@ struct Settings: Codable {
     var gpsAutoPause = true
     var gpsAnnounce = true
     var liveActivities = true
+    var figures3D = true
     var hidePastEvents = true
     var allDayIgnore = true
     var showFuel = true
@@ -1065,6 +1066,7 @@ struct Settings: Codable {
         gpsAutoPause = try c.decodeIfPresent(Bool.self, forKey: .gpsAutoPause) ?? d.gpsAutoPause
         gpsAnnounce = try c.decodeIfPresent(Bool.self, forKey: .gpsAnnounce) ?? d.gpsAnnounce
         liveActivities = try c.decodeIfPresent(Bool.self, forKey: .liveActivities) ?? d.liveActivities
+        figures3D = try c.decodeIfPresent(Bool.self, forKey: .figures3D) ?? d.figures3D
         hidePastEvents = try c.decodeIfPresent(Bool.self, forKey: .hidePastEvents) ?? d.hidePastEvents
         allDayIgnore = try c.decodeIfPresent(Bool.self, forKey: .allDayIgnore) ?? d.allDayIgnore
         showFuel = try c.decodeIfPresent(Bool.self, forKey: .showFuel) ?? d.showFuel
@@ -1113,7 +1115,7 @@ struct Settings: Codable {
         nutritionGoal = o.nutritionGoal; kcalOverride = o.kcalOverride; proteinOverride = o.proteinOverride
         haptics = o.haptics; sounds = o.sounds; countdown = o.countdown; autoAdvance = o.autoAdvance
         showFuel = o.showFuel; showMealGenerator = o.showMealGenerator; showReadiness = o.showReadiness
-        showDailyGoals = o.showDailyGoals; showFigures = o.showFigures; showTips = o.showTips
+        showDailyGoals = o.showDailyGoals; showFigures = o.showFigures; showTips = o.showTips; figures3D = o.figures3D
         waterGoal = o.waterGoal; remindWater = o.remindWater; equipment = o.equipment
         gpsAutoPause = o.gpsAutoPause; gpsAnnounce = o.gpsAnnounce; liveActivities = o.liveActivities
     }

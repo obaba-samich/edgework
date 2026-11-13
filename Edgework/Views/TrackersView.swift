@@ -284,8 +284,10 @@ struct RunLogView: View {
                     }
                 }
                 .cardStyle()
-                Button { logging = true } label: { Label("Log a run", systemImage: "plus") }
+                NavigationLink { GPSRunView() } label: { Label("Start a GPS run", systemImage: "location.fill") }
                     .buttonStyle(PrimaryButtonStyle(color: Color(hex: 0x22D3EE)))
+                Button { logging = true } label: { Label("Log a run by hand", systemImage: "plus") }
+                    .buttonStyle(SecondaryButtonStyle(color: Color(hex: 0x22D3EE)))
                 VStack(alignment: .leading, spacing: 10) {
                     Overline("Run workouts")
                     ForEach(Library.all.filter { $0.category == .running }) { ex in

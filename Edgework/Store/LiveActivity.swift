@@ -4,7 +4,7 @@ import Foundation
 /// Starts, updates and ends the Lock Screen / Dynamic Island activity for workouts and GPS runs.
 @MainActor
 enum LiveActivity {
-    private static var current: Activity<EdgeworkActivityAttributes>?
+    private static var current: ActivityKit.Activity<EdgeworkActivityAttributes>?
     private static var lastState: EdgeworkActivityAttributes.ContentState?
 
     static func show(_ state: EdgeworkActivityAttributes.ContentState, enabled: Bool) {
@@ -16,7 +16,7 @@ enum LiveActivity {
             Task { await a.update(content) }
         } else {
             let accent: UInt32 = Theme.sport == .track ? 0xFF6B5E : 0x7CD4FF
-            current = try? Activity.request(attributes: EdgeworkActivityAttributes(name: "Edgework", accent: accent),
+            current = try? ActivityKit.Activity.request(attributes: EdgeworkActivityAttributes(name: "Edgework", accent: accent),
                                             content: content, pushType: nil)
         }
     }
@@ -28,7 +28,7 @@ enum LiveActivity {
         Task {
             await a?.end(nil, dismissalPolicy: .immediate)
             // Clean up anything left over from a previous launch.
-            for old in Activity<EdgeworkActivityAttributes>.activities { await old.end(nil, dismissalPolicy: .immediate) }
+            for old in ActivityKit.Activity<EdgeworkActivityAttributes>.activities { await old.end(nil, dismissalPolicy: .immediate) }
         }
     }
 }

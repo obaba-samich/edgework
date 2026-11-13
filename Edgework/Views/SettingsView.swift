@@ -18,6 +18,8 @@ struct SettingsView: View {
     @State private var regenerated = false
     @Environment(\.isPresented) private var isPresented
     @Environment(\.dismiss) private var dismiss
+    /// Screenshot hook: open straight onto one sub-page.
+    var debugPage: String? = nil
 
     private var s: Binding<Settings> { $store.data.settings }
     private var st: Settings { store.data.settings }
@@ -31,6 +33,17 @@ struct SettingsView: View {
     }
 
     var body: some View {
+        if let debugPage {
+            Form { if debugPage == "track" { trackPage } else { hockey } }
+                .scrollContentBackground(.hidden)
+                .screenBackground()
+                .navigationTitle(debugPage == "track" ? "Track & meets" : "Hockey")
+        } else {
+            main
+        }
+    }
+
+    private var main: some View {
         NavigationStack {
             Form {
                 profile

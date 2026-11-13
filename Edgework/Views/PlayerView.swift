@@ -111,7 +111,7 @@ final class PlayerEngine: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
-        UIApplication.shared.isIdleTimerDisabled = true
+        UIApplication.shared.isIdleTimerDisabled = store.data.settings.keepAwake
     }
 
     func stop() {
@@ -273,6 +273,7 @@ struct PlayerView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var engine: PlayerEngine
     @State private var confirmExit = false
+    @State private var howTo: Exercise?
 
     init(workout: Workout, store: Store) {
         _engine = StateObject(wrappedValue: PlayerEngine(workout: workout, store: store))
@@ -315,6 +316,10 @@ struct PlayerView: View {
             }
         }
         .onDisappear { engine.stop() }
+        .sheet(item: $howTo) { ex in
+            HowToSheet(exercise: ex).environmentObject(store)
+                .onAppear { if !engine.paused && engine.started { engine.togglePause() } }
+        }
         .confirmationDialog("End workout?", isPresented: $confirmExit, titleVisibility: .visible) {
             Button("Finish & log what I did") { engine.finish() }
             Button("Discard workout", role: .destructive) { engine.stop(); dismiss() }
@@ -390,10 +395,17 @@ struct PlayerView: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.7)
-                if let side {
-                    Chip(text: side == .left ? "Left side" : "Right side", symbol: "arrow.left.and.right", color: color)
-                } else if ex.perSide {
-                    Chip(text: "Each side", symbol: "arrow.left.and.right", color: color)
+                HStack(spacing: 8) {
+                    if let side {
+                        Chip(text: side == .left ? "Left side" : "Right side", symbol: "arrow.left.and.right", color: color)
+                    } else if ex.perSide {
+                        Chip(text: "Each side", symbol: "arrow.left.and.right", color: color)
+                    }
+                    Button { howTo = ex } label: { Chip(text: "How to", symbol: "info.circle.fill", color: color, filled: true) }
+                        .buttonStyle(PressableStyle())
+                }
+                if store.data.settings.showCues, let cue = ex.cues.first {
+                    Text(cue).font(.footnote).foregroundStyle(Theme.text2).multilineTextAlignment(.center).lineLimit(2)
                 }
             }
 
@@ -475,7 +487,7 @@ struct PlayerView: View {
             .frame(width: 210, height: 210)
 
             HStack(spacing: 10) {
-                Button { engine.addRest(15) } label: { Label("15s", systemImage: "plus") }
+                Button { engine.addRest(TimeInterval(store.data.settings.addRestSeconds)) } label: { Label("\(store.data.settings.addRestSeconds)s", systemImage: "plus") }
                     .buttonStyle(MiniPillStyle(color: Theme.text))
                 Button { engine.complete(counted: false) } label: { Label("Skip rest", systemImage: "forward.fill") }
                     .buttonStyle(MiniPillStyle(color: Theme.green))
@@ -549,5 +561,50 @@ struct MiniPillStyle: ButtonStyle {
             .background(Capsule().fill(color.opacity(0.14)))
             .scaleEffect(configuration.isPressed ? 0.95 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+
+/// Steps and cues for the current exercise, without leaving the workout. Pauses the timer while open.
+struct HowToSheet: View {
+    @EnvironmentObject var store: Store
+    @Environment(\.dismiss) private var dismiss
+    let exercise: Exercise
+
+    var body: some View {
+        let ex = exercise
+        let color = ex.category.color
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    FigureView(exercise: ex).frame(height: 230)
+                    SpeedSlider(color: color)
+                    Text(ex.summary).font(.subheadline).foregroundStyle(Theme.text2)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Overline("How to do it")
+                        ForEach(Array(ex.steps.enumerated()), id: \.offset) { i, step in
+                            HStack(alignment: .top, spacing: 12) {
+                                Text("\(i + 1)").font(.number(13)).foregroundStyle(Theme.bg)
+                                    .frame(width: 24, height: 24).background(Circle().fill(color))
+                                Text(step).foregroundStyle(Theme.text).fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    .cardStyle()
+                    VStack(alignment: .leading, spacing: 8) {
+                        Overline("Coaching cues")
+                        ForEach(ex.cues, id: \.self) { c in
+                            Label(c, systemImage: "checkmark.circle.fill").font(.subheadline).foregroundStyle(Theme.text)
+                        }
+                    }
+                    .cardStyle()
+                }
+                .padding(16)
+            }
+            .screenBackground()
+            .navigationTitle(ex.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Back to workout") { dismiss() } } }
+        }
     }
 }

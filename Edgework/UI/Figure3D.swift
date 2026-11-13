@@ -470,8 +470,8 @@ private struct FigureSceneView: UIViewRepresentable {
 
     /// Camera positions are relative to how the move was authored (side or front view).
     private func place(_ cam: SCNNode, _ v: SCNView, front: Bool) {
-        let target = SCNVector3(0, 0.72, 0)
-        let dist: Float = 3.15
+        let target = SCNVector3(0, 0.8, 0)
+        let dist: Float = 3.5
         let az: Float
         switch angle {
         case .front: az = front ? 0 : .pi / 2

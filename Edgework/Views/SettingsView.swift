@@ -392,7 +392,7 @@ struct SettingsView: View {
                  ? "Games and practices won't change your workout. You'll train after the event, and the reminder comes after it ends. With lighter workouts on, after a game you get about 15% less volume, no jumping or heavy legs, and extra stretching."
                  : (st.sport == .track
                     ? "Track has its own calendar, separate from hockey. Meet days and the days around them follow your plan in Track & meets."
-                    : "Import your Crossbar calendar so game days get an activation and the next day a recovery session. Or tap any day on Today to mark it by hand."))
+                    : "Import your team calendar so game days get an activation and the next day a recovery session. Or tap any day on Today to mark it by hand."))
         }
         .listRowBackground(Theme.surface)
     }
@@ -860,7 +860,7 @@ struct CalendarView: View {
                     Text("Last updated \(last.formatted(.relative(presentation: .named)))").font(.caption).foregroundStyle(Theme.text3)
                 }
             } header: { Text("Source") } footer: {
-                Text("In Crossbar, export or share your schedule as a calendar (.ics) file and open it with Edgework, or copy its calendar subscription link here. Linked calendars refresh every time you open the app.")
+                Text("Most team apps (TeamSnap, Crossbar, SportsEngine, GameChanger) and Google or Apple Calendar can share a calendar link or export an .ics file. Paste the link here or open the file with Edgework. Linked calendars refresh every time you open the app.")
             }
             .listRowBackground(Theme.surface)
 

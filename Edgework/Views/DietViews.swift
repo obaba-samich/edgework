@@ -185,7 +185,7 @@ struct FoodEditor: View {
     }
 
     private func load() {
-        name = editingSaved ? food.name : food.name
+        name = food.name
         serving = food.serving
         group = food.group
         kcal = AmountField.format(food.kcal)
@@ -344,6 +344,15 @@ struct DietNotesCard: View {
     @EnvironmentObject var store: Store
     @State private var open = false
 
+    /// Top few notes for the card: two to eat more of, one to cut, or what's going well.
+    static func summary(_ r: DietReport) -> [(DietReport.Note, String, Color)] {
+        var out: [(DietReport.Note, String, Color)] = []
+        for n in r.more.prefix(2) { out.append((n, "Eat more", Theme.green)) }
+        for n in r.less.prefix(1) { out.append((n, "Cut back", Theme.red)) }
+        if out.isEmpty { for n in r.good.prefix(2) { out.append((n, "Good", Theme.green)) } }
+        return out
+    }
+
     var body: some View {
         let r = DietReport.build(store)
         Button { open = true } label: {
@@ -359,14 +368,12 @@ struct DietNotesCard: View {
                         .font(.subheadline).foregroundStyle(Theme.text2)
                         .multilineTextAlignment(.leading)
                 } else {
-                    ForEach((r.more.prefix(2) + r.less.prefix(1) + (r.more.isEmpty && r.less.isEmpty ? Array(r.good.prefix(2)) : []))) { n in
+                    ForEach(Self.summary(r), id: \.0.id) { n, label, color in
                         HStack(spacing: 10) {
                             Image(systemName: n.symbol).foregroundStyle(n.color).frame(width: 20)
                             Text(n.title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
                             Spacer()
-                            Text(r.less.contains { $0.id == n.id } ? "Cut back" : (r.more.contains { $0.id == n.id } ? "Eat more" : "Good"))
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(r.less.contains { $0.id == n.id } ? Theme.red : Theme.green)
+                            Text(label).font(.caption.weight(.semibold)).foregroundStyle(color)
                         }
                     }
                 }

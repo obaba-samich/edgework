@@ -54,34 +54,8 @@ struct TrackPRsView: View {
                     Overline("Track & Field")
                     Text("Personal Records").font(.display(32)).foregroundStyle(Theme.text)
                 }
-                let mine = store.data.settings.trackEvents
-                ForEach(TrackEventDef.all.filter { mine.contains($0.id) } + TrackEventDef.all.filter { !mine.contains($0.id) }) { ev in
-                    let entries = store.data.trackPRs.filter { $0.event == ev.id }.sorted { $0.date < $1.date }
-                    let best = ev.isTime ? entries.map(\.value).min() : entries.map(\.value).max()
-                    Button { logging = ev } label: {
-                        HStack(spacing: 12) {
-                            IconBadge(symbol: ev.isTime ? "stopwatch.fill" : "ruler.fill", color: Theme.ice, size: 40)
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 6) {
-                                    Text(ev.name).font(.headline).foregroundStyle(Theme.text)
-                                    if mine.contains(ev.id) { Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(Theme.amber) }
-                                }
-                                Text(entries.isEmpty ? "No marks yet" : "\(entries.count) logged").font(.caption).foregroundStyle(Theme.text2)
-                            }
-                            Spacer()
-                            if entries.count >= 2 {
-                                Chart(entries) { e in
-                                    LineMark(x: .value("Date", e.date), y: .value("Mark", e.value)).foregroundStyle(Theme.ice)
-                                }
-                                .chartXAxis(.hidden).chartYAxis(.hidden)
-                                .chartYScale(domain: .automatic(includesZero: false))
-                                .frame(width: 60, height: 28)
-                            }
-                            Text(best.map { format(ev, $0) } ?? "—").font(.number(17)).foregroundStyle(best == nil ? Theme.text3 : Theme.text)
-                        }
-                        .cardStyle(padding: 12)
-                    }
-                    .buttonStyle(PressableStyle())
+                ForEach(ordered) { ev in
+                    prRow(ev, mine: store.data.settings.trackEvents.contains(ev.id))
                 }
             }
             .padding(16)
@@ -89,6 +63,41 @@ struct TrackPRsView: View {
         .screenBackground()
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $logging) { ev in LogMarkSheet(event: ev).environmentObject(store) }
+    }
+
+    private var ordered: [TrackEventDef] {
+        let mine = store.data.settings.trackEvents
+        return TrackEventDef.all.filter { mine.contains($0.id) } + TrackEventDef.all.filter { !mine.contains($0.id) }
+    }
+
+    @ViewBuilder
+    private func prRow(_ ev: TrackEventDef, mine isMine: Bool) -> some View {
+        let entries = store.data.trackPRs.filter { $0.event == ev.id }.sorted { $0.date < $1.date }
+        let best = ev.isTime ? entries.map(\.value).min() : entries.map(\.value).max()
+        Button { logging = ev } label: {
+            HStack(spacing: 12) {
+                IconBadge(symbol: ev.isTime ? "stopwatch.fill" : "ruler.fill", color: Theme.ice, size: 40)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(ev.name).font(.headline).foregroundStyle(Theme.text)
+                        if isMine { Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(Theme.amber) }
+                    }
+                    Text(entries.isEmpty ? "No marks yet" : "\(entries.count) logged").font(.caption).foregroundStyle(Theme.text2)
+                }
+                Spacer()
+                if entries.count >= 2 {
+                    Chart(entries) { e in
+                        LineMark(x: .value("Date", e.date), y: .value("Mark", e.value)).foregroundStyle(Theme.ice)
+                    }
+                    .chartXAxis(.hidden).chartYAxis(.hidden)
+                    .chartYScale(domain: .automatic(includesZero: false))
+                    .frame(width: 60, height: 28)
+                }
+                Text(best.map { format(ev, $0) } ?? "—").font(.number(17)).foregroundStyle(best == nil ? Theme.text3 : Theme.text)
+            }
+            .cardStyle(padding: 12)
+        }
+        .buttonStyle(PressableStyle())
     }
 
     private func format(_ ev: TrackEventDef, _ v: Double) -> String {

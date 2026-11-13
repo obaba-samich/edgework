@@ -35,28 +35,9 @@ struct SettingsView: View {
             Form {
                 profile
                 sportSection
-                Section {
-                    page("Workouts", "dumbbell.fill", Theme.ice, detail: "\(st.duration) min") { player; workout; difficulty }
-                    page("Warm-up & line work", "figure.walk", Color(hex: 0x4FD1C5), detail: st.warmupMode.title) { warmup; lineWork }
-                    page("Running & GPS", "figure.run", Color(hex: 0x22D3EE), detail: st.runMode.title) { running; gps }
-                    if st.sport == .hockey {
-                        page("Hockey", "figure.hockey", Theme.ice, detail: "\(st.puckCount) pucks") { hockey }
-                    } else {
-                        page("Track & meets", "figure.track.and.field", Theme.red, detail: st.trackGroup.title) { trackPage }
-                    }
-                    page("Goals", "target", Theme.green, detail: nil) { goals }
-                } header: { Text("Training") } footer: {
-                    Text("Required and priority exercises are set in the Library: long-press any exercise, or open it.")
-                }
-                .listRowBackground(Theme.surface)
+                trainingPages
                 schedule
-                Section {
-                    page("Reminders", "bell.badge.fill", Theme.amber, detail: reminderCount == 0 ? "Off" : "\(reminderCount) on") { notifications }
-                    page("Nutrition", "fork.knife", Theme.amber, detail: "\(Int(store.targets.kcal)) kcal") { nutrition }
-                    page("Features", "square.grid.2x2.fill", Color(hex: 0x9B86FF), detail: nil) { features }
-                    page("During workouts", "timer", Theme.text2, detail: nil) { during }
-                } header: { Text("App") }
-                .listRowBackground(Theme.surface)
+                appPages
                 data
                 about
             }
@@ -102,6 +83,33 @@ struct SettingsView: View {
             .onChange(of: st.runMinute) { _, _ in refreshNotifications() }
             .onChange(of: st.remindWater) { _, _ in refreshNotifications() }
         }
+    }
+
+    private var trainingPages: some View {
+        Section {
+            page("Workouts", "dumbbell.fill", Theme.ice, detail: "\(st.duration) min") { player; workout; difficulty }
+            page("Warm-up & line work", "figure.walk", Color(hex: 0x4FD1C5), detail: st.warmupMode.title) { warmup; lineWork }
+            page("Running & GPS", "figure.run", Color(hex: 0x22D3EE), detail: st.runMode.title) { running; gps }
+            if st.sport == .hockey {
+                page("Hockey", "figure.hockey", Theme.ice, detail: "\(st.puckCount) pucks") { hockey }
+            } else {
+                page("Track & meets", "figure.track.and.field", Theme.red, detail: st.trackGroup.title) { trackPage }
+            }
+            page("Goals", "target", Theme.green, detail: nil) { goals }
+        } header: { Text("Training") } footer: {
+            Text("Required and priority exercises are set in the Library: long-press any exercise, or open it.")
+        }
+        .listRowBackground(Theme.surface)
+    }
+
+    private var appPages: some View {
+        Section {
+            page("Reminders", "bell.badge.fill", Theme.amber, detail: reminderCount == 0 ? "Off" : "\(reminderCount) on") { notifications }
+            page("Nutrition", "fork.knife", Theme.amber, detail: "\(Int(store.targets.kcal)) kcal") { nutrition }
+            page("Features", "square.grid.2x2.fill", Color(hex: 0x9B86FF), detail: nil) { features }
+            page("During workouts", "timer", Theme.text2, detail: nil) { during }
+        } header: { Text("App") }
+        .listRowBackground(Theme.surface)
     }
 
     private var reminderCount: Int {
@@ -188,6 +196,7 @@ struct SettingsView: View {
             Toggle("Daily readiness check-in", isOn: s.showReadiness)
             Toggle("Daily goals card", isOn: s.showDailyGoals)
             Toggle("Animated exercise figures", isOn: s.showFigures)
+            if st.showFigures { Toggle("3D figures (drag to rotate)", isOn: s.figures3D) }
             Toggle("Coach's tips", isOn: s.showTips)
         } header: { Text("Features") } footer: {
             Text("Turn off anything you don't use. Your data is kept, it's just hidden.")

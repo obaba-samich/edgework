@@ -640,8 +640,8 @@ struct FoodDetailSheet: View {
                 }
             }
             if food.hydrates {
-                Label("Counts toward water: +\(max(1, Int((servings * ozPerServing / 8).rounded()))) glass\(Int((servings * ozPerServing / 8).rounded()) == 1 ? "" : "es")",
-                      systemImage: "drop.fill")
+                let glasses = max(1, Int((servings * ozPerServing / 8).rounded()))
+                Label("Counts toward water: +\(glasses) glass\(glasses == 1 ? "" : "es")", systemImage: "drop.fill")
                     .font(.footnote.weight(.semibold)).foregroundStyle(Theme.ice)
             } else if food.sugaryDrink {
                 Label("\(Int(food.carbs * servings)) g of sugar you drink. Water or zero-sugar electrolytes hydrate without it.",

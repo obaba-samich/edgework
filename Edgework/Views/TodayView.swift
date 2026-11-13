@@ -208,25 +208,35 @@ struct MeetDayCard: View {
     let after: Bool
     @State private var checked: Set<Int> = []
 
+    static func afterSteps(water: Int) -> [(String, String)] {
+        [("figure.walk", "10–15 min easy jog or walk"),
+         ("figure.flexibility", "Long stretches: hamstrings, hips, calves"),
+         ("circle.dotted", "Foam roll quads, calves, glutes"),
+         ("drop.fill", "Rehydrate: \(water)+ glasses"),
+         ("fork.knife", "Protein at every meal today"),
+         ("moon.fill", "Early night, 8+ hours")]
+    }
+
+    static func meetSteps(start: Date?, warmup: Int) -> [(String, String)] {
+        var meal = "Carb-heavy meal 3–4 h before"
+        var warm = "Warm up \(warmup) min before your event"
+        if let start {
+            meal = "Carb-heavy meal by " + start.addingTimeInterval(-3.5 * 3600).formatted(date: .omitted, time: .shortened)
+            warm = "Start warm-up at " + start.addingTimeInterval(TimeInterval(-warmup * 60)).formatted(date: .omitted, time: .shortened)
+        }
+        return [("fork.knife", meal),
+                ("bag.fill", "Spikes, bib, water, snack, jacket"),
+                ("figure.run", warm),
+                ("flame.fill", "Stay warm between events, strides 10 min before"),
+                ("figure.cooldown", "After your last event: 10 min cool-down jog"),
+                ("leaf.fill", "Recovery snack with protein within an hour")]
+    }
+
     var body: some View {
         let st = store.data.settings
         let meet = store.events(on: Date()).first { store.kind($0) == .game }
         let start = meet.flatMap { $0.allDay ? nil : $0.start }
-        let steps: [(String, String)] = after ? [
-            ("figure.walk", "10–15 min easy jog or walk"),
-            ("figure.flexibility", "Long stretches: hamstrings, hips, calves"),
-            ("circle.dotted", "Foam roll quads, calves, glutes"),
-            ("drop.fill", "Rehydrate: \(st.waterGoal)+ glasses"),
-            ("fork.knife", "Protein at every meal today"),
-            ("moon.fill", "Early night, 8+ hours"),
-        ] : [
-            ("fork.knife", start.map { "Carb-heavy meal by \($0.addingTimeInterval(-3.5 * 3600).formatted(date: .omitted, time: .shortened))" } ?? "Carb-heavy meal 3–4 h before"),
-            ("bag.fill", "Spikes, bib, water, snack, jacket"),
-            ("figure.run", start.map { "Start warm-up at \($0.addingTimeInterval(TimeInterval(-st.meetWarmupMinutes * 60)).formatted(date: .omitted, time: .shortened))" } ?? "Warm up \(st.meetWarmupMinutes) min before your event"),
-            ("flame.fill", "Stay warm between events, strides 10 min before"),
-            ("figure.cooldown", "After your last event: 10 min cool-down jog"),
-            ("leaf.fill", "Recovery snack with protein within an hour"),
-        ]
+        let steps = after ? Self.afterSteps(water: st.waterGoal) : Self.meetSteps(start: start, warmup: st.meetWarmupMinutes)
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Overline(after ? "Day after the meet" : "Meet day", color: Theme.red)

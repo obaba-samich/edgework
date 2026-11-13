@@ -37,8 +37,16 @@ struct OnboardingView: View {
     enum Page: Hashable { case welcome, you, hockey, track, training, schedule, reminders, gear, body, features, done }
 
     @State private var goal = Goal.hockey
-    @State private var page = Page.welcome
-    @State private var trackEvents: [String] = []
+    @State private var page: Page = {
+        // Screenshot hook: -onboardPage track
+        switch UserDefaults.standard.string(forKey: "onboardPage") {
+        case "you": return .you
+        case "track": return .track
+        case "schedule": return .schedule
+        default: return .welcome
+        }
+    }()
+    @State private var trackEvents: [String] = UserDefaults.standard.string(forKey: "onboardPage") == "track" ? ["100", "200", "lj"] : []
     @State private var trainDays: Set<Int> = [2, 3, 4, 5, 6]
     @State private var trainMinute = 17 * 60
     @State private var calendarLink = ""

@@ -142,9 +142,32 @@ enum Generator {
         if !plan.finisher.isEmpty || wantsRunFinisher { budget -= 200 }
         budget -= settings.mustDos.map(cost).reduce(0, +)
 
-        // Main
-        var weights = plan.main
+        // Main. Priority exercises (set from the library) come up more often; top priority ones are added first.
+        func priority(_ ex: Exercise) -> Int { settings.priorities[ex.id] ?? 0 }
+        func weightedPick(_ list: [Exercise]) -> Exercise? {
+            let total = list.reduce(0.0) { $0 + pow(2.2, Double(priority($1))) }
+            guard total > 0 else { return nil }
+            var roll = Double.random(in: 0..<total, using: &rng)
+            for ex in list {
+                let w = pow(2.2, Double(priority(ex)))
+                if roll < w { return ex }
+                roll -= w
+            }
+            return list.last
+        }
+        var weights = plan.main.map { cw -> (Category, Double) in
+            let boost = pool(cw.0).reduce(0.0) { $0 + Double(priority($1)) * 0.12 }
+            return (cw.0, cw.1 * min(2, 1 + boost))
+        }
         var main: [WorkoutItem] = []
+        let planCats = Set(plan.main.map(\.0))
+        for ex in available.filter({ priority($0) >= 3 && planCats.contains($0.category) && !used.contains($0.id) })
+            .shuffled(using: &rng).prefix(2) {
+            let item = makeItem(ex, .main)
+            budget -= cost(item)
+            used.insert(ex.id)
+            main.append(item)
+        }
         var lastCategory: Category?
         var guardCount = 0
         while main.count < plan.maxMain && !weights.isEmpty && guardCount < 200 {
@@ -159,7 +182,7 @@ enum Generator {
             // Spread categories out instead of stacking the same one back to back.
             if cat == lastCategory && weights.count > 1 && Double.random(in: 0..<1, using: &rng) < 0.5 { continue }
             let candidates = pool(cat).filter { !used.contains($0.id) }
-            guard let ex = candidates.randomElement(using: &rng) else {
+            guard let ex = weightedPick(candidates) else {
                 weights.removeAll { $0.0 == cat }
                 continue
             }

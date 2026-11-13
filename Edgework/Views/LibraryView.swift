@@ -6,6 +6,7 @@ struct LibraryView: View {
     @State private var category: Category?
     @State private var onlyMine = false
     @State private var favoritesOnly = false
+    @State private var planFilter = 0 // 0 all, 1 priority, 2 required
 
     private var results: [Exercise] {
         let hidden: Set<Category> = store.data.settings.sport == .track ? Category.hockeyOnly : Category.trackOnly
@@ -13,6 +14,8 @@ struct LibraryView: View {
             (category == nil ? !hidden.contains(ex.category) : ex.category == category)
                 && (!onlyMine || ex.equipment.allSatisfy { store.data.settings.equipment.contains($0) })
                 && (!favoritesOnly || store.isFavorite(ex.id))
+                && (planFilter != 1 || store.priority(ex.id) > 0)
+                && (planFilter != 2 || store.isRequired(ex.id))
                 && (query.isEmpty || ex.name.localizedCaseInsensitiveContains(query)
                     || ex.primary.contains { $0.title.localizedCaseInsensitiveContains(query) }
                     || ex.category.title.localizedCaseInsensitiveContains(query))
@@ -43,10 +46,25 @@ struct LibraryView: View {
                                     NavigationLink {
                                         ExerciseDetailView(exercise: ex)
                                     } label: {
-                                        ExerciseRowLabel(exercise: ex, trailing: ex.defaultTarget(), showFavorite: store.isFavorite(ex.id))
+                                        ExerciseRowLabel(exercise: ex, trailing: ex.defaultTarget(), showFavorite: store.isFavorite(ex.id),
+                                                         priority: store.priority(ex.id), required: store.isRequired(ex.id))
                                             .padding(.vertical, 9)
                                     }
                                     .buttonStyle(.plain)
+                                    .contextMenu {
+                                        Picker("Priority", selection: Binding(get: { store.priority(ex.id) }, set: { store.setPriority(ex.id, $0) })) {
+                                            ForEach(0..<4) { Text(Store.priorityNames[$0]).tag($0) }
+                                        }
+                                        Button {
+                                            store.setRequired(ex, !store.isRequired(ex.id))
+                                        } label: {
+                                            Label(store.isRequired(ex.id) ? "Not required" : "Required in every workout",
+                                                  systemImage: store.isRequired(ex.id) ? "checklist.unchecked" : "checklist")
+                                        }
+                                        Button { store.toggleFavorite(ex.id) } label: {
+                                            Label(store.isFavorite(ex.id) ? "Unfavorite" : "Favorite", systemImage: "star")
+                                        }
+                                    }
                                     if idx < list.count - 1 { Divider().overlay(Theme.stroke).padding(.leading, 56) }
                                 }
                             }
@@ -59,6 +77,16 @@ struct LibraryView: View {
             .screenBackground()
             .navigationTitle("Library")
             .searchable(text: $query, prompt: "Exercises, muscles, categories")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        MustDosEditor()
+                    } label: {
+                        Label("Required (\(store.data.settings.mustDos.count))", systemImage: "checklist")
+                            .labelStyle(.titleAndIcon)
+                    }
+                }
+            }
         }
     }
 
@@ -87,6 +115,12 @@ struct LibraryView: View {
                 }
                 Button { favoritesOnly.toggle() } label: {
                     Chip(text: "Favorites", symbol: "star.fill", color: Theme.amber, filled: favoritesOnly)
+                }
+                Button { planFilter = planFilter == 1 ? 0 : 1 } label: {
+                    Chip(text: "Priority", symbol: "arrow.up.circle.fill", color: Theme.green, filled: planFilter == 1)
+                }
+                Button { planFilter = planFilter == 2 ? 0 : 2 } label: {
+                    Chip(text: "Required", symbol: "checklist", color: Theme.red, filled: planFilter == 2)
                 }
             }
             .buttonStyle(PressableStyle())

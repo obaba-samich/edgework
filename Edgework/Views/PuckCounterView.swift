@@ -7,9 +7,11 @@ struct PuckCounterView: View {
     enum Phase { case setup, shooting, pickup, done }
 
     @State private var phase = Phase.setup
-    @State private var goal = 100
-    @State private var shotType = ShotType.wrist
+    @AppStorage("puckGoal") private var goal = 100
+    @AppStorage("puckShotType") private var shotType = ShotType.wrist
     @State private var shots = 0
+    @State private var byType: [ShotType: Int] = [:]
+    @State private var logged = false
     @State private var round = 0
     @State private var inHand = 0
     @State private var pickedUp = 0
@@ -48,13 +50,13 @@ struct PuckCounterView: View {
             if phase == .shooting || phase == .pickup {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("End & log") {
-                        store.addShots(shotType, shots)
+                        logShots()
                         phase = .done
                     }
                 }
             }
         }
-        .onAppear { if phase == .setup { goal = max(10, store.data.settings.shotGoal) } }
+        .onAppear { if goal <= 0 { goal = max(10, store.data.settings.shotGoal) } }
         .confirmationDialog("\(outThere) \(outThere == 1 ? "puck is" : "pucks are") still out there", isPresented: $confirmMissing, titleVisibility: .visible) {
             Button("Keep looking", role: .cancel) {}
             Button("They're lost, continue without them", role: .destructive) {
@@ -119,7 +121,7 @@ struct PuckCounterView: View {
             }
             .cardStyle()
             Button {
-                shots = 0; round = 0; lost = 0
+                shots = 0; round = 0; lost = 0; byType = [:]; logged = false
                 startRound()
             } label: { Label("Start", systemImage: "play.fill") }
                 .buttonStyle(PrimaryButtonStyle(color: Color(hex: 0xB8F36B)))
@@ -136,7 +138,20 @@ struct PuckCounterView: View {
             }
             .frame(maxWidth: .infinity)
             .cardStyle()
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Shot type this round").font(.caption.weight(.semibold)).foregroundStyle(Theme.text2)
+                Picker("Shot", selection: $shotType) {
+                    ForEach(ShotType.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                if !byType.isEmpty {
+                    Text(ShotType.allCases.compactMap { t in byType[t].map { "\($0) \(t.title.lowercased())" } }.joined(separator: " · "))
+                        .font(.caption).foregroundStyle(Theme.text3)
+                }
+            }
+            .cardStyle(padding: 12)
             Button {
+                byType[shotType, default: 0] += inHand
                 shots += inHand
                 pickedUp = 0
                 phase = .pickup
@@ -206,6 +221,13 @@ struct PuckCounterView: View {
 
     // MARK: Flow
 
+    /// Logs each shot type separately so a mixed session lands in the tracker correctly.
+    private func logShots() {
+        guard !logged else { return }
+        logged = true
+        for (t, n) in byType where n > 0 { store.addShots(t, n) }
+    }
+
     private func startRound() {
         round += 1
         inHand = thisRound
@@ -214,7 +236,7 @@ struct PuckCounterView: View {
 
     private func finishPickup() {
         if remaining == 0 || activePucks == 0 {
-            store.addShots(shotType, shots)
+            logShots()
             phase = .done
         } else {
             startRound()

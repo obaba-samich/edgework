@@ -23,7 +23,12 @@ enum MealBuilder {
 
     static func build(meal: Meal, pool: [Food], kcalTarget: Double, proteinTarget: Double, seed: Int) -> [Pick] {
         var rng = SeededRNG(seed: UInt64(max(0, seed)))
-        let usable = pool.filter { $0.kcal > 0 && $0.group != .sweet }
+        // Drinks have their own rules: only in the Drinks slot (or milk at breakfast), and never sugary ones.
+        let usable = pool.filter { f in
+            guard f.group != .sweet, f.kcal > 0 || (meal == .drinks && f.isDrink) else { return false }
+            if f.isDrink { return (meal == .drinks || (meal == .breakfast && f.group == .dairy) || meal == .postWorkout && f.id == "choc-milk") && !f.sugaryDrink }
+            return meal != .drinks
+        }
         func pick(_ filter: (Food) -> Bool) -> Food? {
             usable.filter(filter).shuffled(using: &rng).first
         }
@@ -44,7 +49,10 @@ enum MealBuilder {
                 ?? pick({ carbRich($0) && !foods.contains($0) }) { foods.append(c) }
             if let f = pick({ $0.group == .fruit && !foods.contains($0) }) { foods.append(f) }
         case .snack, .drinks:
-            if let a = pick({ meal == .drinks ? $0.group == .drink : ($0.group == .snack || $0.group == .fruit || $0.group == .dairy || $0.group == .fats) }) { foods.append(a) }
+            if meal == .drinks {
+                if let w = pick({ $0.hydrates }) { foods.append(w) }
+                if let b = pick({ $0.isDrink && !$0.hydrates && !foods.contains($0) }) { foods.append(b) }
+            } else if let a = pick({ $0.group == .snack || $0.group == .fruit || $0.group == .dairy || $0.group == .fats }) { foods.append(a) }
             if meal == .snack, let b = pick({ proteinRich($0) && !foods.contains($0) && $0.kcal < 250 }) { foods.append(b) }
         default:
             if let p = pick({ proteinRich($0) && $0.group != .drink }) { foods.append(p) }

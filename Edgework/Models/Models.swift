@@ -975,6 +975,18 @@ struct Settings: Codable {
     var liveActivities = true
     var figures3D = true
     var figureSpeed = 1.0
+    var streakMinute = 20 * 60
+    var waterStart = 10
+    var waterEnd = 20
+    var waterEvery = 2
+    var gameLeadHours = 3
+    var afterEventDelay = 45
+    var remindShots = true
+    var shotNudgeMinute = 19 * 60
+    var restDays: Set<Int> = []
+    var keepAwake = true
+    var showCues = true
+    var addRestSeconds = 15
     var hidePastEvents = true
     var allDayIgnore = true
     var showFuel = true
@@ -1069,6 +1081,18 @@ struct Settings: Codable {
         liveActivities = try c.decodeIfPresent(Bool.self, forKey: .liveActivities) ?? d.liveActivities
         figures3D = try c.decodeIfPresent(Bool.self, forKey: .figures3D) ?? d.figures3D
         figureSpeed = try c.decodeIfPresent(Double.self, forKey: .figureSpeed) ?? d.figureSpeed
+        streakMinute = try c.decodeIfPresent(Int.self, forKey: .streakMinute) ?? d.streakMinute
+        waterStart = try c.decodeIfPresent(Int.self, forKey: .waterStart) ?? d.waterStart
+        waterEnd = try c.decodeIfPresent(Int.self, forKey: .waterEnd) ?? d.waterEnd
+        waterEvery = try c.decodeIfPresent(Int.self, forKey: .waterEvery) ?? d.waterEvery
+        gameLeadHours = try c.decodeIfPresent(Int.self, forKey: .gameLeadHours) ?? d.gameLeadHours
+        afterEventDelay = try c.decodeIfPresent(Int.self, forKey: .afterEventDelay) ?? d.afterEventDelay
+        remindShots = try c.decodeIfPresent(Bool.self, forKey: .remindShots) ?? d.remindShots
+        shotNudgeMinute = try c.decodeIfPresent(Int.self, forKey: .shotNudgeMinute) ?? d.shotNudgeMinute
+        restDays = try c.decodeIfPresent(Set<Int>.self, forKey: .restDays) ?? d.restDays
+        keepAwake = try c.decodeIfPresent(Bool.self, forKey: .keepAwake) ?? d.keepAwake
+        showCues = try c.decodeIfPresent(Bool.self, forKey: .showCues) ?? d.showCues
+        addRestSeconds = try c.decodeIfPresent(Int.self, forKey: .addRestSeconds) ?? d.addRestSeconds
         hidePastEvents = try c.decodeIfPresent(Bool.self, forKey: .hidePastEvents) ?? d.hidePastEvents
         allDayIgnore = try c.decodeIfPresent(Bool.self, forKey: .allDayIgnore) ?? d.allDayIgnore
         showFuel = try c.decodeIfPresent(Bool.self, forKey: .showFuel) ?? d.showFuel
@@ -1116,9 +1140,11 @@ struct Settings: Codable {
         name = o.name; units = o.units; weightKg = o.weightKg; heightCm = o.heightCm; age = o.age; sex = o.sex
         nutritionGoal = o.nutritionGoal; kcalOverride = o.kcalOverride; proteinOverride = o.proteinOverride
         haptics = o.haptics; sounds = o.sounds; countdown = o.countdown; autoAdvance = o.autoAdvance
+        keepAwake = o.keepAwake; showCues = o.showCues; addRestSeconds = o.addRestSeconds
         showFuel = o.showFuel; showMealGenerator = o.showMealGenerator; showReadiness = o.showReadiness
         showDailyGoals = o.showDailyGoals; showFigures = o.showFigures; showTips = o.showTips; figures3D = o.figures3D; figureSpeed = o.figureSpeed
         waterGoal = o.waterGoal; remindWater = o.remindWater; equipment = o.equipment
+        waterStart = o.waterStart; waterEnd = o.waterEnd; waterEvery = o.waterEvery; streakMinute = o.streakMinute; remindStreak = o.remindStreak
         gpsAutoPause = o.gpsAutoPause; gpsAnnounce = o.gpsAnnounce; liveActivities = o.liveActivities
     }
 }

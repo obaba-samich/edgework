@@ -183,7 +183,7 @@ enum Notifier {
                 let minute: Int
                 if st.normalOnEventDays, let e = store.events(on: day).last, !e.allDay {
                     let end = e.end ?? e.start.addingTimeInterval(90 * 60)
-                    let after = end.addingTimeInterval(45 * 60)
+                    let after = end.addingTimeInterval(TimeInterval(st.afterEventDelay * 60))
                     minute = Day.cal.component(.hour, from: after) * 60 + Day.cal.component(.minute, from: after)
                 } else if st.trainTimes.isEmpty {
                     minute = st.remindMinute
@@ -210,22 +210,22 @@ enum Notifier {
         if st.remindWater {
             for d in 0..<2 {
                 let day = Day.add(d, to: Day.start(now))
-                for h in [10, 12, 14, 16, 18, 20] {
+                for h in stride(from: st.waterStart, through: max(st.waterStart, st.waterEnd), by: max(1, st.waterEvery)) {
                     add("water-\(d)-\(h)", "Drink some water", "Goal: \(st.waterGoal) glasses today. Tap to log one.",
                         at: day.addingTimeInterval(TimeInterval(h * 3600)))
                 }
             }
         }
-        if st.shotGoal > 0 && st.remindDaily && st.sport == .hockey {
+        if st.shotGoal > 0 && st.remindShots && st.sport == .hockey {
             let shots = store.daily().totalShots
-            if shots < st.shotGoal, let at = cal.date(bySettingHour: 19, minute: 0, second: 0, of: now) {
+            if shots < st.shotGoal, let at = cal.date(bySettingHour: st.shotNudgeMinute / 60, minute: st.shotNudgeMinute % 60, second: 0, of: now) {
                 add("shots", "\(st.shotGoal - shots) shots to go", "Your daily goal is \(st.shotGoal). Grab the pucks.", at: at)
             }
         }
         if st.remindGame && st.sport == .hockey {
             for e in store.upcomingEvents.prefix(20) where store.kind(e) == .game && !e.allDay {
                 add("game-\(e.id)", "Game day: \(e.title)", "Do your 15-minute activation about 2–3 hours before puck drop.",
-                    at: e.start.addingTimeInterval(-3 * 3600))
+                    at: e.start.addingTimeInterval(TimeInterval(-st.gameLeadHours * 3600)))
             }
         }
         if st.sport == .track {
@@ -241,7 +241,7 @@ enum Notifier {
             }
         }
         if st.remindStreak && store.currentStreak > 0 && store.sessions(on: now).isEmpty {
-            if let at = cal.date(bySettingHour: 20, minute: 0, second: 0, of: now) {
+            if let at = cal.date(bySettingHour: st.streakMinute / 60, minute: st.streakMinute % 60, second: 0, of: now) {
                 add("streak", "Keep your \(store.currentStreak)-day streak", "Even a 15-minute mobility session counts.", at: at)
             }
         }

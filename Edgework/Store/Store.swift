@@ -289,6 +289,7 @@ final class Store: ObservableObject {
     /// The focuses the auto-picker rotates through, given style and settings.
     var focusRotation: [Focus] {
         let st = data.settings
+        if st.sport == .track && !st.trackEvents.isEmpty { return Self.trackRotation(for: st.trackEvents) }
         if st.sport == .track {
             var t = st.trackGroup.rotation
             if st.lowImpact { t.removeAll { $0 == .power || $0 == .jumpDay } }
@@ -349,7 +350,14 @@ final class Store: ObservableObject {
         }
     }
 
+    /// A weekday the user said they don't train on, with nothing else going on.
+    func isRestDay(_ date: Date) -> Bool {
+        let wd = Day.cal.component(.weekday, from: date)
+        return data.settings.restDays.contains(wd) && data.dayOverrides[Day.key(date)] == nil && focusDayType(for: date) == .off
+    }
+
     func autoFocus(for date: Date) -> Focus {
+        if isRestDay(date) { return .mobility }
         if let plan = meetPlan(for: date) {
             switch plan {
             case .activation: return .activation
@@ -378,6 +386,7 @@ final class Store: ObservableObject {
     }
 
     func defaultDuration(for date: Date) -> Int {
+        if isRestDay(date) { return min(15, data.settings.duration) }
         if let plan = meetPlan(for: date) {
             switch plan {
             case .activation: return min(20, data.settings.duration)
@@ -397,8 +406,18 @@ final class Store: ObservableObject {
     // MARK: Generation
 
     func generate(focus: Focus, minutes: Int, seed: Int, date: Date? = nil) -> Workout {
-        var w = Generator.make(focus: focus, minutes: minutes, seed: UInt64(max(0, seed)), settings: data.settings,
+        var settings = data.settings
+        if settings.sport == .track {
+            for (id, p) in Self.eventPriorities(settings.trackEvents) where settings.priorities[id] == nil && !settings.excluded.contains(id) {
+                settings.priorities[id] = p
+            }
+        }
+        var w = Generator.make(focus: focus, minutes: minutes, seed: UInt64(max(0, seed)), settings: settings,
                                afterEvent: date.flatMap { afterEvent(for: $0) })
+        if let d = date, isRestDay(d), focus == .mobility {
+            w.title = "Rest Day Stretch"
+            w.subtitle = "Optional. 15 easy minutes to loosen up."
+        }
         if data.settings.sport == .track, let d = date, let plan = meetPlan(for: d) {
             let before = isDayBeforeMeet(d)
             switch (plan, focus) {
@@ -451,6 +470,61 @@ final class Store: ObservableObject {
         Appearance.apply()
         rebuildToday(seed: data.today?.seed ?? Day.seed(Date()), focus: nil, duration: defaultDuration(for: Date()))
         haptic(.medium)
+    }
+
+    /// Track focuses that fit the chosen events, most important first.
+    static func trackRotation(for events: [String]) -> [Focus] {
+        var score: [Focus: Double] = [:]
+        func add(_ fs: [Focus]) { for (i, f) in fs.enumerated() { score[f, default: 0] += 1.0 / Double(i + 1) } }
+        for e in events {
+            switch e {
+            case "60", "100", "200": add([.trackSpeed, .power, .strength, .tempo])
+            case "400": add([.speedEndurance, .trackSpeed, .tempo, .strength])
+            case "100h", "110h": add([.hurdleDay, .trackSpeed, .power, .strength])
+            case "300h", "400h": add([.hurdleDay, .speedEndurance, .tempo, .strength])
+            case "800", "1600", "3200": add([.distance, .tempo, .speedEndurance, .strength])
+            case "lj", "tj", "hj", "pv": add([.jumpDay, .power, .trackSpeed, .strength])
+            case "sp", "dt", "jt": add([.throwDay, .power, .strength, .trackSpeed])
+            default: break
+            }
+        }
+        let ranked = score.sorted { $0.value > $1.value }.map(\.key)
+        return Array(ranked.prefix(6)) + [.core, .mobility]
+    }
+
+    static func trackGroup(for events: [String]) -> TrackGroup {
+        var groups = Set<TrackGroup>()
+        for e in events {
+            switch e {
+            case "60", "100", "200", "400": groups.insert(.sprints)
+            case "100h", "110h", "300h", "400h": groups.insert(.hurdles)
+            case "800", "1600", "3200": groups.insert(.distance)
+            case "lj", "tj", "hj", "pv": groups.insert(.jumps)
+            default: groups.insert(.throwing)
+            }
+        }
+        return groups.count == 1 ? groups.first! : (groups.isEmpty ? .sprints : .multi)
+    }
+
+    /// Drills that matter for the chosen track events get bumped up in the generator.
+    static func eventPriorities(_ events: [String]) -> [String: Int] {
+        var p: [String: Int] = [:]
+        func bump(_ ids: [String]) { for i in ids { p[i] = max(p[i] ?? 0, 2) } }
+        for e in events {
+            switch e {
+            case "60", "100", "200": bump(["block-starts", "accel-30", "flying-30", "wall-drive", "fast-leg", "sprint-60", "three-point-start"])
+            case "400": bump(["rep-200", "rep-300", "speed-150", "tempo-100", "flying-30"])
+            case "100h", "110h", "300h", "400h": bump(["lead-leg", "trail-leg", "three-step", "hurdle-walkover", "hurdle-hops", "hurdle-mobility"])
+            case "800", "1600", "3200": bump(["rep-800", "mile-repeats", "tempo-1k", "repeats-400", "progression-run", "fartlek"])
+            case "lj", "tj": bump(["standing-triple", "bounding", "single-leg-bound", "pop-ups", "approach-runs", "box-bound"])
+            case "hj", "pv": bump(["scissor-kicks-hj", "pop-ups", "approach-runs", "depth-jump"])
+            case "sp": bump(["shot-stand", "chest-pass", "overhead-back-toss"])
+            case "dt": bump(["discus-turn-drill", "rotational-scoop", "med-ball-rotation-throw"])
+            case "jt": bump(["javelin-crossovers", "overhead-back-toss", "med-ball-slam"])
+            default: break
+            }
+        }
+        return p
     }
 
     /// Starting settings for a sport the first time it's picked.

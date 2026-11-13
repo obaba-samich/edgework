@@ -86,6 +86,7 @@ struct SettingsView: View {
             .onChange(of: st.normalOnEventDays) { _, _ in rebuildIfAuto(); refreshNotifications() }
             .onChange(of: st.adjustAfterEvents) { _, _ in rebuildIfAuto() }
             .onChange(of: st.practiceDays) { _, _ in rebuildIfAuto() }
+            .onChange(of: st.restDays) { _, _ in rebuildIfAuto() }
             .onChange(of: st.remindDaily) { _, _ in refreshNotifications() }
             .onChange(of: st.remindGame) { _, _ in refreshNotifications() }
             .onChange(of: st.remindStreak) { _, _ in refreshNotifications() }
@@ -376,6 +377,7 @@ struct SettingsView: View {
                 Toggle(st.sport == .track ? "Make workouts after meets/practices lighter" : "Make workouts after games/practices lighter", isOn: s.adjustAfterEvents)
             }
             Toggle(st.sport == .track ? "Show meet icons on the week" : "Show game icons on the week", isOn: s.weekEventIcons)
+            WeekdayPicker(title: "Rest days (light stretch only)", color: Theme.text2, selection: s.restDays)
             NavigationLink {
                 WeeklyScheduleView()
             } label: {
@@ -403,33 +405,98 @@ struct SettingsView: View {
                 })
     }
 
+    private func minuteBinding(_ kp: WritableKeyPath<Settings, Int>, _ fallback: Int) -> Binding<Date> {
+        Binding(get: { Day.start(Date()).addingTimeInterval(TimeInterval(store.data.settings[keyPath: kp] * 60)) },
+                set: { d in
+                    let c = Day.cal.dateComponents([.hour, .minute], from: d)
+                    store.data.settings[keyPath: kp] = (c.hour ?? fallback / 60) * 60 + (c.minute ?? 0)
+                })
+    }
+
+    private func hourText(_ h: Int) -> String {
+        Day.start(Date()).addingTimeInterval(TimeInterval(h * 3600)).formatted(date: .omitted, time: .shortened)
+    }
+
     private var notifications: some View {
-        Section {
-            NavigationLink {
-                TrainingTimesView()
-            } label: {
-                HStack {
-                    Label("Workout times", systemImage: "clock.fill")
-                    Spacer()
-                    Text(st.trainTimes.isEmpty ? "Not set" : "\(st.trainTimes.count) days").foregroundStyle(Theme.text2)
+        Group {
+            Section {
+                Toggle("Workout reminders", isOn: s.remindDaily)
+                NavigationLink {
+                    TrainingTimesView()
+                } label: {
+                    HStack {
+                        Text("Times for each day")
+                        Spacer()
+                        Text(st.trainTimes.isEmpty ? "Not set" : "\(st.trainTimes.count) days").foregroundStyle(Theme.text2)
+                    }
                 }
+                if st.remindDaily && st.trainTimes.isEmpty {
+                    DatePicker("Every day at", selection: reminderTime, displayedComponents: .hourAndMinute)
+                }
+                if st.normalOnEventDays {
+                    Stepper("After events: \(st.afterEventDelay) min after it ends", value: s.afterEventDelay, in: 0...180, step: 15)
+                }
+            } header: { Text("Workouts") } footer: {
+                Text("You get the day's workout at your time. With normal workouts on event days, the reminder comes after the event instead.")
             }
-            Toggle("Workout reminders", isOn: s.remindDaily)
-            if st.remindDaily && st.trainTimes.isEmpty {
-                DatePicker("Every day at", selection: reminderTime, displayedComponents: .hourAndMinute)
+            .listRowBackground(Theme.surface)
+
+            Section {
+                Toggle("Streak saver", isOn: s.remindStreak)
+                if st.remindStreak {
+                    DatePicker("Remind me at", selection: minuteBinding(\.streakMinute, 20 * 60), displayedComponents: .hourAndMinute)
+                }
+                if st.sport == .hockey {
+                    Toggle("Shot goal nudge", isOn: s.remindShots)
+                    if st.remindShots {
+                        DatePicker("Nudge at", selection: minuteBinding(\.shotNudgeMinute, 19 * 60), displayedComponents: .hourAndMinute)
+                    }
+                }
+            } header: { Text("Habits") } footer: {
+                Text("Only sent when you haven't trained or hit your shot goal yet that day.")
             }
-            Toggle("Run reminders", isOn: s.runRemind)
-            if st.runRemind {
-                WeekdayPicker(title: "Run days", color: Color(hex: 0x22D3EE), selection: s.runRemindDays)
-                DatePicker("Run time", selection: runTime, displayedComponents: .hourAndMinute)
+            .listRowBackground(Theme.surface)
+
+            Section {
+                Toggle("Run reminders", isOn: s.runRemind)
+                if st.runRemind {
+                    WeekdayPicker(title: "Run days", color: Color(hex: 0x22D3EE), selection: s.runRemindDays)
+                    DatePicker("Run time", selection: runTime, displayedComponents: .hourAndMinute)
+                }
+                Toggle("Water reminders", isOn: s.remindWater)
+                if st.remindWater {
+                    Stepper("From \(hourText(st.waterStart))", value: s.waterStart, in: 5...st.waterEnd)
+                    Stepper("Until \(hourText(st.waterEnd))", value: s.waterEnd, in: st.waterStart...23)
+                    Stepper("Every \(st.waterEvery) hour\(st.waterEvery == 1 ? "" : "s")", value: s.waterEvery, in: 1...4)
+                }
+            } header: { Text("Running & water") }
+            .listRowBackground(Theme.surface)
+
+            Section {
+                Toggle(st.sport == .track ? "Meet day reminders" : "Game day reminder", isOn: s.remindGame)
+                if st.remindGame && st.sport == .hockey {
+                    Stepper("\(st.gameLeadHours) hour\(st.gameLeadHours == 1 ? "" : "s") before puck drop", value: s.gameLeadHours, in: 1...8)
+                }
+                if st.sport == .track {
+                    Toggle("Meet warm-up reminder", isOn: s.remindMeetWarmup)
+                    if st.remindMeetWarmup {
+                        Stepper("\(st.meetWarmupMinutes) min before the meet", value: s.meetWarmupMinutes, in: 15...120, step: 5)
+                    }
+                }
+            } header: { Text(st.sport == .track ? "Meets" : "Games") } footer: {
+                Text("Uses start times from your calendar.")
             }
-            Toggle("Water reminders (every 2 h)", isOn: s.remindWater)
-            Toggle("Game-day activation reminder", isOn: s.remindGame)
-            Toggle("Streak saver (8 PM)", isOn: s.remindStreak)
-        } header: { Text("Schedule & reminders") } footer: {
-            Text("Set a time for each day you train and you'll get a reminder with that day's workout. Shot-goal reminders come at 7 PM if you're short.")
+            .listRowBackground(Theme.surface)
         }
-        .listRowBackground(Theme.surface)
+        .onChange(of: st.streakMinute) { _, _ in refreshNotifications() }
+        .onChange(of: st.shotNudgeMinute) { _, _ in refreshNotifications() }
+        .onChange(of: st.remindShots) { _, _ in refreshNotifications() }
+        .onChange(of: st.waterStart) { _, _ in refreshNotifications() }
+        .onChange(of: st.waterEnd) { _, _ in refreshNotifications() }
+        .onChange(of: st.waterEvery) { _, _ in refreshNotifications() }
+        .onChange(of: st.gameLeadHours) { _, _ in refreshNotifications() }
+        .onChange(of: st.afterEventDelay) { _, _ in refreshNotifications() }
+        .onChange(of: st.meetWarmupMinutes) { _, _ in refreshNotifications() }
     }
 
     private var goals: some View {
@@ -467,7 +534,7 @@ struct SettingsView: View {
                     ForEach(TrackGroup.allCases) { Text($0.title).tag($0) }
                 }
                 NavigationLink {
-                    TrackEventsPicker()
+                    TrackEventsPicker().onDisappear { rebuildIfAuto() }
                 } label: {
                     HStack {
                         Text("My events")
@@ -476,7 +543,7 @@ struct SettingsView: View {
                             .foregroundStyle(Theme.text2).lineLimit(1)
                     }
                 }
-            } header: { Text("Athlete") } footer: { Text("The event group decides what the daily workout rotates through. Your events show first in PRs.") }
+            } header: { Text("Athlete") } footer: { Text("Your events decide what the daily workout rotates through and which drills come up most. With no events picked, the event group is used.") }
             .listRowBackground(Theme.surface)
             Section {
                 Picker("Day before", selection: s.meetDayBefore) { ForEach(MeetPlan.allCases) { Text($0.title).tag($0) } }
@@ -535,13 +602,25 @@ struct SettingsView: View {
     }
 
     private var during: some View {
-        Section("During workouts") {
-            Toggle("Haptics", isOn: s.haptics)
-            Toggle("Sounds", isOn: s.sounds)
-            Toggle("3-2-1 countdown", isOn: s.countdown)
-            Toggle("Auto-start after rest", isOn: s.autoAdvance)
+        Group {
+            Section {
+                Toggle("Haptics", isOn: s.haptics)
+                Toggle("Sounds", isOn: s.sounds)
+                Toggle("3-2-1 countdown", isOn: s.countdown)
+                Toggle("Auto-start after rest", isOn: s.autoAdvance)
+                Toggle("Keep the screen on", isOn: s.keepAwake)
+            } header: { Text("Timer") }
+            .listRowBackground(Theme.surface)
+            Section {
+                Toggle("Show a coaching cue under each exercise", isOn: s.showCues)
+                Stepper("\"+ rest\" adds \(st.addRestSeconds) s", value: s.addRestSeconds, in: 5...60, step: 5)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Demo figure speed")
+                    SpeedSlider(color: Theme.ice)
+                }
+            } header: { Text("Screen") }
+            .listRowBackground(Theme.surface)
         }
-        .listRowBackground(Theme.surface)
     }
 
     private var data: some View {
@@ -551,6 +630,7 @@ struct SettingsView: View {
                 Label("Export backup", systemImage: "square.and.arrow.up")
             }
             Button { importing = true } label: { Label("Import backup", systemImage: "square.and.arrow.down") }
+            Button { store.data.onboarded = false } label: { Label("Run setup again", systemImage: "sparkles") }
             Button(role: .destructive) { confirmReset = true } label: { Label("Reset all data", systemImage: "trash") }
         } header: { Text("Data") } footer: {
             Text("Sideloaded apps can lose data if they're deleted. Export a backup to Files now and then.")
@@ -824,11 +904,18 @@ struct CalendarView: View {
                 let k = $store.data.settings.keywords
                 KeywordEditor(title: store.data.settings.sport == .track ? "Meets" : "Games", words: k.game, color: Theme.red, placeholder: "e.g. vs, tournament")
                 KeywordEditor(title: "Practices", words: k.practice, color: Theme.ice, placeholder: "e.g. B2, power skate")
+                if store.data.settings.sport == .hockey {
+                    Toggle(isOn: $store.data.settings.teamCodes) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Ice codes count as practices").font(.subheadline)
+                            Text("Titles like \"B2 solo\", \"12U\" or \"xxU B1\"").font(.caption).foregroundStyle(Theme.text3)
+                        }
+                    }
+                    .padding(.leading, 12)
+                    .overlay(alignment: .leading) { Capsule().fill(Theme.ice.opacity(0.5)).frame(width: 3) }
+                }
                 KeywordEditor(title: "Meetings", words: k.meeting, color: Theme.amber, placeholder: "e.g. banquet")
                 KeywordEditor(title: "Ignore", words: k.ignore, color: Theme.text2, placeholder: "e.g. reminder, goalie")
-                if store.data.settings.sport == .hockey {
-                    Toggle("Ice codes (B2, 12U, xxU) are practices", isOn: $store.data.settings.teamCodes)
-                }
                 Button("Reset words to Edgework's defaults") {
                     store.data.settings.keywords = Keywords.defaults(for: store.data.settings.sport)
                 }
@@ -1203,140 +1290,3 @@ struct AdjustmentsView: View {
 }
 
 // MARK: - Onboarding
-
-struct OnboardingView: View {
-    @EnvironmentObject var store: Store
-    @State private var page = 0
-
-    var body: some View {
-        VStack(spacing: 0) {
-            TabView(selection: $page) {
-                welcome.tag(0)
-                player.tag(1)
-                schedule.tag(2)
-                gear.tag(3)
-            }
-            .tabViewStyle(.page(indexDisplayMode: .always))
-            .onChange(of: page) { _, _ in hideKeyboard() }
-
-            Button {
-                hideKeyboard()
-                if page < 3 {
-                    withAnimation { page += 1 }
-                } else {
-                    store.data.today = nil
-                    store.ensureToday()
-                    store.data.onboarded = true
-                }
-            } label: {
-                Text(page < 3 ? "Continue" : "Start training")
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            .padding(20)
-        }
-        .screenBackground()
-    }
-
-    private func pageScaffold<Content: View>(_ overline: String, _ title: String, _ text: String, @ViewBuilder content: () -> Content) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                Overline(overline, color: Theme.ice)
-                Text(title).font(.display(38)).foregroundStyle(Theme.text)
-                Text(text).font(.body).foregroundStyle(Theme.text2)
-                content().padding(.top, 8)
-            }
-            .padding(24)
-            .padding(.top, 30)
-        }
-    }
-
-    private var welcome: some View {
-        pageScaffold("Edgework", "Off-ice training built for hockey.", "A fresh workout every day that knows when you have games, what gear you own and how hard you want to push.") {
-            VStack(alignment: .leading, spacing: 14) {
-                feature("wand.and.stars", "Daily generator", "Strength, power, speed, hands. Rotates automatically.")
-                feature("plusminus", "Tune anything", "One tap scales every rep, or adjust a single exercise.")
-                feature("figure.hockey", "\(Library.all.count) hockey drills", "With steps, cues and the muscles they hit.")
-                feature("chart.bar.xaxis", "Progress", "Streaks, muscle maps and combine-style tests.")
-            }
-        }
-    }
-
-    private var player: some View {
-        pageScaffold("About you", "Who's lacing up?", "This shapes what the generator picks.") {
-            VStack(alignment: .leading, spacing: 16) {
-                TextField("Your name", text: $store.data.settings.name)
-                    .submitLabel(.done)
-                    .onSubmit { hideKeyboard() }
-                    .padding(14)
-                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.surface))
-                Overline("Position")
-                Picker("Position", selection: $store.data.settings.position) {
-                    ForEach(Position.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                Overline("Season")
-                Picker("Season", selection: $store.data.settings.phase) {
-                    ForEach(SeasonPhase.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                Text(store.data.settings.phase.detail).font(.footnote).foregroundStyle(Theme.text3)
-                Overline("Workouts")
-                Picker("Style", selection: $store.data.settings.style) {
-                    ForEach(TrainingStyle.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                Text(store.data.settings.style.detail).font(.footnote).foregroundStyle(Theme.text3)
-            }
-        }
-    }
-
-    private var schedule: some View {
-        pageScaffold("Schedule", "Games all over the place?", "No fixed schedule needed. Edgework picks whatever you've trained least recently, and adapts around games.") {
-            VStack(alignment: .leading, spacing: 14) {
-                feature("calendar.badge.plus", "Import your team calendar", "Profile → Team calendar. Open a Crossbar .ics export or paste its subscription link.")
-                feature("hand.tap.fill", "Or mark days by hand", "Tap any day on the Today screen to set Game, Practice or Training.")
-                feature("flag.checkered", "Game day", "Short activation to feel fast, not tired.")
-                feature("leaf.fill", "Day after", "Recovery flush and stretching.")
-            }
-        }
-    }
-
-    private var gear: some View {
-        pageScaffold("Equipment", "What do you have?", "You can change this anytime in Profile.") {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                ForEach(Equipment.allCases) { e in
-                    let on = store.data.settings.equipment.contains(e)
-                    Button {
-                        if on { store.data.settings.equipment.remove(e) } else { store.data.settings.equipment.insert(e) }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: e.symbol).frame(width: 20)
-                            Text(e.title).font(.system(size: 14, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
-                            Spacer(minLength: 0)
-                        }
-                        .foregroundStyle(on ? Theme.bg : Theme.text)
-                        .padding(12)
-                        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(on ? Theme.ice : Theme.surface))
-                    }
-                    .buttonStyle(PressableStyle())
-                }
-            }
-        }
-    }
-
-    private func feature(_ symbol: String, _ title: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            IconBadge(symbol: symbol, color: Theme.ice, size: 42)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.headline).foregroundStyle(Theme.text)
-                Text(text).font(.subheadline).foregroundStyle(Theme.text2)
-            }
-        }
-    }
-}
-
-extension View {
-    func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    }
-}

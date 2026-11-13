@@ -144,8 +144,11 @@ struct ExerciseDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             FigureView(exercise: ex)
                 .frame(maxWidth: .infinity)
-                .frame(height: 210)
+                .frame(height: 250)
                 .padding(.top, 8)
+            if store.data.settings.showFigures {
+                SpeedSlider(color: color)
+            }
             Overline(ex.category.title, color: color)
             Text(ex.name).font(.display(32)).foregroundStyle(Theme.text)
                 .fixedSize(horizontal: false, vertical: true)

@@ -1,48 +1,43 @@
 import SwiftUI
 import SceneKit
+import UIKit
 
-// 3D demo figure. Uses the same poses as the 2D figure: side-view moves are
-// played in the body's sagittal plane, front-view moves in the frontal plane,
-// with real shoulder and hip width so you can orbit around it.
+// 3D demo figure. Moves come from Motion3D (moves.json). The camera is a plain orbit
+// (yaw, pitch, distance) that's always level, so it can never roll sideways.
 
 /// Builds and animates the mannequin. Runs on SceneKit's render loop.
 final class FigureRig: NSObject, SCNSceneRendererDelegate {
     let scene = SCNScene()
+    let camera = SCNNode()
     private let body = SCNNode()
     private let lock = NSLock()
-    private var _move: Move
+    private var _motion: Motion
     private var _paused = false
+    private var _speed = 1.0
     private var clock: TimeInterval = 0
     private var lastTime: TimeInterval?
+
+    // Orbit state. Target values are set by gestures/buttons; current values ease toward them each frame.
+    private var yaw: Float = 0.9, pitch: Float = 0.2, dist: Float = 3.4
+    private var yawT: Float = 0.9, pitchT: Float = 0.2, distT: Float = 3.4
+    private var focus = SIMD3<Float>(0, 0.8, 0)
 
     private var bones: [Bone] = []
     private var spheres: [String: SCNNode] = [:]
     private let shadow = SCNNode()
-    private let stick = SCNNode()
-    private let blade = SCNNode()
-    private let bar = SCNNode()
+    private var props: [Motion.Prop: SCNNode] = [:]
+    private let dumbbellL = SCNNode(), dumbbellR = SCNNode()
     private var materials: (near: SCNMaterial, far: SCNMaterial, skin: SCNMaterial)
 
-    static let k: Float = 0.021  // 2D figure units → metres
+    static let k: Float = 0.021  // figure units → metres
 
     private struct Bone {
         let from: String, to: String
         let node: SCNNode
-        let radius: Float
     }
 
-    var move: Move {
-        get { lock.lock(); defer { lock.unlock() }; return _move }
-        set { lock.lock(); _move = newValue; clock = 0; lock.unlock() }
-    }
-
-    var paused: Bool {
-        get { lock.lock(); defer { lock.unlock() }; return _paused }
-        set { lock.lock(); _paused = newValue; lock.unlock() }
-    }
-
-    init(move: Move, color: UIColor) {
-        _move = move
+    init(motion: Motion, color: UIColor) {
+        _motion = motion
         func mat(_ c: UIColor) -> SCNMaterial {
             let m = SCNMaterial()
             m.lightingModel = .physicallyBased
@@ -51,16 +46,62 @@ final class FigureRig: NSObject, SCNSceneRendererDelegate {
             m.metalness.contents = 0.05
             return m
         }
-        materials = (mat(color), mat(color.mixed(with: .black, 0.32)), mat(color.mixed(with: .white, 0.18)))
+        materials = (mat(color), mat(color.mixed(with: .black, 0.3)), mat(color.mixed(with: .white, 0.25)))
         super.init()
         build()
+        setMotion(motion)
         update(time: 0)
+        placeCamera()
+    }
+
+    // MARK: Thread-safe controls
+
+    func setMotion(_ m: Motion) {
+        lock.lock()
+        _motion = m
+        clock = 0
+        focus = SIMD3(m.center.x * Self.k, min(0.85, m.height * Self.k * 0.5), m.center.y * Self.k)
+        lock.unlock()
+    }
+
+    var paused: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _paused }
+        set { lock.lock(); _paused = newValue; lock.unlock() }
+    }
+
+    var speed: Double {
+        get { lock.lock(); defer { lock.unlock() }; return _speed }
+        set { lock.lock(); _speed = newValue; lock.unlock() }
+    }
+
+    /// Snap to a named angle. Yaw 0 looks at the figure's right side; π/2 looks at its front.
+    func look(yaw y: Float, pitch p: Float) {
+        lock.lock()
+        // Go the short way round.
+        var target = y
+        while target - yaw > .pi { target -= 2 * .pi }
+        while target - yaw < -.pi { target += 2 * .pi }
+        yawT = target; pitchT = p; distT = 3.4
+        lock.unlock()
+    }
+
+    func drag(dx: Float, dy: Float) {
+        lock.lock()
+        yaw -= dx * 0.008; yawT = yaw
+        pitch = max(-0.15, min(1.3, pitch + dy * 0.006)); pitchT = pitch
+        lock.unlock()
+    }
+
+    func zoom(_ scale: Float) {
+        lock.lock()
+        dist = max(1.6, min(7, dist / scale)); distT = dist
+        lock.unlock()
     }
 
     func setColor(_ c: UIColor) {
         materials.near.diffuse.contents = c
-        materials.far.diffuse.contents = c.mixed(with: .black, 0.32)
-        materials.skin.diffuse.contents = c.mixed(with: .white, 0.18)
+        materials.far.diffuse.contents = c.mixed(with: .black, 0.3)
+        materials.skin.diffuse.contents = c.mixed(with: .white, 0.25)
     }
 
     // MARK: Build
@@ -69,7 +110,11 @@ final class FigureRig: NSObject, SCNSceneRendererDelegate {
         scene.background.contents = UIColor.clear
         scene.rootNode.addChildNode(body)
 
-        // Floor: a soft disc with a faint grid, fading out at the edge.
+        camera.camera = SCNCamera()
+        camera.camera?.fieldOfView = 34
+        camera.camera?.zNear = 0.05
+        scene.rootNode.addChildNode(camera)
+
         let floor = SCNNode(geometry: SCNPlane(width: 3.4, height: 3.4))
         floor.eulerAngles.x = -.pi / 2
         let fm = SCNMaterial()
@@ -85,14 +130,12 @@ final class FigureRig: NSObject, SCNSceneRendererDelegate {
         sm.lightingModel = .constant
         sm.diffuse.contents = Self.shadowImage()
         sm.writesToDepthBuffer = false
-        shadow.geometry = SCNPlane(width: 0.9, height: 0.9)
+        shadow.geometry = SCNPlane(width: 1.0, height: 1.0)
         shadow.geometry?.firstMaterial = sm
         shadow.eulerAngles.x = -.pi / 2
-        shadow.position.y = 0.002
         shadow.renderingOrder = -1
         scene.rootNode.addChildNode(shadow)
 
-        // Lights: soft ambient, a key from the front-top, a cool rim from behind.
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light?.type = .ambient
@@ -112,7 +155,6 @@ final class FigureRig: NSObject, SCNSceneRendererDelegate {
         rim.eulerAngles = SCNVector3(-0.4, .pi + 0.5, 0)
         scene.rootNode.addChildNode(rim)
 
-        // Bones. Left limbs are the far side and slightly darker so they read apart.
         let k = Self.k
         func bone(_ from: String, _ to: String, _ r: Float, _ len: Float, _ m: SCNMaterial) {
             let cap = SCNCapsule(capRadius: CGFloat(r * k), height: CGFloat((len + 2 * r) * k))
@@ -120,24 +162,20 @@ final class FigureRig: NSObject, SCNSceneRendererDelegate {
             cap.firstMaterial = m
             let n = SCNNode(geometry: cap)
             body.addChildNode(n)
-            bones.append(Bone(from: from, to: to, node: n, radius: r))
+            bones.append(Bone(from: from, to: to, node: n))
         }
-        bone("hip", "chest", 4.6, 17, materials.near)
-        bone("chest", "neck", 5.2, 8, materials.near)
+        bone("pelvis", "chest", 4.6, 17, materials.near)
+        bone("chest", "neck", 5.2, 9, materials.near)
         bone("shL", "shR", 3.2, 14, materials.near)
         bone("hipL", "hipR", 3.8, 9, materials.near)
         bone("neck", "headBase", 1.8, 3, materials.skin)
-        bone("shL", "eL", 2.2, 14, materials.far)
-        bone("eL", "hL", 1.9, 13, materials.far)
-        bone("hipL", "kL", 3.1, 19, materials.far)
-        bone("kL", "aL", 2.4, 19, materials.far)
-        bone("aL", "toeL", 1.6, 6, materials.far)
-        bone("shR", "eR", 2.2, 14, materials.near)
-        bone("eR", "hR", 1.9, 13, materials.near)
-        bone("hipR", "kR", 3.1, 19, materials.near)
-        bone("kR", "aR", 2.4, 19, materials.near)
-        bone("aR", "toeR", 1.6, 6, materials.near)
-
+        for (side, m) in [("L", materials.far), ("R", materials.near)] {
+            bone("sh" + side, "el" + side, 2.2, 14, m)
+            bone("el" + side, "ha" + side, 1.9, 13, m)
+            bone("hip" + side, "kn" + side, 3.1, 19, m)
+            bone("kn" + side, "an" + side, 2.4, 19, m)
+            bone("an" + side, "to" + side, 1.6, 6, m)
+        }
         func sphere(_ name: String, _ r: Float, _ m: SCNMaterial) {
             let s = SCNSphere(radius: CGFloat(r * k))
             s.segmentCount = 24
@@ -147,23 +185,66 @@ final class FigureRig: NSObject, SCNSceneRendererDelegate {
             spheres[name] = n
         }
         sphere("head", 6, materials.skin)
-        sphere("hL", 2.3, materials.far)
-        sphere("hR", 2.3, materials.near)
+        sphere("haL", 2.3, materials.far)
+        sphere("haR", 2.3, materials.near)
 
-        let propM = SCNMaterial()
-        propM.lightingModel = .physicallyBased
-        propM.diffuse.contents = UIColor(white: 0.85, alpha: 1)
-        propM.roughness.contents = 0.6
-        let shaft = SCNCylinder(radius: CGFloat(0.9 * k), height: 1)
-        shaft.firstMaterial = propM
-        stick.geometry = shaft
-        let bl = SCNBox(width: CGFloat(11 * k), height: CGFloat(3 * k), length: CGFloat(0.8 * k), chamferRadius: CGFloat(0.4 * k))
-        bl.firstMaterial = propM
-        blade.geometry = bl
-        let barG = SCNCylinder(radius: CGFloat(1 * k), height: CGFloat(60 * k))
-        barG.firstMaterial = propM
-        bar.geometry = barG
-        for n in [stick, blade, bar] { n.isHidden = true; body.addChildNode(n) }
+        // Props
+        let pm = SCNMaterial()
+        pm.lightingModel = .physicallyBased
+        pm.diffuse.contents = UIColor(white: 0.82, alpha: 1)
+        pm.roughness.contents = 0.6
+        let dark = SCNMaterial()
+        dark.lightingModel = .physicallyBased
+        dark.diffuse.contents = UIColor(white: 0.18, alpha: 1)
+        dark.roughness.contents = 0.5
+
+        let stick = SCNNode()
+        let shaft = SCNNode(geometry: SCNCylinder(radius: CGFloat(0.9 * k), height: 1))
+        shaft.geometry?.firstMaterial = pm
+        shaft.name = "shaft"
+        let blade = SCNNode(geometry: SCNBox(width: CGFloat(11 * k), height: CGFloat(3 * k), length: CGFloat(0.8 * k), chamferRadius: CGFloat(0.4 * k)))
+        blade.geometry?.firstMaterial = pm
+        blade.name = "blade"
+        stick.addChildNode(shaft)
+        stick.addChildNode(blade)
+        props[.stick] = stick
+
+        let bar = SCNNode(geometry: SCNCylinder(radius: CGFloat(1 * k), height: CGFloat(60 * k)))
+        bar.geometry?.firstMaterial = pm
+        props[.bar] = bar
+
+        let ball = SCNNode(geometry: SCNSphere(radius: CGFloat(5.5 * k)))
+        ball.geometry?.firstMaterial = dark
+        props[.ball] = ball
+
+        let kb = SCNNode(geometry: SCNSphere(radius: CGFloat(4.5 * k)))
+        kb.geometry?.firstMaterial = dark
+        props[.kettlebell] = kb
+
+        let dbs = SCNNode()
+        for n in [dumbbellL, dumbbellR] {
+            let g = SCNCapsule(capRadius: CGFloat(1.8 * k), height: CGFloat(9 * k))
+            g.firstMaterial = dark
+            n.geometry = g
+            dbs.addChildNode(n)
+        }
+        props[.dumbbells] = dbs
+
+        let hurdle = SCNNode()
+        let barG = SCNBox(width: CGFloat(1.5 * k), height: CGFloat(3 * k), length: CGFloat(42 * k), chamferRadius: 0)
+        barG.firstMaterial = pm
+        let top = SCNNode(geometry: barG)
+        top.position = SCNVector3(0, 30 * k, 0)
+        hurdle.addChildNode(top)
+        for z in [-20, 20] as [Float] {
+            let leg = SCNNode(geometry: SCNCylinder(radius: CGFloat(0.7 * k), height: CGFloat(30 * k)))
+            leg.geometry?.firstMaterial = dark
+            leg.position = SCNVector3(0, 15 * k, z * k)
+            hurdle.addChildNode(leg)
+        }
+        props[.hurdle] = hurdle
+
+        for n in props.values { n.isHidden = true; scene.rootNode.addChildNode(n) }
     }
 
     // MARK: Animate
@@ -172,26 +253,34 @@ final class FigureRig: NSObject, SCNSceneRendererDelegate {
         lock.lock()
         let dt = lastTime.map { min(0.1, time - $0) } ?? 0
         lastTime = time
-        if !_paused { clock += dt }
+        if !_paused { clock += dt * _speed }
         let t = clock
         lock.unlock()
         update(time: t)
+        placeCamera()
     }
 
-    private func pose(at time: Double, _ move: Move) -> Pose {
-        let frames = move.frames
-        guard frames.count > 1 else { return frames.first ?? Pose() }
-        let p = (time / move.duration).truncatingRemainder(dividingBy: 1) * Double(frames.count)
-        let i = Int(p) % frames.count
-        var u = p - floor(p)
-        u = u * u * (3 - 2 * u)
-        return Pose.lerp(frames[i], frames[(i + 1) % frames.count], u)
+    private func placeCamera() {
+        lock.lock()
+        let e: Float = 0.16
+        yaw += (yawT - yaw) * e
+        pitch += (pitchT - pitch) * e
+        dist += (distT - dist) * e
+        let y = yaw, p = pitch, d = dist, f = focus
+        lock.unlock()
+        let pos = f + SIMD3(d * cos(p) * sin(y), d * sin(p), d * cos(p) * cos(y))
+        camera.simdPosition = pos
+        camera.simdLook(at: f, up: SIMD3(0, 1, 0), localFront: SIMD3(0, 0, -1))
     }
 
     private func update(time: Double) {
-        let move = self.move
-        let p = pose(at: time, move)
-        let j = Self.joints(p, front: move.front)
+        lock.lock()
+        let motion = _motion
+        lock.unlock()
+        let p = motion.pose(at: time)
+        let raw = Kinematics.joints(p)
+        var j: [String: SIMD3<Float>] = [:]
+        for (key, v) in raw { j[key] = SIMD3<Float>(Float(v.x), Float(v.y), Float(v.z)) * Self.k }
 
         for b in bones {
             guard let a = j[b.from], let c = j[b.to] else { continue }
@@ -201,95 +290,52 @@ final class FigureRig: NSObject, SCNSceneRendererDelegate {
             b.node.simdPosition = (a + c) / 2
             b.node.simdOrientation = Self.rotation(from: SIMD3(0, 1, 0), to: d / len)
         }
-        spheres["head"]?.simdPosition = j["head"] ?? .zero
-        spheres["hL"]?.simdPosition = j["hL"] ?? .zero
-        spheres["hR"]?.simdPosition = j["hR"] ?? .zero
+        for name in ["head", "haL", "haR"] { spheres[name]?.simdPosition = j[name] ?? .zero }
 
-        // Shadow follows the feet, shrinks when airborne.
-        let feet = ((j["aL"] ?? .zero) + (j["aR"] ?? .zero)) / 2
+        let feet = ((j["anL"] ?? .zero) + (j["anR"] ?? .zero)) / 2
         shadow.simdPosition = SIMD3(feet.x, 0.002, feet.z)
-        let s = Float(max(0.5, 1 - p.lift / 40))
+        let s = Float(max(0.5, 1 - p["lift"] / 40))
         shadow.simdScale = SIMD3(s, s, s)
 
-        stick.isHidden = move.prop != .stick
-        bar.isHidden = move.prop != .bar
-        blade.isHidden = stick.isHidden
-        if move.prop == .stick, let hl = j["hL"], let hr = j["hR"] {
+        for (kind, node) in props { node.isHidden = kind != motion.prop }
+        guard let prop = motion.prop, let hl = j["haL"], let hr = j["haR"] else { return }
+        let lateral = simd_act(simd_quatf(angle: Float(p["yaw"] * .pi / 180), axis: SIMD3(0, 1, 0)), SIMD3<Float>(0, 0, 1))
+        let forward = simd_cross(SIMD3<Float>(0, 1, 0), lateral)
+        switch prop {
+        case .stick:
+            guard let node = props[.stick], let shaft = node.childNode(withName: "shaft", recursively: false),
+                  let blade = node.childNode(withName: "blade", recursively: false) else { return }
             var dir = hr - hl
             if simd_length(dir) < 0.001 { dir = SIMD3(0.3, -1, 0) }
             dir = simd_normalize(dir)
-            if dir.y > -0.2 { dir = simd_normalize(dir + SIMD3(0, -0.6, 0)) }
-            let reach = min(1.05, max(0.3, hr.y / max(0.2, -dir.y)))
+            if dir.y > -0.25 { dir = simd_normalize(dir + SIMD3(0, -0.7, 0)) }
+            let reach = min(1.1, max(0.3, hr.y / max(0.2, -dir.y)))
             let end = hr + dir * reach
-            let start = hl
-            let len = simd_length(end - start)
-            stick.simdPosition = (start + end) / 2
-            stick.simdScale = SIMD3(1, len, 1)
-            stick.simdOrientation = Self.rotation(from: SIMD3(0, 1, 0), to: (end - start) / max(0.001, len))
-            let fwd = move.front ? SIMD3<Float>(0, 0, 1) : SIMD3<Float>(1, 0, 0)
-            blade.simdPosition = SIMD3(end.x, 0.035, end.z) + fwd * 0.08
-            blade.simdOrientation = simd_quatf(angle: move.front ? .pi / 2 : 0, axis: SIMD3(0, 1, 0))
+            let len = simd_length(end - hl)
+            shaft.simdPosition = (hl + end) / 2
+            shaft.simdScale = SIMD3(1, len, 1)
+            shaft.simdOrientation = Self.rotation(from: SIMD3(0, 1, 0), to: (end - hl) / max(0.001, len))
+            var flat = SIMD3<Float>(dir.x, 0, dir.z)
+            if simd_length(flat) < 0.01 { flat = forward }
+            flat = simd_normalize(flat)
+            blade.simdPosition = SIMD3(end.x, 0.032, end.z) + flat * 0.07
+            blade.simdOrientation = Self.rotation(from: SIMD3(1, 0, 0), to: flat)
+        case .bar:
+            props[.bar]?.simdPosition = (hl + hr) / 2 + SIMD3(0, 0.02, 0)
+            props[.bar]?.simdOrientation = Self.rotation(from: SIMD3(0, 1, 0), to: lateral)
+        case .ball:
+            props[.ball]?.simdPosition = (hl + hr) / 2 + forward * 0.06
+        case .kettlebell:
+            props[.kettlebell]?.simdPosition = (hl + hr) / 2 + SIMD3(0, -0.08, 0)
+        case .dumbbells:
+            dumbbellL.simdPosition = hl
+            dumbbellR.simdPosition = hr
+            dumbbellL.simdOrientation = Self.rotation(from: SIMD3(0, 1, 0), to: lateral)
+            dumbbellR.simdOrientation = dumbbellL.simdOrientation
+        case .hurdle:
+            props[.hurdle]?.simdPosition = SIMD3(motion.center.x * Self.k, 0, motion.center.y * Self.k) + forward * 0.42
+            props[.hurdle]?.simdOrientation = simd_quatf(angle: Float(p["yaw"] * .pi / 180), axis: SIMD3(0, 1, 0))
         }
-        if move.prop == .bar, let hl = j["hL"], let hr = j["hR"] {
-            bar.simdPosition = (hl + hr) / 2 + SIMD3(0, 0.02, 0)
-            bar.simdOrientation = Self.rotation(from: SIMD3(0, 1, 0), to: move.front ? SIMD3(1, 0, 0) : SIMD3(0, 0, 1))
-        }
-    }
-
-    /// Forward kinematics in 3D. Same angle convention as the 2D figure: 0° down, 90° forward (or right), 180° up.
-    static func joints(_ p: Pose, front: Bool) -> [String: SIMD3<Float>] {
-        let k = Self.k
-        // Side view: angles swing in the x–y plane, left/right sit apart on z.
-        // Front view: angles swing in the x–y plane facing the camera, left/right sit apart on x.
-        let lateral: SIMD3<Float> = front ? SIMD3(1, 0, 0) : SIMD3(0, 0, 1)
-        let facing: SIMD3<Float> = front ? SIMD3(0, 0, 1) : SIMD3(1, 0, 0)
-        func dir(_ a: Double) -> SIMD3<Float> {
-            let r = a * .pi / 180
-            return SIMD3(Float(sin(r)), Float(-cos(r)), 0)
-        }
-        // Side: right limbs are the near side (+z). Front: "L" angles point screen-left (−x).
-        let sideL: Float = -1, sideR: Float = 1
-
-        var j: [String: SIMD3<Float>] = [:]
-        let hip = SIMD3<Float>(0, 0, 0)
-        let spine = dir(p.t)
-        let neck = hip + spine * 26 * k
-        j["hip"] = hip
-        j["chest"] = hip + spine * 17 * k
-        j["neck"] = neck
-        let headDir = dir(p.h ?? p.t)
-        j["headBase"] = neck + headDir * 3 * k
-        j["head"] = neck + headDir * 9 * k
-        let shoulderBase = neck - spine * 2.5 * k
-        let shL = shoulderBase + lateral * sideL * 7 * k
-        let shR = shoulderBase + lateral * sideR * 7 * k
-        j["shL"] = shL; j["shR"] = shR
-        let eL = shL + dir(p.aL) * 14 * k, eR = shR + dir(p.aR) * 14 * k
-        j["eL"] = eL; j["eR"] = eR
-        j["hL"] = eL + dir(p.fL) * 13 * k
-        j["hR"] = eR + dir(p.fR) * 13 * k
-        let hipL = hip + lateral * sideL * 4.5 * k
-        let hipR = hip + lateral * sideR * 4.5 * k
-        j["hipL"] = hipL; j["hipR"] = hipR
-        let kL = hipL + dir(p.lL) * 19 * k, kR = hipR + dir(p.lR) * 19 * k
-        j["kL"] = kL; j["kR"] = kR
-        let aL = kL + dir(p.sL) * 19 * k, aR = kR + dir(p.sR) * 19 * k
-        j["aL"] = aL; j["aR"] = aR
-        // Feet point forward, square to the shin.
-        func foot(_ shin: Double) -> SIMD3<Float> {
-            if front { return simd_normalize(facing * 0.95 + SIMD3(0, -0.2, 0)) }
-            return dir(shin + 90)
-        }
-        j["toeL"] = aL + foot(p.sL) * 6 * k
-        j["toeR"] = aR + foot(p.sR) * 6 * k
-
-        // Stand it on the floor, centred like the 2D figure.
-        let pts = Array(j.values) + [j["head"]! - SIMD3(0, 6 * k, 0)]
-        let minY = pts.map(\.y).min() ?? 0
-        let minX = pts.map(\.x).min() ?? 0, maxX = pts.map(\.x).max() ?? 0
-        let shift = SIMD3<Float>(-(minX + maxX) / 2 + Float(p.dx) * k, -minY + Float(p.lift) * k, 0)
-        for key in j.keys { j[key]! += shift }
-        return j
     }
 
     static func rotation(from a: SIMD3<Float>, to b: SIMD3<Float>) -> simd_quatf {
@@ -347,30 +393,41 @@ private extension UIColor {
 // MARK: - SwiftUI
 
 enum FigureAngle: String, CaseIterable, Identifiable {
-    case threeQuarter, front, side
+    case threeQuarter, front, side, back
     var id: String { rawValue }
     var title: String {
         switch self {
         case .threeQuarter: "3D"
         case .front: "Front"
         case .side: "Side"
+        case .back: "Back"
+        }
+    }
+    /// Camera yaw/pitch. The figure faces +x, so its front is yaw π/2.
+    var yawPitch: (Float, Float) {
+        switch self {
+        case .threeQuarter: (0.9, 0.22)
+        case .front: (.pi / 2, 0.08)
+        case .side: (0, 0.08)
+        case .back: (-.pi / 2, 0.12)
         }
     }
 }
 
-/// Drag to orbit, pinch to zoom. The buttons snap back to a clean angle.
+/// Drag to orbit, pinch to zoom. The buttons swing the camera round to a clean angle.
 struct Figure3DView: View {
-    let move: Move
+    let motion: Motion
     let moveID: String
     var color: Color
     var animate = true
+    var speed = 1.0
     var showControls = true
     @State private var angle = FigureAngle.threeQuarter
     @State private var snap = 0
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            FigureSceneView(move: move, moveID: moveID, color: UIColor(color), paused: !animate, angle: angle, snap: snap)
+            FigureSceneView(motion: motion, moveID: moveID, color: UIColor(color), paused: !animate, speed: speed, angle: angle, snap: snap)
             if showControls {
                 HStack(spacing: 4) {
                     ForEach(FigureAngle.allCases) { a in
@@ -391,98 +448,97 @@ struct Figure3DView: View {
                 .padding(6)
             }
         }
-        .overlay(alignment: .bottomLeading) {
-            if showControls {
-                Label("Drag to rotate", systemImage: "rotate.3d")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Theme.text3)
-                    .padding(8)
-            }
-        }
         .accessibilityHidden(true)
     }
 }
 
 private struct FigureSceneView: UIViewRepresentable {
-    let move: Move
+    let motion: Motion
     let moveID: String
     let color: UIColor
     let paused: Bool
+    let speed: Double
     let angle: FigureAngle
     let snap: Int
 
-    final class Coordinator {
-        var rig: FigureRig
+    final class Coordinator: NSObject {
+        let rig: FigureRig
         var moveID: String
         var snap = -1
+        private var lastPan = CGPoint.zero
+
         init(rig: FigureRig, moveID: String) { self.rig = rig; self.moveID = moveID }
+
+        @objc func pan(_ g: UIPanGestureRecognizer) {
+            let t = g.translation(in: g.view)
+            if g.state == .began { lastPan = .zero }
+            rig.drag(dx: Float(t.x - lastPan.x), dy: Float(t.y - lastPan.y))
+            lastPan = t
+        }
+
+        @objc func pinch(_ g: UIPinchGestureRecognizer) {
+            rig.zoom(Float(g.scale))
+            g.scale = 1
+        }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(rig: FigureRig(move: move, color: color), moveID: moveID)
+        Coordinator(rig: FigureRig(motion: motion, color: color), moveID: moveID)
     }
 
     func makeUIView(context: Context) -> SCNView {
         let v = SCNView(frame: .zero)
+        let c = context.coordinator
         v.backgroundColor = .clear
-        v.scene = context.coordinator.rig.scene
-        v.delegate = context.coordinator.rig
+        v.scene = c.rig.scene
+        v.pointOfView = c.rig.camera
+        v.delegate = c.rig
         v.isPlaying = true
         v.rendersContinuously = true
         v.preferredFramesPerSecond = 60
         v.antialiasingMode = .multisampling4X
-        v.allowsCameraControl = true
-        v.defaultCameraController.interactionMode = .orbitTurntable
-        v.defaultCameraController.inertiaEnabled = true
-        v.defaultCameraController.maximumVerticalAngle = 80
-        v.defaultCameraController.minimumVerticalAngle = -10
-        let cam = SCNNode()
-        cam.camera = SCNCamera()
-        cam.camera?.fieldOfView = 34
-        cam.camera?.zNear = 0.05
-        cam.camera?.wantsHDR = false
-        context.coordinator.rig.scene.rootNode.addChildNode(cam)
-        v.pointOfView = cam
-        place(cam, v, front: move.front)
-        context.coordinator.snap = snap
+        v.allowsCameraControl = false
+        v.addGestureRecognizer(UIPanGestureRecognizer(target: c, action: #selector(Coordinator.pan(_:))))
+        v.addGestureRecognizer(UIPinchGestureRecognizer(target: c, action: #selector(Coordinator.pinch(_:))))
+        let (y, p) = angle.yawPitch
+        c.rig.look(yaw: y, pitch: p)
+        c.snap = snap
         return v
     }
 
     func updateUIView(_ v: SCNView, context: Context) {
         let c = context.coordinator
         c.rig.paused = paused
+        c.rig.speed = speed
         c.rig.setColor(color)
         if c.moveID != moveID {
             c.moveID = moveID
-            c.rig.move = move
-            if let cam = v.pointOfView { place(cam, v, front: move.front) }
+            c.rig.setMotion(motion)
         }
         if c.snap != snap {
             c.snap = snap
-            if let cam = v.pointOfView {
-                SCNTransaction.begin()
-                SCNTransaction.animationDuration = 0.45
-                place(cam, v, front: move.front)
-                SCNTransaction.commit()
-            }
+            let (y, p) = angle.yawPitch
+            c.rig.look(yaw: y, pitch: p)
         }
     }
+}
 
-    /// Camera positions are relative to how the move was authored (side or front view).
-    private func place(_ cam: SCNNode, _ v: SCNView, front: Bool) {
-        let target = SCNVector3(0, 0.8, 0)
-        let dist: Float = 3.5
-        let az: Float
-        switch angle {
-        case .front: az = front ? 0 : .pi / 2
-        case .side: az = front ? .pi / 2 : 0
-        case .threeQuarter: az = front ? 0.6 : 0.75
+/// Animation speed for the demo figures, shared by every exercise.
+struct SpeedSlider: View {
+    @EnvironmentObject var store: Store
+    var color: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "tortoise.fill").font(.caption).foregroundStyle(Theme.text3)
+            Slider(value: $store.data.settings.figureSpeed, in: 0.25...2, step: 0.25)
+                .tint(color)
+            Image(systemName: "hare.fill").font(.caption).foregroundStyle(Theme.text3)
+            Text(String(format: "%.2gx", store.data.settings.figureSpeed))
+                .font(.number(12, .semibold)).foregroundStyle(Theme.text2)
+                .frame(width: 38, alignment: .trailing)
         }
-        // az = 0 looks from +z; side-view moves face +x, so their front is az = π/2.
-        let elev: Float = angle == .threeQuarter ? 0.22 : 0.08
-        cam.position = SCNVector3(target.x + dist * cos(elev) * sin(az), target.y + dist * sin(elev), target.z + dist * cos(elev) * cos(az))
-        cam.look(at: target)
-        v.defaultCameraController.target = target
+        .padding(.horizontal, 4)
     }
 }
 
@@ -493,6 +549,7 @@ struct StickTopDownView: View {
     let exerciseID: String
     var color: Color
     var animate = true
+    var speed = 1.0
 
     private enum Pattern { case sideToSide, wideNarrow, figure8, circle, toeDrag, frontBack, weave, betweenLegs, protect, combo, quick }
 
@@ -578,7 +635,7 @@ struct StickTopDownView: View {
 
     var body: some View {
         TimelineView(.animation(paused: !animate)) { tl in
-            Canvas { ctx, size in draw(ctx, size, tl.date.timeIntervalSinceReferenceDate) }
+            Canvas { ctx, size in draw(ctx, size, tl.date.timeIntervalSinceReferenceDate * speed) }
         }
         .aspectRatio(1, contentMode: .fit)
         .accessibilityHidden(true)

@@ -296,8 +296,10 @@ struct FigureView: View {
     var exerciseID = ""
     var stickhandling = false
     var controls = true
+    let exercise: Exercise
 
     init(exercise: Exercise, color: Color? = nil, animate: Bool = true, controls: Bool = true) {
+        self.exercise = exercise
         move = Moves.move(for: exercise)
         symbol = exercise.symbol
         exerciseID = exercise.id
@@ -310,9 +312,10 @@ struct FigureView: View {
     var body: some View {
         if store.data.settings.showFigures {
             if stickhandling {
-                StickTopDownView(exerciseID: exerciseID, color: color, animate: animate)
+                StickTopDownView(exerciseID: exerciseID, color: color, animate: animate, speed: store.data.settings.figureSpeed)
             } else if store.data.settings.figures3D {
-                Figure3DView(move: move, moveID: exerciseID, color: color, animate: animate, showControls: controls)
+                Figure3DView(motion: MotionLibrary.motion(for: exercise), moveID: exerciseID, color: color, animate: animate,
+                             speed: store.data.settings.figureSpeed, showControls: controls)
             } else {
                 animated
             }

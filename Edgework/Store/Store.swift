@@ -106,7 +106,8 @@ final class Store: ObservableObject {
             CalEvent(id: "demo-8", title: "Spring Classic Tournament", start: Day.add(6, to: today), allDay: true, location: "", guessed: .ignore),
         ]
         d.favorites = ["skater-bound", "copenhagen-plank"]
-        d.settings.trainTimes = ["2": 17 * 60, "3": 17 * 60, "4": 18 * 60, "6": 16 * 60, String(Day.cal.component(.weekday, from: today)): 17 * 60 + 30]
+        d.settings.trainTimes = ["2": 17 * 60, "3": 17 * 60, "4": 18 * 60, "6": 16 * 60]
+        d.settings.trainTimes[String(Day.cal.component(.weekday, from: today))] = 17 * 60 + 30
         var log = DailyLog()
         log.shots = ["wrist": 50, "snap": 15, "backhand": 10]
         log.onTarget = 48

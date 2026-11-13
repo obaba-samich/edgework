@@ -82,21 +82,21 @@ struct SettingsView: View {
             } message: {
                 Text("History, benchmarks, custom workouts and settings will be deleted. This can't be undone.")
             }
-            .onChange(of: st.gameDays) { _, _ in rebuildIfAuto() }
-            .onChange(of: st.normalOnEventDays) { _, _ in rebuildIfAuto(); refreshNotifications() }
-            .onChange(of: st.adjustAfterEvents) { _, _ in rebuildIfAuto() }
-            .onChange(of: st.practiceDays) { _, _ in rebuildIfAuto() }
-            .onChange(of: st.restDays) { _, _ in rebuildIfAuto() }
-            .onChange(of: st.remindDaily) { _, _ in refreshNotifications() }
-            .onChange(of: st.remindGame) { _, _ in refreshNotifications() }
-            .onChange(of: st.remindStreak) { _, _ in refreshNotifications() }
-            .onChange(of: st.remindMinute) { _, _ in refreshNotifications() }
-            .onChange(of: st.trainTimes) { _, _ in refreshNotifications() }
-            .onChange(of: st.runRemind) { _, _ in refreshNotifications() }
-            .onChange(of: st.runRemindDays) { _, _ in refreshNotifications() }
-            .onChange(of: st.runMinute) { _, _ in refreshNotifications() }
-            .onChange(of: st.remindWater) { _, _ in refreshNotifications() }
+            .onChange(of: scheduleKey) { _, _ in rebuildIfAuto() }
+            .onChange(of: reminderKey) { _, _ in refreshNotifications() }
         }
+    }
+
+    /// Anything that changes which workout today gets. One onChange instead of many keeps the compiler happy.
+    private var scheduleKey: [String] {
+        [st.gameDays.sorted().description, st.practiceDays.sorted().description, st.restDays.sorted().description,
+         "\(st.normalOnEventDays)", "\(st.adjustAfterEvents)"]
+    }
+
+    /// Anything that changes which notifications get scheduled.
+    private var reminderKey: [String] {
+        ["\(st.remindDaily)", "\(st.remindGame)", "\(st.remindStreak)", "\(st.remindMinute)", st.trainTimes.sorted { $0.key < $1.key }.description,
+         "\(st.runRemind)", st.runRemindDays.sorted().description, "\(st.runMinute)", "\(st.remindWater)", "\(st.normalOnEventDays)"]
     }
 
     private var trainingPages: some View {

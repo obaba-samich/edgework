@@ -33,6 +33,8 @@ The app includes a widget extension (`com.pizza.edgework.widgets`) for the Home 
 - Review before starting: reorder, swap, refresh or remove anything. Global intensity slider plus −/+ on any single exercise, which the app remembers.
 - Set any exercise's **priority** on a 7-step scale from Rarely to Max, with Normal in the middle, or make it **required** (in every workout), from the Library. Required shooting and stickhandling only join arm, hands, strength and full-body workouts, not leg or speed days.
 - Line mode for travelling warm-ups (high knees, carioca, side lunges) instead of time.
+- **Exercises I know**: well-known only (high knees, quad pulls, push-ups…), common, or everything. This is about how familiar a move is, not how hard it is. **Study** (Library › Study) teaches you the rest one at a time with steps and a demo, and "Got it" adds that move to your workouts.
+- Required exercises always come last in a workout.
 
 **Share**
 - After a workout, a shot session or a hill run, make a share card for your Instagram or TikTok story (9:16) or a post (4:5). Progress › share makes a card of your week.

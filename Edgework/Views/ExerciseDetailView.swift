@@ -214,17 +214,10 @@ struct ExerciseDetailView: View {
             Overline("In my workouts")
             VStack(alignment: .leading, spacing: 6) {
                 Text("Priority").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
-                Picker("Priority", selection: Binding(get: { p }, set: { store.setPriority(ex.id, $0); store.haptic(.light) })) {
-                    Text("Normal").tag(0)
-                    Text("Often").tag(1)
-                    Text("A lot").tag(2)
-                    Text("Max").tag(3)
-                }
-                .pickerStyle(.segmented)
-                .disabled(excluded)
-                Text(p == 0 ? "Picked like everything else."
-                     : p == 3 ? "Added whenever today's workout trains \(ex.category.title.lowercased())."
-                     : "Comes up \(p == 1 ? "about twice" : "about five times") as often as normal.")
+                PriorityPicker(value: Binding(get: { p }, set: { store.setPriority(ex.id, $0); store.haptic(.light) }))
+                    .disabled(excluded)
+                    .opacity(excluded ? 0.4 : 1)
+                Text(Store.priorityDetail(p, category: ex.category.title.lowercased()))
                     .font(.caption).foregroundStyle(Theme.text3)
             }
             Divider().overlay(Theme.stroke)

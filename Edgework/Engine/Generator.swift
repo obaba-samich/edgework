@@ -159,7 +159,7 @@ enum Generator {
         }
         var weights = plan.main.map { cw -> (Category, Double) in
             let boost = pool(cw.0).reduce(0.0) { $0 + Double(priority($1)) * 0.12 }
-            return (cw.0, cw.1 * min(2, 1 + boost))
+            return (cw.0, cw.1 * max(0.4, min(2, 1 + boost)))
         }
         var main: [WorkoutItem] = []
         let planCats = Set(plan.main.map(\.0))

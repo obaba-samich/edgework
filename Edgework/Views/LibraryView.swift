@@ -14,7 +14,7 @@ struct LibraryView: View {
             (category == nil ? !hidden.contains(ex.category) : ex.category == category)
                 && (!onlyMine || ex.equipment.allSatisfy { store.data.settings.equipment.contains($0) })
                 && (!favoritesOnly || store.isFavorite(ex.id))
-                && (planFilter != 1 || store.priority(ex.id) > 0)
+                && (planFilter != 1 || store.priority(ex.id) != 0)
                 && (planFilter != 2 || store.isRequired(ex.id))
                 && (query.isEmpty || ex.name.localizedCaseInsensitiveContains(query)
                     || ex.primary.contains { $0.title.localizedCaseInsensitiveContains(query) }
@@ -53,7 +53,7 @@ struct LibraryView: View {
                                     .buttonStyle(.plain)
                                     .contextMenu {
                                         Picker("Priority", selection: Binding(get: { store.priority(ex.id) }, set: { store.setPriority(ex.id, $0) })) {
-                                            ForEach(0..<4) { Text(Store.priorityNames[$0]).tag($0) }
+                                            ForEach(Store.priorityLevels.reversed(), id: \.self) { Text(Store.priorityName($0)).tag($0) }
                                         }
                                         Button {
                                             store.setRequired(ex, !store.isRequired(ex.id))

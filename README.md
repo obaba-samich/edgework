@@ -31,7 +31,7 @@ The app includes a small widget extension (`com.pizza.edgework.widgets`) for the
 - A generator that rotates strength, power, speed, conditioning, core and mobility, picking whatever you've trained least recently.
 - Adapts to game and meet days (short activation), the day after (recovery), practices and rest days. Or keep your normal workouts and train after the event, with less volume when you're sore.
 - Review before starting: reorder, swap, refresh or remove anything. Global intensity slider plus −/+ on any single exercise, which the app remembers.
-- Set any exercise as **priority** (comes up more often) or **required** (in every workout) from the Library.
+- Set any exercise's **priority** on a 7-step scale from Rarely to Max, with Normal in the middle, or make it **required** (in every workout), from the Library.
 - Line mode for travelling warm-ups (high knees, carioca, side lunges) instead of time.
 
 **290+ exercises with instructions**

@@ -252,13 +252,13 @@ struct ExerciseRowLabel: View {
                     if required {
                         Image(systemName: "checklist").font(.system(size: 10, weight: .bold)).foregroundStyle(Theme.red)
                     }
-                    if priority > 0 {
+                    if priority != 0 {
                         HStack(spacing: 1) {
-                            ForEach(0..<priority, id: \.self) { _ in
-                                Image(systemName: "chevron.up").font(.system(size: 8, weight: .black))
+                            ForEach(0..<abs(priority), id: \.self) { _ in
+                                Image(systemName: priority > 0 ? "chevron.up" : "chevron.down").font(.system(size: 8, weight: .black))
                             }
                         }
-                        .foregroundStyle(Theme.green)
+                        .foregroundStyle(priority > 0 ? Theme.green : Theme.amber)
                     }
                 }
                 Text(exercise.primary.map(\.title).joined(separator: " · "))
@@ -295,4 +295,40 @@ struct EmptyState: View {
 
 extension Int {
     var clock: String { String(format: "%d:%02d", self / 60, self % 60) }
+}
+
+/// Seven steps from Rarely to Max, Normal in the middle.
+struct PriorityPicker: View {
+    @Binding var value: Int
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 5) {
+                ForEach(Store.priorityLevels, id: \.self) { p in
+                    Button { value = p } label: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(p == value ? color(p) : Theme.surface2)
+                            Image(systemName: p == 0 ? "circle.fill" : (p > 0 ? "chevron.up" : "chevron.down"))
+                                .font(.system(size: p == 0 ? 7 : 11, weight: .black))
+                                .foregroundStyle(p == value ? Theme.bg : color(p).opacity(0.5 + 0.15 * Double(abs(p))))
+                        }
+                        .frame(height: 34)
+                    }
+                    .buttonStyle(PressableStyle())
+                    .accessibilityLabel(Store.priorityName(p))
+                    .accessibilityAddTraits(p == value ? .isSelected : [])
+                }
+            }
+            HStack {
+                Text("Rarely").font(.caption2).foregroundStyle(Theme.text3)
+                Spacer()
+                Text(Store.priorityName(value)).font(.caption.weight(.bold)).foregroundStyle(color(value))
+                Spacer()
+                Text("Max").font(.caption2).foregroundStyle(Theme.text3)
+            }
+        }
+    }
+
+    private func color(_ p: Int) -> Color { p > 0 ? Theme.green : (p < 0 ? Theme.amber : Theme.text2) }
 }

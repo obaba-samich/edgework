@@ -155,8 +155,8 @@ extension Store {
     func priority(_ id: String) -> Int { data.settings.priorities[id] ?? 0 }
 
     func setPriority(_ id: String, _ p: Int) {
-        data.settings.priorities[id] = p <= 0 ? nil : min(3, p)
-        if p > 0 { data.settings.excluded.remove(id) }
+        data.settings.priorities[id] = p == 0 ? nil : max(-3, min(3, p))
+        if p != 0 { data.settings.excluded.remove(id) }
         rebuildTodayIfAuto()
     }
 
@@ -165,7 +165,30 @@ extension Store {
         rebuildToday(seed: t.seed, focus: t.focus, duration: t.duration)
     }
 
-    static let priorityNames = ["Normal", "Often", "A lot", "Every time it fits"]
+    /// Priority runs from -3 to 3, Normal in the middle. Each step is about 2.2× more (or less) likely.
+    static let priorityLevels = Array(-3...3)
+    static func priorityName(_ p: Int) -> String {
+        switch p {
+        case ...(-3): "Rarely"
+        case -2: "Less"
+        case -1: "A bit less"
+        case 0: "Normal"
+        case 1: "A bit more"
+        case 2: "More"
+        default: "Max"
+        }
+    }
+    static func priorityDetail(_ p: Int, category: String) -> String {
+        switch p {
+        case ...(-3): "Hardly ever picked, about a tenth as often as normal."
+        case -2: "Picked about a fifth as often as normal."
+        case -1: "Picked about half as often as normal."
+        case 0: "Picked like everything else."
+        case 1: "Comes up about twice as often as normal."
+        case 2: "Comes up about five times as often as normal."
+        default: "Added whenever today's workout trains \(category)."
+        }
+    }
 
     static let mustDoPresets: [(title: String, items: [(String, Int, Int)])] = [
         ("100 shots", [("wrist-shots", 2, 25), ("snap-shots", 1, 25), ("backhands", 1, 25)]),

@@ -61,7 +61,7 @@ enum Generator {
 
         let hockeyFocus = focus == .hands || focus == .goalie
         let hockeyOnly: Set<Category> = [.stickhandling, .shooting, .goalie]
-        let available = Library.all.filter { ex -> Bool in
+        let allowed = Library.all.filter { ex -> Bool in
             if settings.excluded.contains(ex.id) || ex.level > settings.maxLevel || ex.id == "cooldown-jog" { return false }
             if !ex.equipment.allSatisfy({ settings.equipment.contains($0) }) { return false }
             if ex.category == .goalie && settings.position != .goalie && focus != .goalie { return false }
@@ -71,6 +71,14 @@ enum Generator {
             if settings.lowImpact && (ex.tags.contains(.explosive) || ex.category == .power) { return false }
             return true
         }
+        // Knowledge setting: keep to moves people know. A category with fewer than 3 known moves (hurdles,
+        // throws, goalie…) keeps its full list so those workouts still work.
+        let available: [Exercise] = {
+            guard settings.knowledge < 3 else { return allowed }
+            let known = allowed.filter { settings.isFamiliar($0) }
+            let thin = Set(Category.allCases.filter { c in known.filter { $0.category == c }.count < 3 })
+            return allowed.filter { settings.isFamiliar($0) || thin.contains($0.category) }
+        }()
         func pool(_ cat: Category) -> [Exercise] { available.filter { $0.category == cat } }
 
         // Required exercises only show up in the Required block at the end, never inside their own category.

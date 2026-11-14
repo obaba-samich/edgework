@@ -310,6 +310,10 @@ struct OnboardingView: View {
             choice(1, s.maxLevel, "New to training", "Beginner moves only, lighter volume.")
             choice(2, s.maxLevel, "Some experience", "Up to intermediate moves.")
             choice(3, s.maxLevel, "Experienced", "Everything, including advanced plyometrics.")
+            section("Exercises I know")
+            ForEach(Knowledge.allCases) { k in choice(k.rawValue, s.knowledge, k.title, k.detail) }
+            Text("Not about difficulty, just how familiar the moves are. Learn new ones any time in Library › Study.")
+                .font(.footnote).foregroundStyle(Theme.text3)
             section("Rest between sets")
             chips(RestLength.allCases.map { ($0, $0.title) }, s.rest)
             toggleRow("Low impact", "No jumping or explosive moves (sore joints, small apartment).", s.lowImpact)

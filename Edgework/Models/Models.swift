@@ -948,6 +948,10 @@ struct Settings: Codable {
     var includeHockey = true
     var lowImpact = false
     var excluded: Set<String> = []
+    /// 1 = well-known moves only, 2 = common, 3 = everything (see Familiarity.swift).
+    var knowledge = 3
+    /// Exercises learned in Study, allowed in workouts whatever the knowledge setting.
+    var learned: Set<String> = []
     var reviewFirst = true
     var remindDaily = false
     var remindMinute = 17 * 60
@@ -1055,6 +1059,8 @@ struct Settings: Codable {
         includeHockey = try c.decodeIfPresent(Bool.self, forKey: .includeHockey) ?? d.includeHockey
         lowImpact = try c.decodeIfPresent(Bool.self, forKey: .lowImpact) ?? d.lowImpact
         excluded = try c.decodeIfPresent(Set<String>.self, forKey: .excluded) ?? d.excluded
+        knowledge = try c.decodeIfPresent(Int.self, forKey: .knowledge) ?? d.knowledge
+        learned = try c.decodeIfPresent(Set<String>.self, forKey: .learned) ?? d.learned
         reviewFirst = try c.decodeIfPresent(Bool.self, forKey: .reviewFirst) ?? d.reviewFirst
         remindDaily = try c.decodeIfPresent(Bool.self, forKey: .remindDaily) ?? d.remindDaily
         remindMinute = try c.decodeIfPresent(Int.self, forKey: .remindMinute) ?? d.remindMinute

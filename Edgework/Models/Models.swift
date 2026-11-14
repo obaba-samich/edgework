@@ -266,7 +266,8 @@ struct Exercise: Identifiable, Hashable {
 // MARK: - Workouts
 
 enum Block: String, Codable, CaseIterable, Identifiable {
-    case warmup, stretch, main, musts, finisher, cooldown
+    /// Order here is the order in a workout. Required (must-dos) always go last.
+    case warmup, stretch, main, finisher, cooldown, musts
     var id: String { rawValue }
     var title: String {
         switch self {

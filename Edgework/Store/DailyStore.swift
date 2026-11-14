@@ -129,6 +129,7 @@ extension Store {
             for var it in data.settings.mustDos where it.exercise.map({ ex in
                 Generator.mustDoFits(ex, focus: program.focus, sport: data.settings.sport, main: main)
             }) ?? false {
+                w.items.removeAll { $0.exerciseID == it.exerciseID }
                 it.id = UUID()
                 it.block = .musts
                 w.items.append(it)

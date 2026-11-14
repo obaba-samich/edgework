@@ -73,7 +73,8 @@ enum Generator {
         }
         func pool(_ cat: Category) -> [Exercise] { available.filter { $0.category == cat } }
 
-        var used = Set<String>()
+        // Required exercises only show up in the Required block at the end, never inside their own category.
+        var used = Set(settings.mustDos.map(\.exerciseID))
         var items: [WorkoutItem] = []
 
         func makeItem(_ ex: Exercise, _ block: Block) -> WorkoutItem {

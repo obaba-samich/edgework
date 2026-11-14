@@ -427,6 +427,14 @@ struct PlayerView: View {
                 }
             } else {
                 VStack(spacing: 4) {
+                    if Library.isHill(ex) {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text("\(store.target(item))").font(.number(56, .heavy)).foregroundStyle(Theme.text)
+                            Text("trips up & down").font(.title3.weight(.semibold)).foregroundStyle(Theme.text2)
+                        }
+                        HillTrackerPanel(exercise: ex, target: store.target(item))
+                            .id("\(ex.id)-\(set)")
+                    } else {
                     FigureView(exercise: ex, animate: !engine.paused, controls: false)
                         .frame(height: 170)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -436,6 +444,7 @@ struct PlayerView: View {
                         if m == .reps || m == .lines {
                             Text(m.label(store.target(item))).font(.title3.weight(.semibold)).foregroundStyle(Theme.text2)
                         }
+                    }
                     }
                 }
             }

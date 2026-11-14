@@ -309,7 +309,7 @@ struct PriorityPicker: View {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .fill(p == value ? color(p) : Theme.surface2)
-                            VStack(spacing: -5) {
+                            VStack(spacing: -1) {
                                 if p == 0 {
                                     Image(systemName: "circle.fill").font(.system(size: 7, weight: .black))
                                 } else {

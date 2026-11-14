@@ -1,4 +1,4 @@
-# Renders the 1024px app icon with numpy SDFs. Run with any python that has numpy.
+# Renders the 1024px app icon (flat: white italic E + ice speed streaks on navy) with numpy SDFs. Run with any python that has numpy.
 import sys, zlib, struct
 import numpy as np
 
@@ -20,48 +20,35 @@ def blend(img, color, alpha):
     a = alpha[..., None]
     return img * (1 - a) + color * a
 
-# Background: deep rink navy gradient with a cold glow up top.
-t = (y / N)[..., None]
-img = hexc(0x14254A) * (1 - t) + hexc(0x060A14) * t
-glow = np.exp(-(((x - 560) ** 2 + (y - 260) ** 2) / (2 * 330.0 ** 2)))
-img = blend(img, hexc(0x7CD4FF), glow * 0.22)
+# Flat navy background, no gradient or glow.
+img = np.ones((S, S, 3), np.float32) * hexc(0x0E1B36)
 
-# Faceoff circle and hash marks.
-ring = np.abs(np.hypot(x - 512, y - 512) - 392) - 9
-img = blend(img, hexc(0xFF4D5E), np.clip(0.5 - ring, 0, 1) * 0.55)
-for sx in (-1, 1):
-    for dy in (-46, 46):
-        d = seg(x, y, 512 + sx * 400, 512 + dy, 512 + sx * 470, 512 + dy, 8)
-        img = blend(img, hexc(0xFF4D5E), np.clip(0.5 - d, 0, 1) * 0.55)
-
-# Italic E built from capsules.
-k = 0.2
-R = 58
+k = 0.2  # italic slant
+R = 58   # bar radius
 bars = [(392, 300, 392, 724), (392, 300, 690, 300), (392, 512, 630, 512), (392, 724, 690, 724)]
 
-def e_sdf(ox, oy):
-    qx = (x - ox) - k * (512 - (y - oy))
-    qy = y - oy
+def slanted(sc):
+    """Coordinates scaled around the center, then sheared for the italic."""
+    qy = (y - 512) / sc + 512
+    qx = (x - 512) / sc + 512 - k * (512 - qy)
+    return qx, qy
+
+def e_sdf(sc):
+    qx, qy = slanted(sc)
     d = None
     for (ax, ay, bx, by) in bars:
         s = seg(qx, qy, ax, ay, bx, by, R)
         d = s if d is None else np.minimum(d, s)
-    return d
+    return d * sc
 
-shadow = e_sdf(14, 20)
-img = blend(img, hexc(0x000000), np.clip(0.5 - shadow / 26, 0, 1) * 0.45)
-
-# Motion streaks trailing each bar.
+# Ice-blue speed streaks trailing the E.
+qx, qy = slanted(1.0)
 for i, by in enumerate((300, 512, 724)):
-    qx = x - k * (512 - y)
-    d = seg(qx, y, 130 + i * 30, by, 268, by, 11)
-    fade = np.clip((qx - 120) / 160, 0, 1)
-    img = blend(img, hexc(0x7CD4FF), np.clip(0.5 - d, 0, 1) * 0.7 * fade)
+    d = seg(qx, qy, 130 + i * 30, by, 268, by, 14)
+    img = blend(img, hexc(0x7CD4FF), np.clip(0.5 - d * SS, 0, 1))
 
-d = e_sdf(0, 0)
-fill = hexc(0xFFFFFF) * (1 - np.clip((y - 260) / 520, 0, 1))[..., None] + hexc(0x8FDCFF) * np.clip((y - 260) / 520, 0, 1)[..., None]
-a = np.clip(0.5 - d, 0, 1)[..., None]
-img = img * (1 - a) + fill * a
+# Solid white italic E.
+img = blend(img, hexc(0xFFFFFF), np.clip(0.5 - e_sdf(1.08) * SS, 0, 1))
 
 # Downsample and write PNG.
 img = img.reshape(N, SS, N, SS, 3).mean(axis=(1, 3))

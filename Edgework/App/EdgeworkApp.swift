@@ -82,6 +82,8 @@ struct RootView: View {
                                                           ("snap:lowRight", 6, 4), ("wrist:fiveHole", 7, 1), ("backhand:topMiddle", 2, 6)]
                         for (k, h, m) in demo { store.data.aimZones[k] = AimZoneStat(called: h + m, hits: h, misses: m) }
                     }
+                } else if screen.id == "study" {
+                    StudyView().onAppear { store.data.settings.knowledge = 1; store.data.settings.learned = ["a-skips", "goblet-squat"] }
                 } else if screen.id == "routine" {
                     RoutineEditor()
                 } else if screen.id == "log" {

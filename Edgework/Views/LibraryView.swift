@@ -78,6 +78,11 @@ struct LibraryView: View {
             .navigationTitle("Library")
             .searchable(text: $query, prompt: "Exercises, muscles, categories")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink { StudyView() } label: {
+                        Label("Study", systemImage: "graduationcap.fill").labelStyle(.titleAndIcon)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
                         MustDosEditor()

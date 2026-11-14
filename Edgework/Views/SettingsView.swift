@@ -326,6 +326,16 @@ struct SettingsView: View {
                 Text("Up to intermediate").tag(2)
                 Text("Everything").tag(3)
             }
+            Picker("Exercises I know", selection: s.knowledge) {
+                ForEach(Knowledge.allCases) { Text($0.title).tag($0.rawValue) }
+            }
+            NavigationLink { StudyView() } label: {
+                HStack {
+                    Label("Study new exercises", systemImage: "graduationcap.fill")
+                    Spacer()
+                    Text("\(st.learned.count) learned").foregroundStyle(Theme.text2)
+                }
+            }
             Stepper("Extra sets: \(st.extraSets > 0 ? "+" : "")\(st.extraSets)", value: s.extraSets, in: -2...3)
             Toggle("Low impact (no jumping)", isOn: s.lowImpact)
             NavigationLink {
@@ -355,7 +365,9 @@ struct SettingsView: View {
                     Text("\(st.equipment.count)").foregroundStyle(Theme.text2)
                 }
             }
-        } header: { Text("Difficulty & exercises") }
+        } header: { Text("Difficulty & exercises") } footer: {
+            Text("Exercises I know is about how well-known a move is, not how hard. \((Knowledge(rawValue: st.knowledge) ?? .everything).detail) Study teaches you the rest one at a time.")
+        }
         .listRowBackground(Theme.surface)
     }
 

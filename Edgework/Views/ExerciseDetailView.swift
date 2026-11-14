@@ -183,7 +183,7 @@ struct ExerciseDetailView: View {
                 }
             }
             HStack {
-                Text("Default \(ex.defaultTarget()) · personal \(Int((f * 100).rounded()))% · global \(Int((store.intensity * 100).rounded()))%")
+                Text("Default \(store.defaultTarget(ex)) · personal \(Int((f * 100).rounded()))% · global \(Int((store.intensity * 100).rounded()))%")
                     .font(.caption).foregroundStyle(Theme.text3)
                 Spacer()
                 if abs(f - 1) > 0.001 {

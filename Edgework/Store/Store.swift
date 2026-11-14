@@ -208,6 +208,11 @@ final class Store: ObservableObject {
         data.settings.measureModes[id] = lines.map { $0 ? "lines" : "default" }
     }
 
+    /// Library preview of an exercise's default target, in lines when that move is counted in lines.
+    func defaultTarget(_ ex: Exercise) -> String {
+        usesLines(ex.id) ? "\(ex.sets) × \(Measure.lines.format(data.settings.lineCount))" : ex.defaultTarget()
+    }
+
     func targetText(_ item: WorkoutItem) -> String {
         guard let ex = item.exercise else { return "" }
         return measure(item).format(target(item))

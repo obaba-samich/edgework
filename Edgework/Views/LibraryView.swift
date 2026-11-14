@@ -46,7 +46,7 @@ struct LibraryView: View {
                                     NavigationLink {
                                         ExerciseDetailView(exercise: ex)
                                     } label: {
-                                        ExerciseRowLabel(exercise: ex, trailing: ex.defaultTarget(), showFavorite: store.isFavorite(ex.id),
+                                        ExerciseRowLabel(exercise: ex, trailing: store.defaultTarget(ex), showFavorite: store.isFavorite(ex.id),
                                                          priority: store.priority(ex.id), required: store.isRequired(ex.id))
                                             .padding(.vertical, 9)
                                     }
@@ -173,7 +173,7 @@ struct ExercisePicker: View {
                             store.haptic(.light)
                         } label: {
                             HStack {
-                                ExerciseRowLabel(exercise: ex, trailing: ex.defaultTarget())
+                                ExerciseRowLabel(exercise: ex, trailing: store.defaultTarget(ex))
                                 Image(systemName: selected.contains(ex.id) ? "checkmark.circle.fill" : "circle")
                                     .font(.system(size: 22))
                                     .foregroundStyle(selected.contains(ex.id) ? Theme.ice : Theme.text3)

@@ -237,7 +237,7 @@ struct StickhandlingView: View {
                     Overline("Drill ideas")
                     ForEach(Library.all.filter { $0.category == .stickhandling }) { ex in
                         NavigationLink { ExerciseDetailView(exercise: ex) } label: {
-                            ExerciseRowLabel(exercise: ex, trailing: ex.defaultTarget()).padding(.vertical, 4)
+                            ExerciseRowLabel(exercise: ex, trailing: store.defaultTarget(ex)).padding(.vertical, 4)
                         }
                         .buttonStyle(.plain)
                     }
@@ -292,7 +292,7 @@ struct RunLogView: View {
                     Overline("Run workouts")
                     ForEach(Library.all.filter { $0.category == .running }) { ex in
                         NavigationLink { ExerciseDetailView(exercise: ex) } label: {
-                            ExerciseRowLabel(exercise: ex, trailing: ex.defaultTarget()).padding(.vertical, 4)
+                            ExerciseRowLabel(exercise: ex, trailing: store.defaultTarget(ex)).padding(.vertical, 4)
                         }
                         .buttonStyle(.plain)
                     }

@@ -37,7 +37,12 @@ struct HillTrackerPanel: View {
 
             if !climbs.isEmpty { splits }
         }
-        .onAppear { previous = store.data.hillClimbs[exercise.id] ?? [] }
+        .onAppear {
+            previous = store.data.hillClimbs[exercise.id] ?? []
+            if UserDefaults.standard.string(forKey: "autoStartExercise") != nil {   // screenshot demo
+                climbs = [40.8, 42.3, 44.0]; descents = [35.1, 33.9, 34.6]; leg = .up; legStart = Date().addingTimeInterval(-21.4)
+            }
+        }
         .onDisappear(perform: save)
     }
 

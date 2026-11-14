@@ -23,7 +23,7 @@ Edgework isn't on the App Store. Download `Edgework.ipa` from the [latest releas
 - A paid Apple Developer account or a signing service.
 - [TrollStore](https://github.com/opa334/TrollStore), on supported iOS versions.
 
-The app includes a small widget extension (`com.pizza.edgework.widgets`) for the Lock Screen and Dynamic Island timers. A wildcard provisioning profile covers it. If your signer drops it, the app still works, just without Live Activities.
+The app includes a widget extension (`com.pizza.edgework.widgets`) for the Home Screen widgets and the Lock Screen and Dynamic Island timers. The widgets read from the App Group `group.com.pizza.edgework` (AltStore and SideStore rename it, and the app picks that up). If your signer drops the extension or the App Group, the app still works. The widgets then say "Open Edgework to set up this widget".
 
 ## What's inside
 
@@ -31,8 +31,15 @@ The app includes a small widget extension (`com.pizza.edgework.widgets`) for the
 - A generator that rotates strength, power, speed, conditioning, core and mobility, picking whatever you've trained least recently.
 - Adapts to game and meet days (short activation), the day after (recovery), practices and rest days. Or keep your normal workouts and train after the event, with less volume when you're sore.
 - Review before starting: reorder, swap, refresh or remove anything. Global intensity slider plus −/+ on any single exercise, which the app remembers.
-- Set any exercise's **priority** on a 7-step scale from Rarely to Max, with Normal in the middle, or make it **required** (in every workout), from the Library.
+- Set any exercise's **priority** on a 7-step scale from Rarely to Max, with Normal in the middle, or make it **required** (in every workout), from the Library. Required shooting and stickhandling only join arm, hands, strength and full-body workouts, not leg or speed days.
 - Line mode for travelling warm-ups (high knees, carioca, side lunges) instead of time.
+
+**Share**
+- After a workout, a shot session or a hill run, make a share card for your Instagram or TikTok story (9:16) or a post (4:5). Progress › share makes a card of your week.
+- Share any workout as a QR code or link. Teammates scan it with the iPhone Camera, or tap the link, and it opens in Edgework ready to save. Train › My workouts › Scan imports from a QR code or a pasted link. The whole workout is inside the link, so there's no server.
+
+**Widgets**
+- Home Screen and Lock Screen widgets show today's workout, your streak, today's shots and the next game.
 
 **290+ exercises with instructions**
 - Every exercise has written steps, coaching cues, a muscle map and why it helps.
@@ -42,7 +49,8 @@ The app includes a small widget extension (`com.pizza.edgework.widgets`) for the
 
 **Hockey**
 - Shot tracker and a puck counter that plans rounds for the pucks you own and catches lost ones.
-- Aim trainer with random or custom shot lists (shot type + target), using the same puck rounds as the counter. Every called shot counts toward today's shots.
+- Aim trainer with random or custom shot lists (shot type + target), using the same puck rounds as the counter. Every called shot counts toward today's shots. Tap Hit or Miss to build a heat map of your corners, by shot type.
+- Wrist Rotation program: stick and dumbbell wrist rotations, stick levers, towel wrings and forearm work.
 - Hands caller, shift timer and combine tests.
 - Position-aware training for forwards, defense and goalies.
 

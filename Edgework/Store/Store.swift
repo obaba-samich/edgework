@@ -586,7 +586,7 @@ final class Store: ObservableObject {
 
     func estimateSeconds(_ item: WorkoutItem) -> Int {
         guard let ex = item.exercise else { return 0 }
-        return Generator.seconds(sets: item.sets, value: target(item), measure: measure(item), perSide: ex.perSide, rest: item.rest)
+        return Generator.seconds(sets: item.sets, value: target(item), measure: measure(item), perSide: ex.perSide, rest: item.rest, hill: Library.isHill(ex))
     }
 
     func estimateMinutes(_ w: Workout) -> Int {

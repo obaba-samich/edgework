@@ -315,6 +315,7 @@ struct PlayerView: View {
                 .padding(.bottom, 8)
             }
         }
+        .onAppear { if UserDefaults.standard.string(forKey: "autoStartExercise") != nil && !engine.started { engine.start() } }
         .onDisappear { engine.stop() }
         .sheet(item: $howTo) { ex in
             HowToSheet(exercise: ex).environmentObject(store)

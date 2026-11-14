@@ -27,8 +27,10 @@ private struct FocusPlan {
 
 enum Generator {
     /// Rough duration estimate for one item, in seconds.
-    static func seconds(sets: Int, value: Int, measure: Measure, perSide: Bool, rest: Int) -> Int {
+    static func seconds(sets: Int, value: Int, measure: Measure, perSide: Bool, rest: Int, hill: Bool = false) -> Int {
         let sides = perSide ? 2 : 1
+        // A hill trip (up and back down) takes about a minute and a half.
+        if hill { return sets * value * 90 * sides + 10 }
         let work: Int
         switch measure {
         case .reps: work = value * 3 * sides
@@ -89,7 +91,7 @@ enum Generator {
         }
         func cost(_ item: WorkoutItem) -> Int {
             guard let ex = item.exercise else { return 0 }
-            return seconds(sets: item.sets, value: item.base, measure: ex.measure, perSide: ex.perSide, rest: item.rest)
+            return seconds(sets: item.sets, value: item.base, measure: ex.measure, perSide: ex.perSide, rest: item.rest, hill: Library.isHill(ex))
         }
         func take(_ n: Int, from candidates: [Exercise], block: Block) -> [WorkoutItem] {
             guard n > 0 else { return [] }

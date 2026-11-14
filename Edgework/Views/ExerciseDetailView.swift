@@ -172,7 +172,7 @@ struct ExerciseDetailView: View {
                         Text("\(ex.sets) ×").font(.number(22)).foregroundStyle(Theme.text2)
                         Text(store.targetText(item)).font(.number(34)).foregroundStyle(Theme.text)
                             .contentTransition(.numericText())
-                        if store.measure(of: ex.id) == .reps { Text("reps").font(.subheadline).foregroundStyle(Theme.text2) }
+                        if store.measure(of: ex.id) == .reps { Text(Library.isHill(ex) ? "trips up & down" : "reps").font(.subheadline).foregroundStyle(Theme.text2) }
                         if ex.perSide { Text("/ side").font(.subheadline).foregroundStyle(Theme.text2) }
                     }
                 }

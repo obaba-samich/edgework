@@ -309,9 +309,16 @@ struct PriorityPicker: View {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .fill(p == value ? color(p) : Theme.surface2)
-                            Image(systemName: p == 0 ? "circle.fill" : (p > 0 ? "chevron.up" : "chevron.down"))
-                                .font(.system(size: p == 0 ? 7 : 11, weight: .black))
-                                .foregroundStyle(p == value ? Theme.bg : color(p).opacity(0.5 + 0.15 * Double(abs(p))))
+                            VStack(spacing: -5) {
+                                if p == 0 {
+                                    Image(systemName: "circle.fill").font(.system(size: 7, weight: .black))
+                                } else {
+                                    ForEach(0..<abs(p), id: \.self) { _ in
+                                        Image(systemName: p > 0 ? "chevron.up" : "chevron.down").font(.system(size: 10, weight: .black))
+                                    }
+                                }
+                            }
+                            .foregroundStyle(p == value ? Theme.bg : color(p).opacity(0.75))
                         }
                         .frame(height: 34)
                     }

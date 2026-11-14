@@ -6,6 +6,7 @@ struct TrainView: View {
     @State private var genMinutes = 30
     @State private var building: Workout?
     @State private var showProfile = false
+    @State private var scanning = false
 
     private let minuteOptions = [15, 20, 30, 45, 60, 75]
 
@@ -30,6 +31,7 @@ struct TrainView: View {
                 }
             }
             .sheet(isPresented: $showProfile) { SettingsView().environmentObject(store) }
+            .sheet(isPresented: $scanning) { WorkoutScanView().environmentObject(store) }
             .sheet(item: $building) { w in
                 BuilderView(workout: w) { store.saveCustom($0) }
                     .environmentObject(store)
@@ -186,6 +188,10 @@ struct TrainView: View {
     private var mine: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "My workouts", subtitle: store.data.custom.isEmpty ? nil : "\(store.data.custom.count) saved") {
+                Button { scanning = true } label: {
+                    Label("Scan", systemImage: "qrcode.viewfinder").font(.subheadline.weight(.bold))
+                }
+                .padding(.trailing, 8)
                 Button {
                     building = Workout(title: "", focus: .custom, items: [])
                 } label: {

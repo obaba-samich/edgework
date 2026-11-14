@@ -6,7 +6,7 @@ extension Library {
     static let staticStretchIDs: Set<String> = [
         "quad-stretch", "toe-touch", "calf-stretch", "cross-body-shoulder", "tricep-stretch", "butterfly-stretch",
         "kneeling-hip-flexor", "hamstring-band-stretch", "standing-hamstring", "side-reach", "standing-groin", "figure-4",
-        "doorway-chest", "deep-squat-hold", "frog-stretch", "pigeon",
+        "doorway-chest", "deep-squat-hold", "frog-stretch", "pigeon", "wrist-stretch",
     ]
 
     // MARK: Walking / dynamic warm-up

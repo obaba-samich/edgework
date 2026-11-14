@@ -223,8 +223,10 @@ struct ExerciseDetailView: View {
             Divider().overlay(Theme.stroke)
             Toggle(isOn: Binding(get: { required }, set: { store.setRequired(ex, $0); store.haptic(.medium) })) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Required in every workout").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
-                    Text(required ? "Added to every generated workout. Change sets in Library › Required." : "Like a mandatory run or 100 shots.")
+                    let hands = ex.category == .shooting || ex.category == .stickhandling
+                    Text(hands ? "Required in arm & hands workouts" : "Required in every workout").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                    Text(hands ? "Added to hands, upper-body, strength and full-body workouts. Skipped on leg and speed days."
+                         : (required ? "Added to every generated workout. Change sets in Library › Required." : "Like a mandatory run or a daily stretch."))
                         .font(.caption).foregroundStyle(Theme.text3)
                 }
             }

@@ -58,7 +58,7 @@ struct LibraryView: View {
                                         Button {
                                             store.setRequired(ex, !store.isRequired(ex.id))
                                         } label: {
-                                            Label(store.isRequired(ex.id) ? "Not required" : "Required in every workout",
+                                            Label(store.isRequired(ex.id) ? "Not required" : (ex.category == .shooting || ex.category == .stickhandling ? "Required in arm & hands workouts" : "Required in every workout"),
                                                   systemImage: store.isRequired(ex.id) ? "checklist.unchecked" : "checklist")
                                         }
                                         Button { store.toggleFavorite(ex.id) } label: {

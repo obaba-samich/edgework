@@ -1059,7 +1059,7 @@ struct MustDosEditor: View {
 
             Section {
                 Toggle("Also add to programs", isOn: $store.data.settings.mustDosInPrograms)
-            } footer: { Text("Must-dos always go into generated workouts. Turn this on to add them to built-in programs too.") }
+            } footer: { Text("Must-dos go into generated workouts. Shooting and stickhandling only join hands, upper-body, strength and full-body workouts, not leg or speed days. Turn this on to add them to built-in programs too.") }
             .listRowBackground(Theme.surface)
         }
         .scrollContentBackground(.hidden)

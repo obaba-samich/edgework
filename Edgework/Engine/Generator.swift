@@ -142,7 +142,7 @@ enum Generator {
 
         var budget = minutes * 60 - warm.map(cost).reduce(0, +) - cool.map(cost).reduce(0, +)
         if !plan.finisher.isEmpty || wantsRunFinisher { budget -= 200 }
-        budget -= settings.mustDos.map(cost).reduce(0, +)
+        budget -= settings.mustDos.filter { $0.exercise.map { mustDoFits($0, focus: focus, sport: settings.sport, main: []) } ?? false }.map(cost).reduce(0, +)
 
         // Main. Priority exercises (set from the library) come up more often; top priority ones are added first.
         func priority(_ ex: Exercise) -> Int { settings.priorities[ex.id] ?? 0 }
@@ -201,7 +201,7 @@ enum Generator {
 
         // Must-dos the player set as mandatory for every workout.
         for var it in settings.mustDos where it.exercise.map({ ex in
-            settings.sport == .hockey ? !Category.trackOnly.contains(ex.category) : !Category.hockeyOnly.contains(ex.category)
+            mustDoFits(ex, focus: focus, sport: settings.sport, main: main)
         }) ?? false {
             it.id = UUID()
             it.block = .musts
@@ -219,6 +219,19 @@ enum Generator {
         items += cool
 
         return Workout(title: focus.title, subtitle: focus.tagline, focus: focus, items: items)
+    }
+
+    /// Required exercises go in every workout, except shooting and stickhandling, which only join workouts that
+    /// use your arms and hands (hands, upper body, full body, strength or custom). Pass the main items to also
+    /// allow them when the main block already has arm or stick work. A leg day doesn't get shots added.
+    static func mustDoFits(_ ex: Exercise, focus: Focus, sport: Sport, main: [WorkoutItem]) -> Bool {
+        let sportOK = sport == .hockey ? !Category.trackOnly.contains(ex.category) : !Category.hockeyOnly.contains(ex.category)
+        guard sportOK else { return false }
+        guard ex.category == .shooting || ex.category == .stickhandling else { return true }
+        let armFocus: Set<Focus> = [.hands, .upper, .fullBody, .strength, .custom]
+        if armFocus.contains(focus) { return true }
+        let armCats: Set<Category> = [.upperBody, .shooting, .stickhandling]
+        return main.contains { $0.exercise.map { armCats.contains($0.category) } ?? false }
     }
 
     private static func plan(for focus: Focus, sport: Sport) -> FocusPlan {

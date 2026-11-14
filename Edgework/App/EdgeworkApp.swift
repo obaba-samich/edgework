@@ -72,6 +72,16 @@ struct RootView: View {
                         UserDefaults.standard.set(true, forKey: "aimUseCustom")
                         UserDefaults.standard.set("wrist:topLeft,snap:lowRight,backhand:fiveHole", forKey: "aimCustomShots")
                     }
+                } else if screen.id == "shareworkout", let p = Programs.all.first(where: { $0.id == "wrists" }) {
+                    WorkoutShareSheet(workout: store.programWorkout(p))
+                } else if screen.id == "sharecard" {
+                    ShareCardSheet(title: "Week", card: store.weekCard)
+                } else if screen.id == "aimheat" {
+                    AimTrainerView().onAppear {
+                        let demo: [(String, Int, Int)] = [("wrist:topLeft", 9, 3), ("wrist:topRight", 5, 7), ("snap:lowLeft", 8, 2),
+                                                          ("snap:lowRight", 6, 4), ("wrist:fiveHole", 7, 1), ("backhand:topMiddle", 2, 6)]
+                        for (k, h, m) in demo { store.data.aimZones[k] = AimZoneStat(called: h + m, hits: h, misses: m) }
+                    }
                 } else if screen.id == "routine" {
                     RoutineEditor()
                 } else if screen.id == "log" {
@@ -125,8 +135,20 @@ struct RootView: View {
                 store.start(Workout(title: ex.name, subtitle: "", focus: .custom, items: [store.item(for: ex, block: .main)]))
             }
         }
+        .sheet(item: $store.pendingImport) { w in
+            WorkoutImportSheet(workout: w).environmentObject(store)
+        }
         .onOpenURL { url in
-            if url.pathExtension.lowercased() == "ics" {
+            if url.scheme == "edgework" {
+                if let result = WorkoutLink.workout(from: url.absoluteString) {
+                    store.pendingImport = result.workout
+                    if result.dropped > 0 { calendarMessage = "\(result.dropped) exercises in that workout aren't in this version of Edgework, so they were left out." }
+                } else if url.host == "today" {
+                    tab = 0
+                } else if url.host == "w" {
+                    calendarMessage = "That workout link is broken or incomplete."
+                }
+            } else if url.pathExtension.lowercased() == "ics" {
                 calendarMessage = store.importCalendar(from: url)
             } else if url.pathExtension.lowercased() == "json", let raw = try? Data(contentsOf: url) {
                 calendarMessage = store.importBackup(raw) ? "Backup restored." : "That file isn't an Edgework backup."

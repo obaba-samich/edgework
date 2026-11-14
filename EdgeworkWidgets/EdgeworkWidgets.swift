@@ -6,6 +6,7 @@ import WidgetKit
 struct EdgeworkWidgets: WidgetBundle {
     var body: some Widget {
         EdgeworkLiveActivity()
+        TodayWidget()
     }
 }
 

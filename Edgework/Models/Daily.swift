@@ -33,6 +33,18 @@ enum ShotType: String, Codable, CaseIterable, Identifiable {
     ]
 }
 
+struct AimZoneStat: Codable, Hashable {
+    var called = 0
+    var hits = 0
+    var misses = 0
+    var scored: Int { hits + misses }
+    var accuracy: Double? { scored > 0 ? Double(hits) / Double(scored) : nil }
+
+    static func + (a: AimZoneStat, b: AimZoneStat) -> AimZoneStat {
+        AimZoneStat(called: a.called + b.called, hits: a.hits + b.hits, misses: a.misses + b.misses)
+    }
+}
+
 struct DailyLog: Codable, Hashable {
     var shots: [String: Int] = [:]
     var onTarget = 0

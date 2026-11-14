@@ -82,6 +82,9 @@ struct AimTrainerView: View {
     @State private var pickedUp = 0
     @State private var lost = 0
     @State private var logged = false
+    @State private var sessionZones: [String: AimZoneStat] = [:]
+    @State private var heatType: ShotType?
+    @State private var sharing = false
 
     private var custom: [Shot] {
         get { customRaw.split(separator: ",").compactMap(Shot.init) }
@@ -101,7 +104,9 @@ struct AimTrainerView: View {
                 }
                 progressCard
                 switch phase {
-                case .setup: setup
+                case .setup:
+                    if store.data.aimZones.values.contains(where: { $0.scored > 0 }) { heatCard }
+                    setup
                 case .calling: calling
                 case .pickup:
                     PuckPickupPanel(inHand: bucketSize, pickedUp: $pickedUp, isLast: remaining == 0,
@@ -120,6 +125,7 @@ struct AimTrainerView: View {
                 }
             }
         }
+        .sheet(isPresented: $sharing) { ShareCardSheet(title: "Aim Trainer", card: shareCard) }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
             if phase == .calling || phase == .pickup { logShots() }
@@ -295,11 +301,11 @@ struct AimTrainerView: View {
             .cardStyle()
 
             HStack(spacing: 10) {
-                scoreButton("Hit", hits, Theme.green, Theme.bg) { hits += 1 }
-                scoreButton("Miss", misses, Theme.surface2, Theme.text) { misses += 1 }
+                scoreButton("Hit", hits, Theme.green, Theme.bg) { hits += 1; score(hit: true) }
+                scoreButton("Miss", misses, Theme.surface2, Theme.text) { misses += 1; score(hit: false) }
             }
             .buttonStyle(PressableStyle())
-            Text("Hit and miss are optional. Shots count either way.").font(.caption).foregroundStyle(Theme.text3)
+            Text("Hit and miss are optional. Tap them to build your corner heat map.").font(.caption).foregroundStyle(Theme.text3)
                 .frame(maxWidth: .infinity)
         }
     }
@@ -334,6 +340,15 @@ struct AimTrainerView: View {
             }
             .frame(maxWidth: .infinity)
             .cardStyle()
+            if sessionZones.values.contains(where: { $0.scored > 0 }) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Overline("This session")
+                    AimHeatMap(stats: Self.byZone(sessionZones, type: nil)).frame(height: 200)
+                }
+                .cardStyle()
+            }
+            Button { sharing = true } label: { Label("Share card", systemImage: "square.and.arrow.up") }
+                .buttonStyle(SecondaryButtonStyle(color: Self.lime))
             if lost > 0 {
                 Button { store.data.settings.puckCount = activePucks; lost = 0 } label: {
                     Label("Update my puck count to \(activePucks)", systemImage: "pencil")
@@ -367,7 +382,7 @@ struct AimTrainerView: View {
     private func start() {
         calls = makeCalls()
         guard !calls.isEmpty else { return }
-        called = 0; shotsBefore = 0; byType = [:]; hits = 0; misses = 0; lost = 0; logged = false
+        called = 0; shotsBefore = 0; byType = [:]; hits = 0; misses = 0; lost = 0; logged = false; sessionZones = [:]
         UIApplication.shared.isIdleTimerDisabled = true
         startBucket()
     }
@@ -388,6 +403,7 @@ struct AimTrainerView: View {
             let shot = calls[shotsBefore + index]
             called += 1
             byType[shot.type, default: 0] += 1
+            sessionZones[shot.text, default: AimZoneStat()].called += 1
             if store.data.settings.sounds { AudioServicesPlaySystemSound(1057) }
             store.haptic(.medium)
         } else {
@@ -416,6 +432,101 @@ struct AimTrainerView: View {
         logged = true
         for (t, n) in byType where n > 0 { store.addShots(t, n) }
         if hits > 0 { store.updateDaily { $0.onTarget += hits } }
+        for (k, v) in sessionZones { store.data.aimZones[k] = (store.data.aimZones[k] ?? AimZoneStat()) + v }
+    }
+
+    /// Hit or miss goes to the shot that was just called.
+    private func score(hit: Bool) {
+        guard phase == .calling, called > 0, called <= calls.count else { return }
+        let key = calls[called - 1].text
+        if hit { sessionZones[key, default: AimZoneStat()].hits += 1 } else { sessionZones[key, default: AimZoneStat()].misses += 1 }
+    }
+
+    static func byZone(_ raw: [String: AimZoneStat], type: ShotType?) -> [Zone: AimZoneStat] {
+        var out: [Zone: AimZoneStat] = [:]
+        for (k, v) in raw {
+            guard let shot = Shot(Substring(k)), type == nil || shot.type == type else { continue }
+            out[shot.zone] = (out[shot.zone] ?? AimZoneStat()) + v
+        }
+        return out
+    }
+
+    private var heatCard: some View {
+        let stats = Self.byZone(store.data.aimZones, type: heatType)
+        let weakest = stats.filter { $0.value.scored >= 5 }.min { ($0.value.accuracy ?? 1) < ($1.value.accuracy ?? 1) }
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Overline("Your corners")
+                Spacer()
+                Menu {
+                    Button("All shots") { heatType = nil }
+                    ForEach(ShotType.allCases) { t in Button(t.title) { heatType = t } }
+                } label: {
+                    Label(heatType?.title ?? "All shots", systemImage: "line.3.horizontal.decrease.circle")
+                        .font(.caption.weight(.bold))
+                }
+            }
+            AimHeatMap(stats: stats).frame(height: 200)
+            if let weakest {
+                Text("Weakest: \(weakest.key.title), \(Int((weakest.value.accuracy ?? 0) * 100))%. Pick it in Targets to work on it.")
+                    .font(.caption).foregroundStyle(Theme.text2)
+            } else {
+                Text("Hit percentage per target from every session where you tapped Hit or Miss.").font(.caption).foregroundStyle(Theme.text3)
+            }
+        }
+        .cardStyle()
+    }
+
+    private func shareCard(_ fmt: ShareFormat) -> ShareCard {
+        var stats = [ShareStat(value: "\(called)", label: "Shots"),
+                     ShareStat(value: "\(store.daily().totalShots)", label: "Shots today")]
+        if hits + misses > 0 { stats.append(ShareStat(value: "\(Int(Double(hits) / Double(hits + misses) * 100))%", label: "On target")) }
+        stats.append(ShareStat(value: "\(pucks)", label: "Pucks"))
+        let types = ShotType.allCases.compactMap { t in byType[t].map { "\($0) \(t.title.lowercased())" } }.joined(separator: " · ")
+        let zones = Self.byZone(sessionZones, type: nil)
+        return ShareCard(overline: "Aim trainer", title: "\(called) shots", subtitle: types,
+                         symbol: "scope", accent: Self.lime, stats: stats, streak: store.currentStreak,
+                         extra: zones.values.contains { $0.scored > 0 } ? AnyView(AimHeatMap(stats: zones)) : AnyView(NetView(target: nil, enabled: Set(zones.keys))),
+                         format: fmt)
+    }
+}
+
+/// Net with each target colored by hit percentage: red under 40%, amber under 65%, green above.
+struct AimHeatMap: View {
+    let stats: [AimTrainerView.Zone: AimZoneStat]
+
+    var body: some View {
+        Canvas { ctx, size in
+            let w = min(size.width, size.height * 1.5)
+            let h = w / 1.5
+            let rect = CGRect(x: (size.width - w) / 2, y: (size.height - h) / 2, width: w, height: h)
+            var frame = Path()
+            frame.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+            frame.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+            frame.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+            frame.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+            ctx.fill(Path(rect), with: .color(Color.white.opacity(0.03)))
+            ctx.stroke(frame, with: .color(Theme.red), style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+            for z in AimTrainerView.Zone.allCases {
+                let c = CGPoint(x: rect.minX + z.point.x * w, y: rect.minY + z.point.y * h)
+                let r = w * 0.095
+                let st = stats[z]
+                let color: Color = {
+                    guard let a = st?.accuracy else { return Color.white.opacity(0.10) }
+                    return a < 0.4 ? Theme.red : (a < 0.65 ? Theme.amber : Theme.green)
+                }()
+                ctx.fill(Path(ellipseIn: CGRect(x: c.x - r * 1.35, y: c.y - r * 1.35, width: r * 2.7, height: r * 2.7)),
+                         with: .color(color.opacity(st?.accuracy == nil ? 0 : 0.22)))
+                ctx.fill(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: .color(color))
+                let label = st?.accuracy.map { "\(Int(($0 * 100).rounded()))%" } ?? "–"
+                ctx.draw(Text(label).font(.system(size: max(10, r * 0.62), weight: .heavy, design: .rounded))
+                    .foregroundColor(st?.accuracy == nil ? Theme.text3 : Theme.bg), at: c)
+                if let st, st.scored > 0 {
+                    ctx.draw(Text("\(st.hits)/\(st.scored)").font(.system(size: max(9, r * 0.45), weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.text2), at: CGPoint(x: c.x, y: c.y + r * 1.6))
+                }
+            }
+        }
     }
 }
 

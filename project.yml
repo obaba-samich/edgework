@@ -14,6 +14,9 @@ targets:
       path: Edgework/Info.plist
       properties:
         UIBackgroundModes: [location, audio]
+        CFBundleURLTypes:
+          - CFBundleURLName: com.pizza.edgework
+            CFBundleURLSchemes: [edgework]
         CFBundleDocumentTypes:
           - CFBundleTypeName: Calendar
             CFBundleTypeRole: Viewer
@@ -33,7 +36,9 @@ targets:
         INFOPLIST_KEY_UIUserInterfaceStyle: Dark
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIFileSharingEnabled: YES
-        INFOPLIST_KEY_NSCameraUsageDescription: Scan food barcodes to log what you eat.
+        INFOPLIST_KEY_NSCameraUsageDescription: Scan food barcodes and workout QR codes.
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: Save your workout share cards to Photos.
+        CODE_SIGN_ENTITLEMENTS: Edgework/Edgework.entitlements
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Track your route, distance and pace on GPS runs.
         INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription: Keep tracking your run while the screen is locked.
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
@@ -65,4 +70,5 @@ targets:
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGN_IDENTITY: ""
         SKIP_INSTALL: YES
+        CODE_SIGN_ENTITLEMENTS: EdgeworkWidgets/EdgeworkWidgets.entitlements
         ENABLE_PREVIEWS: NO

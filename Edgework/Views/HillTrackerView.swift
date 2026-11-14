@@ -13,6 +13,7 @@ struct HillTrackerPanel: View {
     @State private var climbs: [Double] = []
     @State private var descents: [Double] = []
     @State private var previous: [Double] = []
+    @State private var sharing = false
 
     private var color: Color { exercise.category.color }
 
@@ -36,7 +37,12 @@ struct HillTrackerPanel: View {
             }
 
             if !climbs.isEmpty { splits }
+            if climbs.count >= 2 {
+                Button { sharing = true } label: { Label("Share hill card", systemImage: "square.and.arrow.up") }
+                    .buttonStyle(SecondaryButtonStyle(color: color))
+            }
         }
+        .sheet(isPresented: $sharing) { ShareCardSheet(title: exercise.name, card: card) }
         .onAppear {
             previous = store.data.hillClimbs[exercise.id] ?? []
             if UserDefaults.standard.string(forKey: "autoStartExercise") != nil {   // screenshot demo
@@ -121,6 +127,22 @@ struct HillTrackerPanel: View {
         }
         legStart = now
         store.haptic(.medium)
+    }
+
+    private func card(_ fmt: ShareFormat) -> ShareCard {
+        let best = climbs.min() ?? 0
+        let avg = climbs.reduce(0, +) / Double(max(1, climbs.count))
+        var stats = [ShareStat(value: "\(climbs.count)", label: "Trips up & down"),
+                     ShareStat(value: Self.clock(best), label: "Best climb"),
+                     ShareStat(value: Self.clock(avg), label: "Avg climb")]
+        if let first = climbs.first, let last = climbs.last, climbs.count > 1 {
+            let pct = (last - first) / first * 100
+            stats.append(ShareStat(value: String(format: "%@%.0f%%", pct > 0 ? "+" : "−", abs(pct)), label: "Last vs first climb"))
+        }
+        return ShareCard(overline: "Hill work", title: exercise.name, subtitle: "Up for endurance, down for control.",
+                         symbol: "mountain.2.fill", accent: color, stats: stats,
+                         streak: store.streakIncludingToday(pending: true),
+                         extra: AnyView(ShareBars(values: climbs, color: color)), format: fmt)
     }
 
     private func save() {

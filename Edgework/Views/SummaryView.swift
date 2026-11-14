@@ -9,6 +9,7 @@ struct SummaryView: View {
     @State private var feeling = Feeling.right
     @State private var note = ""
     @State private var appeared = false
+    @State private var sharing = false
     @FocusState private var noteFocused: Bool
 
     private var setsDone: Int { engine.completed.values.reduce(0, +) }
@@ -36,6 +37,9 @@ struct SummaryView: View {
                     StatTile(value: "\(setsDone)", label: "Sets", symbol: "square.stack.fill", color: Theme.amber)
                     StatTile(value: "\(exercisesDone)", label: "Exercises", symbol: "list.bullet", color: Theme.green)
                 }
+
+                Button { sharing = true } label: { Label("Share card", systemImage: "square.and.arrow.up") }
+                    .buttonStyle(SecondaryButtonStyle(color: Theme.ice))
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -109,7 +113,25 @@ struct SummaryView: View {
             .padding(.horizontal, 20)
         }
         .scrollDismissesKeyboard(.interactively)
+        .sheet(isPresented: $sharing) { ShareCardSheet(title: engine.workout.title, card: card) }
         .onAppear { withAnimation(.spring(response: 0.5, dampingFraction: 0.6).delay(0.1)) { appeared = true } }
+    }
+
+    private func card(_ fmt: ShareFormat) -> ShareCard {
+        let names = engine.workout.ordered
+            .filter { ($0.block == .main || $0.block == .finisher || $0.block == .musts) && (engine.completed[$0.id] ?? 0) > 0 }
+            .compactMap { $0.exercise?.name }
+        var stats = [ShareStat(value: engine.elapsed.clock, label: "Time"),
+                     ShareStat(value: "\(setsDone)", label: "Sets"),
+                     ShareStat(value: "\(exercisesDone)", label: "Exercises")]
+        let shots = engine.workout.items.reduce(0) { n, it in
+            ShotType.exerciseMap[it.exerciseID] != nil ? n + (engine.completed[it.id] ?? 0) * store.target(it) : n
+        }
+        if shots > 0 { stats.append(ShareStat(value: "\(shots)", label: "Shots")) }
+        return ShareCard(overline: "Workout complete", title: engine.workout.title,
+                         subtitle: names.prefix(fmt == .story ? 6 : 3).joined(separator: " · "),
+                         symbol: engine.workout.focus.symbol, accent: engine.workout.focus.color,
+                         stats: stats, streak: store.streakIncludingToday(pending: true), format: fmt)
     }
 
     private var rpeLabel: String {

@@ -125,8 +125,9 @@ extension Store {
     func programWorkout(_ program: Program) -> Workout {
         var w = program.workout(rest: data.settings.rest)
         if data.settings.mustDosInPrograms {
+            let main = w.items.filter { $0.block == .main }
             for var it in data.settings.mustDos where it.exercise.map({ ex in
-                data.settings.sport == .hockey ? !Category.trackOnly.contains(ex.category) : !Category.hockeyOnly.contains(ex.category)
+                Generator.mustDoFits(ex, focus: program.focus, sport: data.settings.sport, main: main)
             }) ?? false {
                 it.id = UUID()
                 it.block = .musts

@@ -12,11 +12,11 @@ func ex(
 }
 
 enum Library {
-    static let all: [Exercise] = Array(([warmups, walkingWarmups, extraWalking, lower, generalLower, upper, generalUpper, core, generalCore, power, speed, conditioning, generalCardio, balance, mobility, generalMobility, stillStretches, running, skillRunning, hands, skillHands, shooting, skillShooting, goalie, trackSprints, trackHurdles, trackJumps, trackThrows, trackDistance, hillWork] as [[Exercise]]).joined())
+    static let all: [Exercise] = Array(([warmups, walkingWarmups, extraWalking, lower, generalLower, upper, generalUpper, core, generalCore, power, speed, conditioning, generalCardio, balance, mobility, generalMobility, stillStretches, running, skillRunning, hands, skillHands, shooting, skillShooting, goalie, trackSprints, trackHurdles, trackJumps, trackThrows, trackDistance, hillWork, wristWork] as [[Exercise]]).joined())
 
     /// Moves you can do travelling from line to line (rink, gym or field lines).
     static let travelIDs: Set<String> = [
-        "high-knees", "butt-kickers", "butt-kicks", "a-skips", "b-skips", "carioca", "backpedal", "knee-hugs", "walking-quad-pull",
+        "high-knees", "butt-kickers", "butt-kicks", "a-skips", "b-skips", "c-skips", "carioca", "backpedal", "knee-hugs", "walking-quad-pull",
         "frankenstein", "walking-lunge", "walking-lunge-twist", "lateral-lunge", "spiderman-lunge", "power-skips", "side-skips",
         "hip-cradle", "heel-toe-walk", "lunge-reach", "lateral-shuffle-warm", "lateral-shuffle", "crossover-run", "bear-crawl",
         "inchworm", "frog-jumps", "gate-openers", "forward-lunge", "curtsy-lunge", "skater-hops", "broad-jump", "skater-bound",

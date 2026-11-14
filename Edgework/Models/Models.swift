@@ -1191,6 +1191,8 @@ struct AppData: Codable {
     var runs: [RunTrack] = []
     /// Climb times (seconds) from the last hill session, per exercise.
     var hillClimbs: [String: [Double]] = [:]
+    /// Aim trainer results per "shotType:zone": shots called, hits, misses. Powers the heat map.
+    var aimZones: [String: AimZoneStat] = [:]
 
     init() {}
 
@@ -1218,6 +1220,7 @@ struct AppData: Codable {
         profiles = (try? c.decodeIfPresent([String: SportProfile].self, forKey: .profiles)) ?? [:]
         runs = (try? c.decodeIfPresent([RunTrack].self, forKey: .runs)) ?? []
         hillClimbs = (try? c.decodeIfPresent([String: [Double]].self, forKey: .hillClimbs)) ?? [:]
+        aimZones = (try? c.decodeIfPresent([String: AimZoneStat].self, forKey: .aimZones)) ?? [:]
     }
 }
 

@@ -47,6 +47,8 @@ final class Store: ObservableObject {
         }
     }
     @Published var activeWorkout: Workout?
+    /// A workout opened from a shared link or QR code, waiting for the user to save it.
+    @Published var pendingImport: Workout?
     private var kindCache: [String: EventKind] = [:]
     private var kindCacheSignature = 0
 
@@ -155,6 +157,7 @@ final class Store: ObservableObject {
     func saveNow() {
         guard let raw = try? JSONEncoder.edgework.encode(data) else { return }
         try? raw.write(to: url, options: .atomic)
+        syncWidgets()
     }
 
     func importBackup(_ raw: Data) -> Bool {

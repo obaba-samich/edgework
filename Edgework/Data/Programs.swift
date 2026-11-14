@@ -40,7 +40,7 @@ enum Programs {
 
     static let track: [Program] = [
         Program(id: "t-drills", title: "Sprint Drill Warm-up", subtitle: "The full drill series before any speed work.", focus: .trackSpeed, entries: [
-            w("warmup-jog"), w("a-skips"), w("b-skips"), w("high-knees"), w("butt-kickers"), w("ankling"), w("carioca"),
+            w("warmup-jog"), w("a-skips"), w("b-skips"), w("c-skips"), w("high-knees"), w("butt-kickers"), w("ankling"), w("carioca"),
             m("wall-drive", 2, 10), m("fast-leg", 2, 6), m("strides", 4, 100),
         ], sport: .track),
         Program(id: "t-accel", title: "Acceleration Day", subtitle: "Starts, pushes and the first 30 meters.", focus: .trackSpeed, entries: [
@@ -64,7 +64,7 @@ enum Programs {
             m("tempo-100", 10, 100), f("plank"), f("side-plank"), c("standing-hamstring"), c("calf-stretch"),
         ], sport: .track),
         Program(id: "t-hurdles", title: "Hurdle Technique", subtitle: "Mobility, lead and trail legs, rhythm.", focus: .hurdleDay, entries: [
-            w("warmup-jog"), w("hurdle-walkover"), w("hurdle-mobility"), w("a-skips"),
+            w("warmup-jog"), w("hurdle-walkover"), w("hurdle-mobility"), w("a-skips"), w("c-skips"),
             m("lead-leg"), m("trail-leg"), m("three-step"), m("hurdle-hops"), c("standing-groin"), c("figure-4"),
         ], sport: .track),
         Program(id: "t-jumps", title: "Jumps Power", subtitle: "Approach, takeoff and reactive plyos.", focus: .jumpDay, entries: [
@@ -114,13 +114,18 @@ enum Programs {
             m("push-up"), m("pull-up"), m("db-row"), m("db-press"), m("face-pull"), m("farmer-carry"), m("wrist-curl"),
             c("open-book"), c("foam-roll-back"),
         ]),
+        Program(id: "wrists", title: "Wrist Rotation", subtitle: "Wrist and forearm strength for harder shots and a stronger stick.", focus: .strength, entries: [
+            w("wrist-circles"), w("arm-circles"),
+            m("wrist-rotation-stick"), m("wrist-rotation-db"), m("stick-levers"), m("wrist-curl"), m("towel-wring"), m("band-finger-extension"), m("farmer-carry", 2, 30),
+            c("wrist-stretch"),
+        ]),
         Program(id: "shift", title: "Shift Engine", subtitle: "Hockey-specific intervals. Short, hard, repeatable.", focus: .conditioning, entries: [
             w("jumping-jacks"), w("high-knees"), w("lateral-shuffle-warm"),
             m("shift-sprints", 6, 40), m("skater-hops"), m("burpees"), m("sprawls"),
             f("plank"), c("couch-stretch"), c("childs-pose"),
         ]),
         Program(id: "hands", title: "Hands of Gold", subtitle: "Off-ice stickhandling circuit. Eyes up, soft hands.", focus: .hands, entries: [
-            w("arm-circles"), w("wrist-curl", 1, 15),
+            w("arm-circles"), w("wrist-circles"), w("wrist-curl", 1, 15),
             m("quick-hands"), m("wide-narrow"), m("figure-8"), m("toe-drag"), m("one-hand"), m("heads-up"), m("obstacle-weave"), m("between-legs"),
         ]),
         Program(id: "sniper", title: "Sniper Session", subtitle: "100+ shots with purpose. Pick corners on every rep.", focus: .hands, entries: [

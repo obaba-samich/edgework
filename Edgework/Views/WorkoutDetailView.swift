@@ -303,6 +303,7 @@ struct ItemRow: View {
 struct TodayWorkoutScreen: View {
     @EnvironmentObject var store: Store
     @State private var saved = false
+    @State private var sharing = false
 
     var body: some View {
         WorkoutDetailView(workout: store.todayWorkout, onRegenerate: { store.reroll() })
@@ -319,9 +320,11 @@ struct TodayWorkoutScreen: View {
                             store.saveCustom(w)
                             saved = true
                         } label: { Label("Save to My Workouts", systemImage: "square.and.arrow.down") }
+                        Button { sharing = true } label: { Label("Share workout (QR / link)", systemImage: "qrcode") }
                     } label: { Image(systemName: "ellipsis.circle") }
                 }
             }
+            .sheet(isPresented: $sharing) { WorkoutShareSheet(workout: store.todayWorkout.wrappedValue).environmentObject(store) }
             .alert("Saved", isPresented: $saved) { Button("OK", role: .cancel) {} } message: {
                 Text("Find it under Train → My Workouts.")
             }
@@ -333,6 +336,7 @@ struct ProgramScreen: View {
     let program: Program
     @State private var workout: Workout?
     @State private var saved = false
+    @State private var sharing = false
 
     var body: some View {
         WorkoutDetailView(workout: Binding(get: { workout ?? store.programWorkout(program) },
@@ -340,7 +344,9 @@ struct ProgramScreen: View {
             .navigationTitle(program.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { sharing = true } label: { Image(systemName: "qrcode") }
+                        .accessibilityLabel("Share workout")
                     Button {
                         var w = workout ?? store.programWorkout(program)
                         w.id = UUID()
@@ -349,6 +355,7 @@ struct ProgramScreen: View {
                     } label: { Image(systemName: "square.and.arrow.down") }
                 }
             }
+            .sheet(isPresented: $sharing) { WorkoutShareSheet(workout: workout ?? store.programWorkout(program)).environmentObject(store) }
             .alert("Saved to My Workouts", isPresented: $saved) { Button("OK", role: .cancel) {} }
     }
 }
@@ -359,6 +366,7 @@ struct CustomWorkoutScreen: View {
     let id: UUID
     @State private var editing = false
     @State private var confirmDelete = false
+    @State private var sharing = false
 
     var body: some View {
         Group {
@@ -370,6 +378,7 @@ struct CustomWorkoutScreen: View {
                         ToolbarItem(placement: .topBarTrailing) {
                             Menu {
                                 Button { editing = true } label: { Label("Edit name & details", systemImage: "pencil") }
+                                Button { sharing = true } label: { Label("Share workout (QR / link)", systemImage: "qrcode") }
                                 Button {
                                     var copy = store.data.custom[i]
                                     copy.id = UUID()
@@ -380,6 +389,7 @@ struct CustomWorkoutScreen: View {
                             } label: { Image(systemName: "ellipsis.circle") }
                         }
                     }
+                    .sheet(isPresented: $sharing) { WorkoutShareSheet(workout: store.data.custom[i]).environmentObject(store) }
                     .sheet(isPresented: $editing) {
                         BuilderView(workout: store.data.custom[i]) { store.saveCustom($0) }
                             .environmentObject(store)

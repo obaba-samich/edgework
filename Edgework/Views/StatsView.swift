@@ -4,6 +4,7 @@ import Charts
 struct StatsView: View {
     @EnvironmentObject var store: Store
     @State private var logging = false
+    @State private var sharing = false
 
     var body: some View {
         NavigationStack {
@@ -24,10 +25,13 @@ struct StatsView: View {
             .navigationTitle("Progress")
             .sheet(isPresented: $logging) { ManualLogView().environmentObject(store) }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { sharing = true } label: { Image(systemName: "square.and.arrow.up") }
+                        .accessibilityLabel("Share my week")
                     NavigationLink { BenchmarksView() } label: { Image(systemName: "chart.line.uptrend.xyaxis") }
                 }
             }
+            .sheet(isPresented: $sharing) { ShareCardSheet(title: "My training week", card: store.weekCard) }
         }
     }
 

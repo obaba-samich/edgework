@@ -120,6 +120,10 @@ struct RootView: View {
         }
         .onAppear {
             if UserDefaults.standard.bool(forKey: "autoStart"), let w = store.data.today?.workout { store.start(w) }
+            if let id = UserDefaults.standard.string(forKey: "autoStartExercise"), let ex = Library.byID[id] {
+                store.data.hillClimbs[id] = [41.2, 43.0, 44.1]
+                store.start(Workout(title: ex.name, subtitle: "", focus: .custom, items: [store.item(for: ex, block: .main)]))
+            }
         }
         .onOpenURL { url in
             if url.pathExtension.lowercased() == "ics" {

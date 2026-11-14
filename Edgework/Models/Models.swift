@@ -1189,6 +1189,8 @@ struct AppData: Codable {
     var trackPRs: [TrackPR] = []
     var profiles: [String: SportProfile] = [:]
     var runs: [RunTrack] = []
+    /// Climb times (seconds) from the last hill session, per exercise.
+    var hillClimbs: [String: [Double]] = [:]
 
     init() {}
 
@@ -1215,6 +1217,7 @@ struct AppData: Codable {
         trackPRs = try c.decodeIfPresent([TrackPR].self, forKey: .trackPRs) ?? []
         profiles = (try? c.decodeIfPresent([String: SportProfile].self, forKey: .profiles)) ?? [:]
         runs = (try? c.decodeIfPresent([RunTrack].self, forKey: .runs)) ?? []
+        hillClimbs = (try? c.decodeIfPresent([String: [Double]].self, forKey: .hillClimbs)) ?? [:]
     }
 }
 

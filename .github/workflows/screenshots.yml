@@ -66,7 +66,8 @@ jobs:
           shot 56-reminders -demoData YES -showScreen reminders
           shot 57-keywords -demoData YES -showScreen keywords
           shot 58-aim-custom -demoData YES -showScreen aimcustom
-          shot 59-hill -demoData YES -showScreen hill-long-repeats
+          shot 59-hill -demoData YES -showScreen hill-jog
+          shot 60-hill-player -demoData YES -autoStartExercise hill-jog
           shot 46-diet -demoData YES -showScreen diet
           shot 47-drink -demoData YES -showScreen drink
           shot 48-editfood -demoData YES -showScreen editfood

@@ -49,6 +49,7 @@ struct RootView: View {
     @State private var tab = UserDefaults.standard.integer(forKey: "startTab")
     @State private var debugSheet = UserDefaults.standard.string(forKey: "showScreen")
     @State private var calendarMessage: String?
+    @State private var showRun = false
 
     var body: some View {
         // Tabs come from a stable list (not an `if` inside the TabView), which kept eating the first tap on Library and Fuel.
@@ -149,6 +150,9 @@ struct RootView: View {
                 store.start(Workout(title: ex.name, subtitle: "", focus: .custom, items: [store.item(for: ex, block: .main)]))
             }
         }
+        .sheet(isPresented: $showRun) {
+            NavigationStack { GPSRunView() }.environmentObject(store)
+        }
         .sheet(item: $store.pendingImport) { w in
             WorkoutImportSheet(workout: w).environmentObject(store)
         }
@@ -159,6 +163,13 @@ struct RootView: View {
                     if result.dropped > 0 { calendarMessage = "\(result.dropped) exercises in that workout aren't in this version of Edgework, so they were left out." }
                 } else if url.host == "today" {
                     tab = 0
+                } else if url.host == "live" {
+                    // Tapped the Dynamic Island or Lock Screen activity.
+                    if url.path == "/run" {
+                        if RunTracker.shared.screens == 0 { showRun = true }
+                    } else if store.activeWorkout == nil {
+                        tab = 0
+                    }
                 } else if url.host == "w" {
                     calendarMessage = "That workout link is broken or incomplete."
                 }

@@ -39,6 +39,11 @@ final class RunTracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var denied = false
     @Published var accuracy: Double?
 
+    /// One tracker for the whole app, so a run keeps going (and the Dynamic Island can find it) when you leave the screen.
+    static let shared = RunTracker()
+    /// How many GPS run screens are showing right now.
+    var screens = 0
+
     var autoPause = true
     var announce = true
     var miles = true
@@ -243,7 +248,7 @@ final class RunTracker: NSObject, ObservableObject, CLLocationManagerDelegate {
 
 struct GPSRunView: View {
     @EnvironmentObject var store: Store
-    @StateObject private var tracker = RunTracker()
+    @ObservedObject private var tracker = RunTracker.shared
     @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var saved: RunTrack?
     @State private var confirmEnd = false
@@ -275,7 +280,9 @@ struct GPSRunView: View {
             tracker.miles = st.units == .imperial
             tracker.liveActivity = st.liveActivities
             tracker.prepare()
+            tracker.screens += 1
         }
+        .onDisappear { tracker.screens -= 1 }
         .confirmationDialog("Finish this run?", isPresented: $confirmEnd, titleVisibility: .visible) {
             Button("Save run") { save() }
             Button("Discard", role: .destructive) { tracker.cancel() }

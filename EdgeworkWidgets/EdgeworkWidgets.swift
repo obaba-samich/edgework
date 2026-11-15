@@ -22,6 +22,7 @@ struct EdgeworkLiveActivity: Widget {
             LockScreenView(state: shown(context), accent: Color(hex: context.attributes.accent))
                 .activityBackgroundTint(Color.black.opacity(0.75))
                 .activitySystemActionForegroundColor(Color(hex: context.attributes.accent))
+                .widgetURL(link(context.state))
         } dynamicIsland: { context in
             let s = shown(context)
             let accent = Color(hex: context.attributes.accent)
@@ -71,8 +72,14 @@ struct EdgeworkLiveActivity: Widget {
                 Image(systemName: symbol(s)).foregroundStyle(accent)
             }
             .keylineTint(accent)
+            .widgetURL(link(s))
         }
     }
+}
+
+/// Tapping opens the screen the activity is for: the workout player or the GPS run.
+private func link(_ s: EdgeworkActivityAttributes.ContentState) -> URL? {
+    URL(string: s.kind == .run ? "edgework://live/run" : "edgework://live/workout")
 }
 
 /// When the app stopped updating (it was closed), say so instead of showing a frozen timer.

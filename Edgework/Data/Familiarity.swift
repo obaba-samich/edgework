@@ -55,16 +55,16 @@ enum Knowledge: Int, CaseIterable, Identifiable {
     var id: Int { rawValue }
     var title: String {
         switch self {
-        case .basics: "Well-known only"
-        case .common: "Common"
+        case .basics: "Just the classics"
+        case .common: "Practice & gym moves"
         case .everything: "Everything"
         }
     }
     var detail: String {
         switch self {
-        case .basics: "Only moves almost everyone knows: high knees, quad pulls, push-ups, planks, wrist shots."
-        case .common: "Adds moves most athletes know: A-skips, goblet squats, dead bugs, one-timers."
-        case .everything: "All 300 exercises, including specialised drills."
+        case .basics: "Moves you'd know by name without looking them up: push-ups, squats, lunges, planks, high knees, butt kicks."
+        case .common: "Adds the moves you'd do at team practice or in a gym: A-skips, goblet squats, dead bugs, box jumps."
+        case .everything: "All 300+ moves, including drills you might need to look up first. Every one has steps and a demo."
         }
     }
 }

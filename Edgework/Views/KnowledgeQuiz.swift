@@ -10,35 +10,37 @@ struct KnowledgeQuiz: View {
     @State private var answered = false
     @State private var info: Exercise?
 
-    static let perTier = 8
+    /// Two moves from each level 2-9. Level 1 is stuff everyone knows, so it isn't tested.
+    static let perLevel = 2
 
-    /// A spread of practice/gym moves and specialised ones for your sport, one per category where possible.
+    /// A spread of moves from every level for your sport, from different categories where possible.
     static func makeSample(sport: Sport) -> [Exercise] {
         let other = sport == .track ? Category.hockeyOnly : Category.trackOnly
-        func pick(_ tier: Int) -> [Exercise] {
-            let pool = Library.all.filter { Library.familiarity($0.id) == tier && !other.contains($0.category) }.shuffled()
-            var byCat: [Category: [Exercise]] = [:]
-            for ex in pool { byCat[ex.category, default: []].append(ex) }
-            var out: [Exercise] = []
-            var cats = byCat.keys.shuffled()
-            while out.count < perTier, !cats.isEmpty {
-                cats = cats.filter { !(byCat[$0] ?? []).isEmpty }
-                for c in cats where out.count < perTier { out.append(byCat[c]!.removeFirst()) }
+        var out: [Exercise] = []
+        for lvl in 2...9 {
+            var pool = Library.all.filter { Library.familiarity($0.id) == lvl && !other.contains($0.category) }.shuffled()
+            var cats: Set<Category> = []
+            for _ in 0..<perLevel {
+                guard !pool.isEmpty else { break }
+                let i = pool.firstIndex { !cats.contains($0.category) } ?? 0
+                cats.insert(pool[i].category)
+                out.append(pool.remove(at: i))
             }
-            return out
         }
-        return (pick(2) + pick(3)).shuffled()
+        return out.shuffled()
     }
 
-    /// Know most of the practice moves → that level; also know most of the specialised ones → everything.
+    /// The highest level where you know at least one of its moves and at least half of everything up to it.
     static func level(picked: Set<String>, sample: [Exercise]) -> Int {
-        let common = sample.filter { Library.familiarity($0.id) == 2 }
-        let special = sample.filter { Library.familiarity($0.id) == 3 }
-        let c = Double(common.filter { picked.contains($0.id) }.count) / Double(max(1, common.count))
-        let s = Double(special.filter { picked.contains($0.id) }.count) / Double(max(1, special.count))
-        if c >= 0.6 && s >= 0.6 { return 3 }
-        if c >= 0.5 { return 2 }
-        return 1
+        var best = 1
+        for lvl in 2...9 {
+            let upTo = sample.filter { Library.familiarity($0.id) <= lvl }
+            let here = sample.filter { Library.familiarity($0.id) == lvl }
+            guard !here.isEmpty else { continue }
+            let knownUpTo = Double(upTo.filter { picked.contains($0.id) }.count) / Double(upTo.count)
+            if knownUpTo >= 0.5 && here.contains(where: { picked.contains($0.id) }) { best = lvl }
+        }
+        return best
     }
 
     private var level: Int { Self.level(picked: picked, sample: sample) }
@@ -70,7 +72,7 @@ struct KnowledgeQuiz: View {
             if answered, let k = Knowledge(rawValue: level) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("You know \(picked.count) of \(sample.count)").font(.headline).foregroundStyle(Theme.text)
-                    Text("Your workouts will use **\(k.title)**\(extraText). \(k.detail)")
+                    Text("Your workouts will use **\(k.section.title) · \(k.step). \(k.title)** (level \(k.rawValue) of 9)\(extraText). \(k.detail)")
                         .font(.footnote).foregroundStyle(Theme.text2).fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(14)
@@ -121,7 +123,7 @@ struct KnowledgeQuiz: View {
     }
 
     private func apply() {
-        store.data.settings.knowledge = level
+        store.data.settings.knowledgeLevel = level
         for ex in sample {
             // Moves your level already covers don't need to be in Learned.
             if picked.contains(ex.id) && Library.familiarity(ex.id) > level {

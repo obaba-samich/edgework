@@ -329,6 +329,9 @@ struct SettingsView: View {
             Picker("Exercises I know", selection: s.knowledge) {
                 ForEach(Knowledge.allCases) { Text($0.title).tag($0.rawValue) }
             }
+            NavigationLink { KnowledgeQuizScreen() } label: {
+                Label("Not sure? Take the quick test", systemImage: "checklist")
+            }
             NavigationLink { StudyView() } label: {
                 HStack {
                     Label("Study new exercises", systemImage: "graduationcap.fill")

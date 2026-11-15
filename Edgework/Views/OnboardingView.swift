@@ -34,7 +34,7 @@ struct OnboardingView: View {
         }
     }
 
-    enum Page: Hashable { case welcome, you, hockey, track, training, schedule, reminders, gear, body, features, done }
+    enum Page: Hashable { case welcome, you, hockey, track, training, know, schedule, reminders, gear, body, features, done }
 
     @State private var goal = Goal.hockey
     @State private var page: Page = {
@@ -42,6 +42,7 @@ struct OnboardingView: View {
         switch UserDefaults.standard.string(forKey: "onboardPage") {
         case "you": return .you
         case "track": return .track
+        case "know": return .know
         case "schedule": return .schedule
         default: return .welcome
         }
@@ -55,7 +56,7 @@ struct OnboardingView: View {
         var p: [Page] = [.welcome, .you]
         if goal == .hockey || goal == .both { p.append(.hockey) }
         if goal == .track || goal == .both { p.append(.track) }
-        p += [.training, .schedule, .reminders, .gear, .body, .features, .done]
+        p += [.training, .know, .schedule, .reminders, .gear, .body, .features, .done]
         return p
     }
     private var index: Int { pages.firstIndex(of: page) ?? 0 }
@@ -205,6 +206,7 @@ struct OnboardingView: View {
         case .hockey: hockey
         case .track: track
         case .training: training
+        case .know: know
         case .schedule: schedule
         case .reminders: reminders
         case .gear: gear
@@ -310,16 +312,24 @@ struct OnboardingView: View {
             choice(1, s.maxLevel, "New to training", "Beginner moves only, lighter volume.")
             choice(2, s.maxLevel, "Some experience", "Up to intermediate moves.")
             choice(3, s.maxLevel, "Experienced", "Everything, including advanced plyometrics.")
-            section("Exercises I know")
-            ForEach(Knowledge.allCases) { k in choice(k.rawValue, s.knowledge, k.title, k.detail) }
-            Text("Not about difficulty, just how familiar the moves are. Learn new ones any time in Library › Study.")
-                .font(.footnote).foregroundStyle(Theme.text3)
             section("Rest between sets")
             chips(RestLength.allCases.map { ($0, $0.title) }, s.rest)
             toggleRow("Low impact", "No jumping or explosive moves (sore joints, small apartment).", s.lowImpact)
         }
         .onChange(of: st.maxLevel) { _, lvl in
             store.data.settings.intensity = lvl == 1 ? 0.8 : (lvl == 2 ? 0.95 : 1.0)
+        }
+    }
+
+    private var know: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            title("Exercises", "Which of these do you know?",
+                  "Not about how hard they are. Edgework has 300+ moves and some have names you've never heard, so this picks which ones show up in your workouts.")
+            KnowledgeQuiz(accent: accent)
+            section("Or pick it yourself")
+            ForEach(Knowledge.allCases) { k in choice(k.rawValue, s.knowledge, k.title, k.detail) }
+            Text("Learn new moves any time in Library › Study, or retake this in Settings.")
+                .font(.footnote).foregroundStyle(Theme.text3)
         }
     }
 

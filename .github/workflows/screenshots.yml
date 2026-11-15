@@ -37,6 +37,7 @@ jobs:
           shot 01-onboarding-you -onboardPage you
           shot 02-onboarding-track -onboardPage track
           shot 03-onboarding-schedule -onboardPage schedule
+          shot 69-onboarding-know -onboardPage know
           for t in 0 1 2 3 4; do shot "1$t-tab" -demoData YES -startTab $t; done
           shot 28-settings -demoData YES -showScreen settings
           shot 29-shots -demoData YES -showScreen shots

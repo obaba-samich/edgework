@@ -327,7 +327,13 @@ struct OnboardingView: View {
                   "Not about how hard they are. Edgework has 300+ moves and some have names you've never heard, so this picks which ones show up in your workouts.")
             KnowledgeQuiz(accent: accent)
             section("Or pick it yourself")
-            ForEach(Knowledge.allCases) { k in choice(k.rawValue, s.knowledge, k.title, k.detail) }
+            ForEach(KnowledgeSection.allCases) { sec in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(sec.title).font(.title3.weight(.bold)).foregroundStyle(Theme.text).padding(.top, 6)
+                    Text(sec.detail).font(.footnote).foregroundStyle(Theme.text2)
+                    ForEach(sec.levels) { k in choice(k.rawValue, s.knowledgeLevel, "\(k.step). \(k.title)", k.detail) }
+                }
+            }
             Text("Learn new moves any time in Library › Study, or retake this in Settings.")
                 .font(.footnote).foregroundStyle(Theme.text3)
         }

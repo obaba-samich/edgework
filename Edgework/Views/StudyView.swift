@@ -36,8 +36,8 @@ struct StudyView: View {
                     StatTile(value: "\(queue.count)", label: "To learn", symbol: "book.fill", color: Theme.ice)
                 }
 
-                if settings.knowledge == 3 {
-                    Text("Your workouts already use every exercise. Set Settings › Difficulty & exercises › Exercises I know to Well-known or Common to study the rest one at a time.")
+                if settings.knowledgeLevel == 9 {
+                    Text("Your workouts already use every exercise. Set Settings › Difficulty & exercises › Exercises I know to a lower level to study the rest one at a time.")
                         .font(.footnote).foregroundStyle(Theme.text2).cardStyle()
                 }
 
@@ -88,7 +88,7 @@ struct StudyView: View {
                 IconBadge(symbol: ex.symbol, color: color, size: 54)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(ex.name).font(.display(26)).foregroundStyle(Theme.text)
-                    Text("\(ex.category.title) · \(Library.familiarity(ex.id) == 2 ? "Common" : "Specialised")")
+                    Text("\(ex.category.title) · \((Knowledge(rawValue: Library.familiarity(ex.id)) ?? .everything).fullTitle)")
                         .font(.caption.weight(.semibold)).foregroundStyle(color)
                 }
             }

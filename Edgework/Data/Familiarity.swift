@@ -1,70 +1,144 @@
 import Foundation
 
-/// How well-known each exercise is. This isn't difficulty: a pull-up is hard but everyone knows it.
-/// 1 = everyone knows it (high knees, quad pulls, push-ups), 2 = most athletes know it, 3 = specialised or new to most people.
+/// How well-known each exercise is, 1-9. This isn't difficulty: a pull-up is hard but everyone knows it.
+/// Three sections of three: 1-3 the classics, 4-6 practice & gym moves, 7-9 specialised drills.
 extension Library {
-    static let basicIDs: Set<String> = [
-        "warmup-jog", "butt-kickers", "butt-kicks", "knee-hugs", "walking-quad-pull", "frankenstein", "side-skips", "carioca", "backpedal",
-        "high-knees", "jumping-jacks", "arm-circles", "leg-swings-front", "leg-swings-lateral", "lateral-shuffle-warm", "wrist-circles",
-        "easy-run", "easy-jog", "mile-run", "distance-run", "long-run", "shuttle-run", "cooldown-jog", "strides", "sprints-200", "sprint-40",
-        "line-sprints", "stair-runs", "backward-run", "run-in-place", "hill-jog", "hill-sprints",
-        "standing-hamstring", "side-reach", "standing-groin", "quad-stretch", "toe-touch", "butterfly-stretch", "cross-body-shoulder",
-        "tricep-stretch", "calf-stretch", "neck-rolls", "cobra", "childs-pose",
-        "air-squat", "sumo-squat", "forward-lunge", "walking-lunge", "reverse-lunge", "lateral-lunge", "calf-raise", "db-squat",
-        "glute-bridge", "wall-sit", "step-ups",
-        "push-up", "knee-push-up", "incline-push-up", "wide-push-up", "pull-up", "chin-up", "db-curl", "hammer-curl", "lateral-raise",
-        "front-raise", "db-bench", "db-press", "bench-dip", "farmer-carry", "wrist-curl", "superman",
-        "plank", "side-plank", "crunch", "sit-up", "bicycle-crunch", "flutter-kicks", "leg-raise", "heel-touches", "scissor-kicks",
-        "mountain-climbers", "russian-twist",
-        "star-jumps", "squat-jump", "burpees", "jump-rope", "box-jump", "broad-jump", "tuck-jump", "frog-jumps", "crab-walk", "bear-crawl",
-        "stickhandling-session", "figure-8", "wide-narrow", "wrist-shots", "snap-shots", "slap-shots", "backhands",
+    /// Exercises at each level, index 0 = level 1.
+    static let familiarityLevels: [[String]] = [
+        // 1
+        [
+        "air-squat", "arm-circles", "burpees", "butt-kickers", "butt-kicks", "calf-raise", "cooldown-jog", "crunch", "db-curl",
+        "distance-run", "easy-jog", "easy-run", "forward-lunge", "high-knees", "jump-rope", "jumping-jacks", "long-run", "mile-run",
+        "mountain-climbers", "neck-rolls", "plank", "pull-up", "push-up", "quad-stretch", "run-in-place", "sit-up", "sprint-40",
+        "standing-hamstring", "star-jumps", "stickhandling-session", "toe-touch", "wall-sit", "warmup-jog", "wrist-shots",
+        ],
+        // 2
+        [
+        "backhands", "backpedal", "bench-dip", "bicycle-crunch", "box-jump", "broad-jump", "butterfly-stretch", "calf-stretch",
+        "childs-pose", "chin-up", "cobra", "cross-body-shoulder", "db-bench", "db-press", "flutter-kicks", "glute-bridge", "hammer-curl",
+        "hill-jog", "hill-sprints", "incline-push-up", "knee-hugs", "knee-push-up", "lateral-lunge", "lateral-raise",
+        "lateral-shuffle-warm", "leg-raise", "leg-swings-front", "leg-swings-lateral", "line-sprints", "reverse-lunge", "russian-twist",
+        "shuttle-run", "side-plank", "side-reach", "side-skips", "slap-shots", "snap-shots", "squat-jump", "stair-runs", "standing-groin",
+        "step-ups", "strides", "tricep-stretch", "walking-lunge", "walking-quad-pull", "wide-push-up", "wrist-circles",
+        ],
+        // 3
+        [
+        "backward-run", "bear-crawl", "carioca", "crab-walk", "db-squat", "farmer-carry", "figure-8", "frankenstein", "frog-jumps",
+        "front-raise", "heel-touches", "scissor-kicks", "sprints-200", "sumo-squat", "superman", "tuck-jump", "wide-narrow", "wrist-curl",
+        ],
+        // 4
+        [
+        "a-skips", "arnold-press", "back-squat", "bird-dog", "block-starts", "bulgarian-split-squat", "cat-cow", "chest-fly",
+        "curtsy-lunge", "db-row", "dead-bug", "decline-push-up", "diamond-push-up", "donkey-kick", "downward-dog", "fire-hydrant",
+        "foam-roll-back", "foam-roll-legs", "goblet-squat", "half-burpee", "hanging-knee-raise", "hill-repeats", "inchworm", "kb-swing",
+        "kneeling-hip-flexor", "med-ball-slam", "mile-repeats", "one-timers", "overhead-extension", "pigeon", "plank-jacks",
+        "plank-shoulder-taps", "rep-200", "rep-800", "repeats-400", "reverse-crunch", "reverse-fly", "romanian-deadlift", "saucer-pass",
+        "single-leg-calf-raise", "skull-crusher", "spinal-twist", "split-jump", "sprint-60", "sprint-starts", "squat-jacks", "tempo-run",
+        "toe-drag", "trap-deadlift", "upright-row", "v-ups",
+        ],
+        // 5
+        [
+        "accel-30", "b-skips", "band-pull-apart", "band-row", "banded-lateral-walk", "baton-exchange", "bounding", "catch-release",
+        "corner-targets", "couch-stretch", "deep-squat-hold", "doorway-chest", "face-pull", "fartlek", "figure-4", "frog-stretch",
+        "gate-openers", "glute-kickback", "hamstring-band-stretch", "heads-up", "hill-power-walk", "hollow-hold", "inchworm-push-up",
+        "inverted-row", "jog-sprint", "lateral-hop", "lateral-shuffle", "lunge-reach", "negative-pull-up", "one-hand", "pike-push-up",
+        "plyo-push-up", "pogo-hops", "power-skips", "pro-agility", "progression-run", "quick-hands", "rebound-shots", "renegade-row",
+        "rep-300", "shadow-boxing", "side-plank-dip", "single-leg-bridge", "single-leg-rdl", "sit-up-twist", "skater-bound", "skater-hops",
+        "spiderman-lunge", "sprawls", "squat-pulse", "suitcase-carry", "t-drill", "tempo-1k", "three-point-start", "toe-touch-crunch",
+        "walk-in-shot", "walking-lunge-twist", "windshield-wipers", "worlds-greatest",
+        ],
+        // 6
+        [
+        "ankling", "backhand-lift", "butterfly-drops", "c-skips", "chest-pass", "depth-jump", "duck-walk", "eyes-closed-balance",
+        "flying-sprints", "heel-toe-walk", "hill-backward-walk", "hill-long-repeats", "hip-cradle", "hop-stick", "hurdle-walkover",
+        "jump-squat-hold", "obstacle-weave", "overhead-back-toss", "puck-circle", "reaction-ball", "shift-sprints", "slide-board",
+        "tempo-100", "towel-wring", "walking-knee-drive", "wall-drive", "wrist-rotation-db", "wrist-rotation-stick", "wrist-stretch",
+        ],
+        // 7
+        [
+        "backpedal-sprint", "between-legs", "copenhagen-plank", "cossack-squat", "crossover-run", "dangle-combo", "deke-backhand",
+        "flying-30", "hip-90-90", "hurdle-hops", "knee-to-wall", "med-ball-rotation-throw", "nordic-curl", "open-book", "pallof-press",
+        "puck-protection", "quick-feet", "shot-stand", "single-leg-bound", "single-leg-hip-thrust", "skater-squat", "speed-150",
+        "speed-cones", "squat-thrust-tuck", "standing-triple", "toe-drag-shot",
+        ],
+        // 8
+        [
+        "adductor-rockback", "approach-runs", "around-puck-shot", "backhand-cradle", "box-bound", "eyes-closed-hands", "fast-leg",
+        "figure8-one-hand", "goalie-shuffle-drop", "heiden-hold", "hill-bounds", "hill-lateral-shuffle", "hip-ir-stretch",
+        "lateral-bound-sprint", "lead-leg", "low-glove-blocker", "middle-release", "pop-ups", "puck-maze", "quick-release-feet",
+        "rotational-scoop", "single-leg-squat-reach", "skate-to-stick", "star-reach", "t-push-shuffle", "toe-drag-around", "trail-leg",
+        ],
+        // 9
+        [
+        "band-finger-extension", "discus-turn-drill", "goalie-hip-rotation", "hurdle-mobility", "javelin-crossovers", "scissor-kicks-hj",
+        "stick-levers", "three-step",
+        ],
     ]
 
-    static let commonIDs: Set<String> = [
-        "a-skips", "b-skips", "c-skips", "power-skips", "spiderman-lunge", "heel-toe-walk", "lunge-reach", "hip-cradle", "walking-lunge-twist",
-        "inchworm", "gate-openers", "band-pull-apart", "worlds-greatest",
-        "repeats-400", "tempo-1k", "fartlek", "tempo-run", "flying-sprints", "jog-sprint", "progression-run", "mile-repeats",
-        "hill-repeats", "hill-long-repeats", "hill-power-walk", "hill-backward-walk",
-        "figure-4", "downward-dog", "spinal-twist", "doorway-chest", "pigeon", "deep-squat-hold", "hamstring-band-stretch", "cat-cow",
-        "kneeling-hip-flexor", "couch-stretch", "frog-stretch", "foam-roll-legs", "foam-roll-back", "wrist-stretch",
-        "curtsy-lunge", "donkey-kick", "fire-hydrant", "squat-pulse", "single-leg-bridge", "glute-kickback", "goblet-squat",
-        "bulgarian-split-squat", "romanian-deadlift", "single-leg-rdl", "kb-swing", "back-squat", "trap-deadlift", "banded-lateral-walk",
-        "single-leg-calf-raise", "jump-squat-hold",
-        "decline-push-up", "diamond-push-up", "arnold-press", "overhead-extension", "skull-crusher", "chest-fly", "reverse-fly",
-        "upright-row", "negative-pull-up", "inverted-row", "db-row", "face-pull", "pike-push-up", "band-row", "plyo-push-up",
-        "renegade-row", "towel-wring", "wrist-rotation-db", "wrist-rotation-stick",
-        "reverse-crunch", "toe-touch-crunch", "plank-jacks", "side-plank-dip", "sit-up-twist", "windshield-wipers", "dead-bug",
-        "bird-dog", "hollow-hold", "hanging-knee-raise", "plank-shoulder-taps", "v-ups", "suitcase-carry",
-        "squat-jacks", "shadow-boxing", "half-burpee", "inchworm-push-up", "med-ball-slam", "split-jump", "pogo-hops", "skater-bound",
-        "lateral-hop", "lateral-shuffle", "sprint-starts", "t-drill", "pro-agility", "shift-sprints", "skater-hops", "sprawls",
-        "slide-board", "hop-stick", "eyes-closed-balance",
-        "bounding", "walking-knee-drive", "duck-walk", "wall-drive", "ankling", "block-starts", "three-point-start", "accel-30",
-        "sprint-60", "tempo-100", "rep-200", "rep-300", "rep-800", "hurdle-walkover", "chest-pass", "overhead-back-toss",
-        "baton-exchange", "depth-jump",
-        "toe-drag", "one-hand", "heads-up", "quick-hands", "obstacle-weave", "catch-release", "one-timers", "saucer-pass",
-        "butterfly-drops", "reaction-ball", "corner-targets", "walk-in-shot", "puck-circle", "rebound-shots", "backhand-lift",
-    ]
+    private static let familiarityByID: [String: Int] = {
+        var d: [String: Int] = [:]
+        for (i, ids) in familiarityLevels.enumerated() { for id in ids { d[id] = i + 1 } }
+        return d
+    }()
 
-    static func familiarity(_ id: String) -> Int {
-        basicIDs.contains(id) ? 1 : (commonIDs.contains(id) ? 2 : 3)
-    }
+    /// 1-9. Anything not listed counts as the most specialised.
+    static func familiarity(_ id: String) -> Int { familiarityByID[id] ?? 9 }
 }
 
-enum Knowledge: Int, CaseIterable, Identifiable {
-    case basics = 1, common = 2, everything = 3
+/// The three main sections of Exercises I know. Each has three levels.
+enum KnowledgeSection: Int, CaseIterable, Identifiable {
+    case classics = 1, practice = 2, specialised = 3
     var id: Int { rawValue }
     var title: String {
         switch self {
-        case .basics: "Just the classics"
-        case .common: "Practice & gym moves"
-        case .everything: "Everything"
+        case .classics: "The classics"
+        case .practice: "Practice & gym moves"
+        case .specialised: "Specialised drills"
         }
     }
     var detail: String {
         switch self {
-        case .basics: "Moves you'd know by name without looking them up: push-ups, squats, lunges, planks, high knees, butt kicks."
-        case .common: "Adds the moves you'd do at team practice or in a gym: A-skips, goblet squats, dead bugs, box jumps."
-        case .everything: "All 300+ moves, including drills you might need to look up first. Every one has steps and a demo."
+        case .classics: "Moves you'd know by name without looking them up."
+        case .practice: "What you'd do at team practice or in a gym."
+        case .specialised: "Drills you might need to look up first. Every one has steps and a demo."
+        }
+    }
+    var levels: [Knowledge] { (1...3).compactMap { Knowledge(rawValue: (rawValue - 1) * 3 + $0) } }
+}
+
+/// One of the 9 Exercises I know levels. Each level includes everything below it.
+enum Knowledge: Int, CaseIterable, Identifiable {
+    case bareBasics = 1, everyday, allClassics, gymRegular, practiceRegular, allPractice, specialised, verySpecialised, everything
+    var id: Int { rawValue }
+    var section: KnowledgeSection { KnowledgeSection(rawValue: (rawValue - 1) / 3 + 1) ?? .specialised }
+    /// 1-3 within its section.
+    var step: Int { (rawValue - 1) % 3 + 1 }
+    var title: String {
+        switch self {
+        case .bareBasics: "Bare basics"
+        case .everyday: "Everyday moves"
+        case .allClassics: "All the classics"
+        case .gymRegular: "Gym basics"
+        case .practiceRegular: "Practice regular"
+        case .allPractice: "All practice & gym"
+        case .specialised: "Some specialised"
+        case .verySpecialised: "Most specialised"
+        case .everything: "Everything"
+        }
+    }
+    /// "Practice & gym moves · 2 of 3"
+    var fullTitle: String { "\(section.title) · \(title)" }
+    var detail: String {
+        switch self {
+        case .bareBasics: "Push-ups, squats, planks, jumping jacks, high knees, pull-ups."
+        case .everyday: "Adds lunges, side planks, Russian twists, box jumps, tricep dips, slap shots."
+        case .allClassics: "Adds bear crawls, carioca, sumo squats, farmer's carry, tuck jumps."
+        case .gymRegular: "Adds goblet squats, deadlifts, dead bugs, A-skips, 400 m repeats, one-timers."
+        case .practiceRegular: "Adds B-skips, World's Greatest Stretch, face pulls, pogo hops, the 5-10-5 shuttle."
+        case .allPractice: "Adds C-skips, wall drives, depth jumps, slide board, wrist rotations."
+        case .specialised: "Adds Nordic curls, Copenhagen planks, Pallof press, 90/90 hips, flying 30s."
+        case .verySpecialised: "Adds hurdle lead and trail leg drills, Heiden jumps, puck mazes, pop-ups."
+        case .everything: "Every move, including event drills like discus turns and javelin crossovers."
         }
     }
 }
@@ -72,6 +146,6 @@ enum Knowledge: Int, CaseIterable, Identifiable {
 extension Settings {
     /// In your workouts: known well enough for your setting, or learned in Study.
     func isFamiliar(_ ex: Exercise) -> Bool {
-        Library.familiarity(ex.id) <= knowledge || learned.contains(ex.id)
+        Library.familiarity(ex.id) <= knowledgeLevel || learned.contains(ex.id)
     }
 }

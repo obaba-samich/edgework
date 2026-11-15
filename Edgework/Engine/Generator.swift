@@ -74,7 +74,7 @@ enum Generator {
         // Knowledge setting: keep to moves people know. A category with fewer than 3 known moves (hurdles,
         // throws, goalie…) keeps its full list so those workouts still work.
         let available: [Exercise] = {
-            guard settings.knowledge < 3 else { return allowed }
+            guard settings.knowledgeLevel < 9 else { return allowed }
             let known = allowed.filter { settings.isFamiliar($0) }
             let thin = Set(Category.allCases.filter { c in known.filter { $0.category == c }.count < 3 })
             return allowed.filter { settings.isFamiliar($0) || thin.contains($0.category) }

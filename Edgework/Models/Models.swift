@@ -948,8 +948,10 @@ struct Settings: Codable {
     var includeHockey = true
     var lowImpact = false
     var excluded: Set<String> = []
-    /// 1 = well-known moves only, 2 = common, 3 = everything (see Familiarity.swift).
+    /// Old 3-step setting, only read to carry it over to `knowledgeLevel`.
     var knowledge = 3
+    /// Exercises I know, 1-9 (three sections of three, see Familiarity.swift). 9 = everything.
+    var knowledgeLevel = 9
     /// Exercises learned in Study, allowed in workouts whatever the knowledge setting.
     var learned: Set<String> = []
     var reviewFirst = true
@@ -1060,6 +1062,8 @@ struct Settings: Codable {
         lowImpact = try c.decodeIfPresent(Bool.self, forKey: .lowImpact) ?? d.lowImpact
         excluded = try c.decodeIfPresent(Set<String>.self, forKey: .excluded) ?? d.excluded
         knowledge = try c.decodeIfPresent(Int.self, forKey: .knowledge) ?? d.knowledge
+        // Old saves had 1-3; each maps to the top of its section.
+        knowledgeLevel = try c.decodeIfPresent(Int.self, forKey: .knowledgeLevel) ?? (knowledge * 3)
         learned = try c.decodeIfPresent(Set<String>.self, forKey: .learned) ?? d.learned
         reviewFirst = try c.decodeIfPresent(Bool.self, forKey: .reviewFirst) ?? d.reviewFirst
         remindDaily = try c.decodeIfPresent(Bool.self, forKey: .remindDaily) ?? d.remindDaily

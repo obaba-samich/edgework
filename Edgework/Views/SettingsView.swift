@@ -326,8 +326,12 @@ struct SettingsView: View {
                 Text("Up to intermediate").tag(2)
                 Text("Everything").tag(3)
             }
-            Picker("Exercises I know", selection: s.knowledge) {
-                ForEach(Knowledge.allCases) { Text($0.title).tag($0.rawValue) }
+            Picker("Exercises I know", selection: s.knowledgeLevel) {
+                ForEach(KnowledgeSection.allCases) { sec in
+                    Section(sec.title) {
+                        ForEach(sec.levels) { Text($0.title).tag($0.rawValue) }
+                    }
+                }
             }
             NavigationLink { KnowledgeQuizScreen() } label: {
                 Label("Not sure? Take the quick test", systemImage: "checklist")
@@ -369,7 +373,7 @@ struct SettingsView: View {
                 }
             }
         } header: { Text("Difficulty & exercises") } footer: {
-            Text("Exercises I know is about how well-known a move is, not how hard. \((Knowledge(rawValue: st.knowledge) ?? .everything).detail) Study teaches you the rest one at a time.")
+            Text("Exercises I know is about how well-known a move is, not how hard. Yours: \((Knowledge(rawValue: st.knowledgeLevel) ?? .everything).fullTitle). \((Knowledge(rawValue: st.knowledgeLevel) ?? .everything).detail) Study teaches you the rest one at a time.")
         }
         .listRowBackground(Theme.surface)
     }

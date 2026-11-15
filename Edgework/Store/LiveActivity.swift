@@ -11,7 +11,7 @@ enum LiveActivity {
         guard enabled, ActivityAuthorizationInfo().areActivitiesEnabled else { return end() }
         guard state != lastState else { return }
         lastState = state
-        let content = ActivityContent(state: state, staleDate: nil)
+        let content = ActivityContent(state: state, staleDate: staleDate(for: state))
         if let a = current, a.activityState == .active {
             Task { await a.update(content) }
         } else {
@@ -19,6 +19,15 @@ enum LiveActivity {
             current = try? ActivityKit.Activity.request(attributes: EdgeworkActivityAttributes(name: "Edgework", accent: accent),
                                             content: content, pushType: nil)
         }
+    }
+
+    /// If the app gets killed without a chance to clean up, the activity switches to "tap to reopen" around here
+    /// instead of showing a timer that will never move on.
+    private static func staleDate(for s: EdgeworkActivityAttributes.ContentState) -> Date? {
+        if s.paused { return nil }
+        if s.kind == .run { return Date().addingTimeInterval(10 * 60) }
+        if let end = s.timerEnd { return end.addingTimeInterval(3 * 60) }
+        return Date().addingTimeInterval(20 * 60)
     }
 
     static func end() {
@@ -30,5 +39,15 @@ enum LiveActivity {
             // Clean up anything left over from a previous launch.
             for old in ActivityKit.Activity<EdgeworkActivityAttributes>.activities { await old.end(nil, dismissalPolicy: .immediate) }
         }
+    }
+
+    /// Called as the app is being closed. Waits (briefly) for the activities to end, since the process is about to go away.
+    nonisolated static func endAllBeforeExit() {
+        let done = DispatchSemaphore(value: 0)
+        Task.detached {
+            for a in ActivityKit.Activity<EdgeworkActivityAttributes>.activities { await a.end(nil, dismissalPolicy: .immediate) }
+            done.signal()
+        }
+        _ = done.wait(timeout: .now() + 2)
     }
 }

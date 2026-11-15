@@ -2,9 +2,14 @@ import SwiftUI
 
 @main
 struct EdgeworkApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var store = Store()
 
-    init() { Appearance.apply() }
+    init() {
+        Appearance.apply()
+        // A fresh launch has no workout or run going, so any Live Activity still showing is left over from a closed app.
+        Task { @MainActor in LiveActivity.end() }
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -13,6 +18,13 @@ struct EdgeworkApp: App {
                 .preferredColorScheme(.dark)
                 .tint(Theme.ice)
         }
+    }
+}
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    /// Swiping the app away mid-workout or mid-run would otherwise leave the Dynamic Island up.
+    func applicationWillTerminate(_ application: UIApplication) {
+        LiveActivity.endAllBeforeExit()
     }
 }
 

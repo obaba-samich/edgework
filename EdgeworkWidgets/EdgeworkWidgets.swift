@@ -19,11 +19,11 @@ private extension Color {
 struct EdgeworkLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: EdgeworkActivityAttributes.self) { context in
-            LockScreenView(state: context.state, accent: Color(hex: context.attributes.accent))
+            LockScreenView(state: shown(context), accent: Color(hex: context.attributes.accent))
                 .activityBackgroundTint(Color.black.opacity(0.75))
                 .activitySystemActionForegroundColor(Color(hex: context.attributes.accent))
         } dynamicIsland: { context in
-            let s = context.state
+            let s = shown(context)
             let accent = Color(hex: context.attributes.accent)
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
@@ -73,6 +73,18 @@ struct EdgeworkLiveActivity: Widget {
             .keylineTint(accent)
         }
     }
+}
+
+/// When the app stopped updating (it was closed), say so instead of showing a frozen timer.
+private func shown(_ context: ActivityViewContext<EdgeworkActivityAttributes>) -> EdgeworkActivityAttributes.ContentState {
+    guard context.isStale else { return context.state }
+    var s = context.state
+    s.detail = "Tap to reopen Edgework"
+    s.paused = true
+    s.pausedText = "Closed"
+    s.timerEnd = nil
+    s.timerStart = nil
+    return s
 }
 
 private func symbol(_ s: EdgeworkActivityAttributes.ContentState) -> String {

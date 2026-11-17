@@ -605,5 +605,4 @@ enum Tips {
     ]
 
     static func list(for sport: Sport) -> [String] { sport == .track ? track : all }
-
 }

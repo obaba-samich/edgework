@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var importResult: String?
     @State private var confirmReset = false
     @State private var regenerated = false
+    @State private var search = ""
     @Environment(\.isPresented) private var isPresented
     @Environment(\.dismiss) private var dismiss
     /// Screenshot hook: open straight onto one sub-page.
@@ -46,18 +47,23 @@ struct SettingsView: View {
     private var main: some View {
         NavigationStack {
             Form {
-                profile
-                sportSection
-                trainingPages
-                schedule
-                appPages
-                data
-                about
+                if search.trimmingCharacters(in: .whitespaces).isEmpty {
+                    profile
+                    sportSection
+                    trainingPages
+                    schedule
+                    appPages
+                    data
+                    about
+                } else {
+                    searchResults
+                }
             }
             .scrollContentBackground(.hidden)
             .screenBackground()
             .scrollDismissesKeyboard(.immediately)
             .navigationTitle("Profile")
+            .searchable(text: $search, prompt: "Search settings")
             .toolbar {
                 if isPresented {
                     ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
@@ -101,15 +107,15 @@ struct SettingsView: View {
 
     private var trainingPages: some View {
         Section {
-            page("Workouts", "dumbbell.fill", Theme.ice, detail: "\(st.duration) min") { player; workout; difficulty }
-            page("Warm-up & line work", "figure.walk", Color(hex: 0x4FD1C5), detail: st.warmupMode.title) { warmup; lineWork }
-            page("Running & GPS", "figure.run", Color(hex: 0x22D3EE), detail: nil) { running; gps }
+            page("Workouts", "dumbbell.fill", Theme.ice, detail: "\(st.duration) min") { pageContent(.workouts) }
+            page("Warm-up & line work", "figure.walk", Color(hex: 0x4FD1C5), detail: st.warmupMode.title) { pageContent(.warmup) }
+            page("Running & GPS", "figure.run", Color(hex: 0x22D3EE), detail: nil) { pageContent(.running) }
             if st.sport == .hockey {
-                page("Hockey", "figure.hockey", Theme.ice, detail: "\(st.puckCount) pucks") { hockey }
+                page("Hockey", "figure.hockey", Theme.ice, detail: "\(st.puckCount) pucks") { pageContent(.hockey) }
             } else {
-                page("Track & meets", "figure.track.and.field", Theme.red, detail: st.trackGroup.title) { trackPage }
+                page("Track & meets", "figure.track.and.field", Theme.red, detail: st.trackGroup.title) { pageContent(.track) }
             }
-            page("Goals", "target", Theme.green, detail: nil) { goals }
+            page("Goals", "target", Theme.green, detail: nil) { pageContent(.goals) }
         } header: { Text("Training") } footer: {
             Text("You can also make any exercise mandatory or set its priority from the Library: long-press it, or open it.")
         }
@@ -118,12 +124,87 @@ struct SettingsView: View {
 
     private var appPages: some View {
         Section {
-            page("Reminders", "bell.badge.fill", Theme.amber, detail: reminderCount == 0 ? "Off" : "\(reminderCount) on") { notifications }
-            page("Nutrition", "fork.knife", Theme.amber, detail: "\(Int(store.targets.kcal)) kcal") { nutrition }
-            page("Features", "square.grid.2x2.fill", Color(hex: 0x9B86FF), detail: nil) { features }
-            page("During workouts", "timer", Theme.text2, detail: nil) { during }
+            page("Reminders", "bell.badge.fill", Theme.amber, detail: reminderCount == 0 ? "Off" : "\(reminderCount) on") { pageContent(.reminders) }
+            page("Nutrition", "fork.knife", Theme.amber, detail: "\(Int(store.targets.kcal)) kcal") { pageContent(.nutrition) }
+            page("Features", "square.grid.2x2.fill", Color(hex: 0x9B86FF), detail: nil) { pageContent(.features) }
+            page("During workouts", "timer", Theme.text2, detail: nil) { pageContent(.during) }
         } header: { Text("App") }
         .listRowBackground(Theme.surface)
+    }
+
+    // MARK: Search
+
+    private var searchResults: some View {
+        let hits = SettingsSearchItem.all.filter { ($0.sport == nil || $0.sport == st.sport) && $0.matches(search) }
+        return Section {
+            if hits.isEmpty {
+                Text("No settings match \"\(search)\". Try another word, like rest, calendar or units.")
+                    .foregroundStyle(Theme.text2)
+            }
+            ForEach(hits) { item in
+                NavigationLink {
+                    destination(item.target)
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.title)
+                        Text(item.place).font(.caption).foregroundStyle(Theme.text2)
+                    }
+                }
+            }
+        } header: { Text(hits.isEmpty ? "" : "\(hits.count) result\(hits.count == 1 ? "" : "s")") }
+        .listRowBackground(Theme.surface)
+    }
+
+    @ViewBuilder private func destination(_ target: SettingsSearchItem.Target) -> some View {
+        switch target {
+        case .page(let p):
+            Form { pageContent(p) }
+                .scrollContentBackground(.hidden)
+                .screenBackground()
+                .scrollDismissesKeyboard(.immediately)
+                .navigationTitle(p.title)
+                .navigationBarTitleDisplayMode(.inline)
+        case .screen(let sc):
+            screen(sc)
+        }
+    }
+
+    /// What each Settings page shows. The page rows and search results both use this, so they always match.
+    @ViewBuilder private func pageContent(_ p: SettingsPage) -> some View {
+        switch p {
+        case .workouts: player; workout; difficulty
+        case .warmup: warmup; lineWork
+        case .running: running; gps
+        case .hockey: hockey
+        case .track: trackPage
+        case .goals: goals
+        case .reminders: notifications
+        case .nutrition: nutrition
+        case .features: features
+        case .during: during
+        case .schedule: schedule
+        case .data: data
+        case .sport: profile; sportSection
+        }
+    }
+
+    @ViewBuilder private func screen(_ sc: SettingsScreen) -> some View {
+        switch sc {
+        case .mandatory: MustDosEditor()
+        case .equipment: EquipmentView()
+        case .exclusions: ExclusionsView()
+        case .adjustments: AdjustmentsView()
+        case .study: StudyView()
+        case .quiz: KnowledgeQuizScreen()
+        case .calendar: CalendarView()
+        case .keywords: KeywordsView()
+        case .weekly: WeeklyScheduleView()
+        case .trainingTimes: TrainingTimesView()
+        case .routine: RoutineEditor()
+        case .lineMoves: LineMovesView()
+        case .nutritionProfile: NutritionSettingsView()
+        case .trackEvents: TrackEventsPicker().onDisappear { rebuildIfAuto() }
+        }
     }
 
     private var reminderCount: Int {

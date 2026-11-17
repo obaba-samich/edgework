@@ -46,8 +46,8 @@ struct RootView: View {
         }
     }
     @Environment(\.scenePhase) private var scenePhase
-    @State private var tab = UserDefaults.standard.integer(forKey: "startTab")
-    @State private var debugSheet = UserDefaults.standard.string(forKey: "showScreen")
+    @State private var tab = DebugHooks.integer("startTab")
+    @State private var debugSheet = DebugHooks.string("showScreen")
     @State private var calendarMessage: String?
     @State private var showRun = false
     @ObservedObject private var siri = SiriRouter.shared
@@ -146,8 +146,8 @@ struct RootView: View {
             .environmentObject(store)
         }
         .onAppear {
-            if UserDefaults.standard.bool(forKey: "autoStart"), let w = store.data.today?.workout { store.start(w) }
-            if let id = UserDefaults.standard.string(forKey: "autoStartExercise"), let ex = Library.byID[id] {
+            if DebugHooks.bool("autoStart"), let w = store.data.today?.workout { store.start(w) }
+            if let id = DebugHooks.string("autoStartExercise"), let ex = Library.byID[id] {
                 store.data.hillClimbs[id] = [41.2, 43.0, 44.1]
                 store.start(Workout(title: ex.name, subtitle: "", focus: .custom, items: [store.item(for: ex, block: .main)]))
             }

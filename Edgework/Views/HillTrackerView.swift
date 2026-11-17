@@ -45,7 +45,7 @@ struct HillTrackerPanel: View {
         .sheet(isPresented: $sharing) { ShareCardSheet(title: exercise.name, card: card) }
         .onAppear {
             previous = store.data.hillClimbs[exercise.id] ?? []
-            if UserDefaults.standard.string(forKey: "autoStartExercise") != nil {   // screenshot demo
+            if DebugHooks.string("autoStartExercise") != nil {   // screenshot demo
                 climbs = [40.8, 42.3, 44.0]; descents = [35.1, 33.9, 34.6]; leg = .up; legStart = Date().addingTimeInterval(-21.4)
             }
         }

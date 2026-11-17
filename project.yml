@@ -57,6 +57,8 @@ targets:
       path: EdgeworkWidgets/Info.plist
       properties:
         CFBundleDisplayName: Edgework
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

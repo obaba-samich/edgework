@@ -196,7 +196,8 @@ struct WorkoutDetailView: View {
 
     private func refresh(_ blocks: Set<Block>) {
         var w = workout
-        for i in w.items.indices where blocks.contains(w.items[i].block) {
+        // Mandatory exercises stay put when a whole section is refreshed.
+        for i in w.items.indices where blocks.contains(w.items[i].block) && !store.isRequired(w.items[i].exerciseID) {
             if let new = Generator.swap(w.items[i], in: w, settings: store.data.settings) { w.items[i] = new }
         }
         withAnimation(.snappy) { workout = w }

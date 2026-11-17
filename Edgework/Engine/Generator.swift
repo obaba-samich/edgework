@@ -324,10 +324,12 @@ enum Generator {
     /// A same-category replacement for an item, respecting equipment.
     static func swap(_ item: WorkoutItem, in workout: Workout, settings: Settings) -> WorkoutItem? {
         guard let old = item.exercise else { return nil }
-        let inUse = Set(workout.items.map(\.exerciseID))
+        let inUse = Set(workout.items.map(\.exerciseID)).union(settings.mustDos.map(\.exerciseID))
+        // Same rules as a generated workout: difficulty, equipment, low impact.
         let candidates = Library.all.filter { ex -> Bool in
-            if inUse.contains(ex.id) || settings.excluded.contains(ex.id) { return false }
+            if inUse.contains(ex.id) || settings.excluded.contains(ex.id) || ex.level > settings.maxLevel { return false }
             if !ex.equipment.allSatisfy({ settings.equipment.contains($0) }) { return false }
+            if settings.lowImpact && (ex.tags.contains(.explosive) || ex.category == .power) { return false }
             switch item.block {
             case .stretch: return Library.staticStretchIDs.contains(ex.id)
             case .cooldown: return ex.category == old.category && (old.category != .mobility || ex.tags.contains(.cooldown))
@@ -335,7 +337,9 @@ enum Generator {
             default: return ex.category == old.category
             }
         }
-        guard let ex = candidates.randomElement() else { return nil }
+        // Stick to moves you know (Exercises I know), unless none fit.
+        let known = candidates.filter { settings.isFamiliar($0) }
+        guard let ex = (known.isEmpty ? candidates : known).randomElement() else { return nil }
         let ratio = Double(item.base) / Double(max(1, old.base))
         var new = item
         new.id = UUID()

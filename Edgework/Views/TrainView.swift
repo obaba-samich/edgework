@@ -105,7 +105,7 @@ struct TrainView: View {
                     toolTile("Running", "GPS runs & weekly distance", "figure.run", Color(hex: 0x22D3EE))
                 }
                 NavigationLink { MustDosEditor() } label: {
-                    toolTile("Must-Dos", "Mandatory every time", "checklist", Theme.amber)
+                    toolTile("Mandatory", "In every workout", "checklist", Theme.amber)
                 }
             }
         }
@@ -138,7 +138,7 @@ struct TrainView: View {
                     toolTile("Running", "GPS runs & weekly distance", "figure.run", Color(hex: 0x22D3EE))
                 }
                 NavigationLink { MustDosEditor() } label: {
-                    toolTile("Must-Dos", "Mandatory every time", "checklist", Theme.amber)
+                    toolTile("Mandatory", "In every workout", "checklist", Theme.amber)
                 }
             }
             if store.data.settings.showHockeyTools {

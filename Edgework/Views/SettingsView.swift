@@ -283,7 +283,7 @@ struct SettingsView: View {
             }
             .pickerStyle(.segmented)
         } header: { Text("Sport & units") } footer: {
-            Text("Hockey and track each keep their own settings, calendar and workouts. Your name, units, nutrition and features are shared.")
+            Text("Hockey and track each keep their own settings, calendar and workouts. Your name, units, nutrition, features and the exercises you know are shared.")
         }
         .listRowBackground(Theme.surface)
     }

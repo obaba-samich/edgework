@@ -223,7 +223,7 @@ struct ProgramRow: View {
     let program: Program
 
     var body: some View {
-        let w = program.workout(rest: store.data.settings.rest)
+        let w = store.programWorkout(program)
         HStack(spacing: 14) {
             IconBadge(symbol: program.focus.symbol, color: program.focus.color, size: 50)
             VStack(alignment: .leading, spacing: 4) {

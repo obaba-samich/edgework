@@ -123,17 +123,23 @@ extension Store {
     // MARK: Must-dos
 
     func programWorkout(_ program: Program) -> Workout {
-        var w = program.workout(rest: data.settings.rest)
-        if data.settings.mustDosInPrograms {
-            let main = w.items.filter { $0.block == .main }
-            for var it in data.settings.mustDos where it.exercise.map({ ex in
-                Generator.mustDoFits(ex, focus: program.focus, sport: data.settings.sport, main: main)
-            }) ?? false {
-                w.items.removeAll { $0.exerciseID == it.exerciseID }
-                it.id = UUID()
-                it.block = .musts
-                w.items.append(it)
-            }
+        withMustDos(program.workout(rest: data.settings.rest))
+    }
+
+    /// Adds your must-dos as the Mandatory section at the end. Workouts that already have that section
+    /// (generated ones, or one you edited) are left alone, so a must-do you removed for today stays removed.
+    func withMustDos(_ workout: Workout) -> Workout {
+        var w = workout
+        guard !w.items.contains(where: { $0.block == .musts }) else { return w }
+        let main = w.items.filter { $0.block == .main }
+        for var it in data.settings.mustDos where it.exercise.map({ ex in
+            Generator.mustDoFits(ex, focus: w.focus, sport: data.settings.sport, main: main)
+        }) ?? false {
+            // A must-do lives only in its own section, never inside its category's section too.
+            w.items.removeAll { $0.exerciseID == it.exerciseID }
+            it.id = UUID()
+            it.block = .musts
+            w.items.append(it)
         }
         return w
     }

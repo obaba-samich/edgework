@@ -1073,12 +1073,9 @@ struct MustDosEditor: View {
                 }
                 .onDelete { items.wrappedValue.remove(atOffsets: $0) }
                 .onMove { items.wrappedValue.move(fromOffsets: $0, toOffset: $1) }
-            } header: { Text("Your must-dos") }
-            .listRowBackground(Theme.surface)
-
-            Section {
-                Toggle("Also add to programs", isOn: $store.data.settings.mustDosInPrograms)
-            } footer: { Text("Must-dos go into generated workouts. Shooting and stickhandling only join hands, upper-body, strength and full-body workouts, not leg or speed days. Turn this on to add them to built-in programs too.") }
+            } header: { Text("Your must-dos") } footer: {
+                Text("Must-dos go at the end of every workout and program, in their own Mandatory section. Shooting and stickhandling only join hands, upper-body, strength and full-body workouts, not leg, speed or recovery days.")
+            }
             .listRowBackground(Theme.surface)
         }
         .scrollContentBackground(.hidden)

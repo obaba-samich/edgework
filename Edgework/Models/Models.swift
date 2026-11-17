@@ -1017,7 +1017,6 @@ struct Settings: Codable {
     var waterGoal = 8
     var runGoalKm = 10.0
     var mustDos: [WorkoutItem] = []
-    var mustDosInPrograms = false
     var units = Units.imperial
     var weightKg = 70.0
     var heightCm = 175.0
@@ -1127,7 +1126,6 @@ struct Settings: Codable {
         waterGoal = try c.decodeIfPresent(Int.self, forKey: .waterGoal) ?? d.waterGoal
         runGoalKm = try c.decodeIfPresent(Double.self, forKey: .runGoalKm) ?? d.runGoalKm
         mustDos = try c.decodeIfPresent([WorkoutItem].self, forKey: .mustDos) ?? d.mustDos
-        mustDosInPrograms = try c.decodeIfPresent(Bool.self, forKey: .mustDosInPrograms) ?? d.mustDosInPrograms
         units = try c.decodeIfPresent(Units.self, forKey: .units) ?? d.units
         weightKg = try c.decodeIfPresent(Double.self, forKey: .weightKg) ?? d.weightKg
         heightCm = try c.decodeIfPresent(Double.self, forKey: .heightCm) ?? d.heightCm

@@ -166,7 +166,7 @@ struct WorkoutImportSheet: View {
                 }
                 .safeAreaInset(edge: .bottom) {
                     Button {
-                        let w = workout
+                        let w = store.withMustDos(workout)
                         dismiss()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { store.start(w) }
                     } label: { Label("Start now", systemImage: "play.fill") }

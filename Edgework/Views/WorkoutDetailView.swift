@@ -101,7 +101,10 @@ struct WorkoutDetailView: View {
         }
         .screenBackground()
         .safeAreaInset(edge: .bottom) {
-            Button { store.start(workout) } label: {
+            Button {
+                // Your own saved workouts get your must-dos too. Today's and programs already have them.
+                store.start(workout.focus == .custom ? store.withMustDos(workout) : workout)
+            } label: {
                 Label("Start workout", systemImage: "play.fill")
             }
             .buttonStyle(PrimaryButtonStyle(color: workout.focus.color))

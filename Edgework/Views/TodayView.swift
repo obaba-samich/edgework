@@ -462,7 +462,7 @@ struct ProgramTile: View {
     let program: Program
 
     var body: some View {
-        let w = program.workout(rest: store.data.settings.rest)
+        let w = store.programWorkout(program)
         VStack(alignment: .leading, spacing: 10) {
             IconBadge(symbol: program.focus.symbol, color: program.focus.color, size: 38)
             Spacer(minLength: 0)

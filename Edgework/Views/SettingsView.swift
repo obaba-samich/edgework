@@ -96,7 +96,7 @@ struct SettingsView: View {
     /// Anything that changes which notifications get scheduled.
     private var reminderKey: [String] {
         ["\(st.remindDaily)", "\(st.remindGame)", "\(st.remindStreak)", "\(st.remindMinute)", st.trainTimes.sorted { $0.key < $1.key }.description,
-         "\(st.runRemind)", st.runRemindDays.sorted().description, "\(st.runMinute)", "\(st.remindWater)", "\(st.normalOnEventDays)"]
+         "\(st.runRemind)", st.runRemindDays.sorted().description, "\(st.runMinute)", "\(st.remindWater)", "\(st.normalOnEventDays)", "\(st.remindMeetWarmup)"]
     }
 
     private var trainingPages: some View {
@@ -111,7 +111,7 @@ struct SettingsView: View {
             }
             page("Goals", "target", Theme.green, detail: nil) { goals }
         } header: { Text("Training") } footer: {
-            Text("Mandatory and priority exercises are set in the Library: long-press any exercise, or open it.")
+            Text("You can also make any exercise mandatory or set its priority from the Library: long-press it, or open it.")
         }
         .listRowBackground(Theme.surface)
     }
@@ -197,8 +197,12 @@ struct SettingsView: View {
                 ForEach(Sport.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
             }
             .pickerStyle(.segmented)
-        } header: { Text("Sport") } footer: {
-            Text("Hockey and track each keep their own settings, calendar and workouts. Your name, nutrition and features are shared.")
+            Picker("Units", selection: s.units) {
+                ForEach(Units.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+        } header: { Text("Sport & units") } footer: {
+            Text("Hockey and track each keep their own settings, calendar and workouts. Your name, units, nutrition and features are shared.")
         }
         .listRowBackground(Theme.surface)
     }
@@ -341,6 +345,15 @@ struct SettingsView: View {
                     Label("Study new exercises", systemImage: "graduationcap.fill")
                     Spacer()
                     Text("\(st.learned.count) learned").foregroundStyle(Theme.text2)
+                }
+            }
+            NavigationLink {
+                MustDosEditor()
+            } label: {
+                HStack {
+                    Label("Mandatory exercises", systemImage: "checklist")
+                    Spacer()
+                    Text("\(st.mustDos.count)").foregroundStyle(Theme.text2)
                 }
             }
             Stepper("Extra sets: \(st.extraSets > 0 ? "+" : "")\(st.extraSets)", value: s.extraSets, in: -2...3)
@@ -541,9 +554,7 @@ struct SettingsView: View {
         Group {
             Section {
                 Stepper("Pucks I have: \(st.puckCount)", value: s.puckCount, in: 1...200)
-                Stepper("Shots per day: \(st.shotGoal)", value: s.shotGoal, in: 0...1000, step: 25)
-                Stepper("Stickhandling: \(st.stickGoal) min/day", value: s.stickGoal, in: 0...120, step: 5)
-            } header: { Text("On-ice goals") } footer: { Text("The puck counter uses your puck count to plan rounds.") }
+            } header: { Text("Pucks") } footer: { Text("Shooting uses your puck count to plan rounds. Shot and stickhandling goals are in Goals.") }
             .listRowBackground(Theme.surface)
             Section {
                 Toggle("Hockey drills in workouts", isOn: s.includeHockey)
@@ -580,20 +591,15 @@ struct SettingsView: View {
             }
             .listRowBackground(Theme.surface)
             Section {
-                Toggle("Warm-up reminder", isOn: s.remindMeetWarmup)
-                if st.remindMeetWarmup {
-                    Stepper("Start warm-up \(st.meetWarmupMinutes) min before", value: s.meetWarmupMinutes, in: 15...120, step: 5)
-                }
                 Toggle("Hand-timed marks", isOn: s.handTimed)
             } header: { Text("Meet day") } footer: {
-                Text("The reminder uses the meet's start time from your calendar. Hand-timed sprint marks get an \"h\" (they usually run about 0.24 s fast).")
+                Text("Hand-timed sprint marks get an \"h\" (they usually run about 0.24 s fast). Meet reminders are in Reminders.")
             }
             .listRowBackground(Theme.surface)
         }
         .onChange(of: st.meetDayBefore) { _, _ in rebuildIfAuto() }
         .onChange(of: st.meetDay) { _, _ in rebuildIfAuto() }
         .onChange(of: st.meetDayAfter) { _, _ in rebuildIfAuto() }
-        .onChange(of: st.remindMeetWarmup) { _, _ in refreshNotifications() }
         .onChange(of: st.trackGroup) { _, _ in rebuildIfAuto() }
     }
 
@@ -601,9 +607,8 @@ struct SettingsView: View {
         Section {
             Toggle("Auto-pause when you stop", isOn: s.gpsAutoPause)
             Toggle("Announce each \(st.units == .imperial ? "mile" : "kilometre")", isOn: s.gpsAnnounce)
-            Toggle("Live Activity & Dynamic Island", isOn: s.liveActivities)
         } header: { Text("GPS runs") } footer: {
-            Text("Start a GPS run from Train › Running. Your route, pace and splits are saved. The Dynamic Island shows the run or workout timer.")
+            Text("Start a GPS run from Train › Running. Your route, pace and splits are saved.")
         }
         .listRowBackground(Theme.surface)
     }
@@ -619,10 +624,6 @@ struct SettingsView: View {
                     Text("\(Int(store.targets.kcal)) kcal · \(Int(store.targets.protein))g P").foregroundStyle(Theme.text2)
                 }
             }
-            Picker("Units", selection: s.units) {
-                ForEach(Units.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
         } header: { Text("Nutrition") }
         .listRowBackground(Theme.surface)
     }
@@ -637,7 +638,8 @@ struct SettingsView: View {
                 Toggle("Auto-start after rest", isOn: s.autoAdvance)
                     .disabled(!st.restTimer)
                 Toggle("Keep the screen on", isOn: s.keepAwake)
-            } header: { Text("Timer") }
+                Toggle("Live Activity & Dynamic Island", isOn: s.liveActivities)
+            } header: { Text("Timer") } footer: { Text("The Lock Screen and Dynamic Island show the workout or GPS run timer.") }
             .listRowBackground(Theme.surface)
             Section {
                 Toggle("Show a coaching cue under each exercise", isOn: s.showCues)

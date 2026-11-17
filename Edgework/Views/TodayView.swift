@@ -606,5 +606,4 @@ enum Tips {
 
     static func list(for sport: Sport) -> [String] { sport == .track ? track : all }
 
-    static var forToday: String { all[Day.seed(Date()) % all.count] }
 }

@@ -214,7 +214,7 @@ final class Store: ObservableObject {
     }
 
     func targetText(_ item: WorkoutItem) -> String {
-        guard let ex = item.exercise else { return "" }
+        guard item.exercise != nil else { return "" }
         return measure(item).format(target(item))
     }
 

@@ -32,6 +32,12 @@ jobs:
             build 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD (SUCCEEDED|FAILED)" || true
           grep -q "BUILD SUCCEEDED" build.log
 
+      - name: Compiler warnings
+        if: always()
+        run: |
+          grep -E ": warning: " build.log | sed -E 's#^.*/(Edgework|EdgeworkWidgets|Shared)/#\1/#' | sort -u | tee warnings.txt | head -150 || true
+          echo "$(wc -l < warnings.txt) unique warnings"
+
       - name: Show errors
         if: failure()
         run: grep -E "error:" -A3 build.log | head -200

@@ -47,7 +47,7 @@ The app includes a widget extension (`com.obaba.edgework.widgets`) for the Home 
 - Every exercise has written steps, coaching cues, a muscle map and why it helps.
 - "Watch a demo" opens real form videos for that exercise on YouTube.
 - Hill workouts (jog up & down, repeats, sprints, power walks, bounds) show up when you add Hill / Ramp to your equipment. They count trips, not time: up builds endurance, down trains you to catch yourself. Every climb is timed so you can see your uphill speed change, rep to rep and against last time.
-- In the guided player, "How to" opens the steps without leaving your workout. The current set or rest timer shows on the Lock Screen and Dynamic Island.
+- In the guided player, "How to" opens the steps without leaving your workout. The current set or rest timer shows on the Lock Screen and Dynamic Island. The "breathe" rest timer between sets can be turned off on the start screen or in Settings › Timer; then the next set starts as soon as you tap Done.
 
 **Hockey**
 - **Shooting** (Train › Shooting): the shot tracker, with two switches. **Aim trainer** calls a shot and a target for every puck. **Puck counter** plans rounds for the pucks you own, counts them back in after each bucket and catches lost ones; with the aim trainer on it switches the pickup stop on or off.

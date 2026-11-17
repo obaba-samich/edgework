@@ -12,7 +12,7 @@ final class PlayerEngine: ObservableObject {
 
     let workout: Workout
     let items: [WorkoutItem]
-    let steps: [Step]
+    private(set) var steps: [Step]
     unowned let store: Store
 
     @Published var index = 0
@@ -36,6 +36,12 @@ final class PlayerEngine: ObservableObject {
         self.store = store
         let items = workout.ordered
         self.items = items
+        self.steps = Self.makeSteps(items, store: store)
+    }
+
+    /// Sets, side switches and (if the rest timer is on) rests, in order.
+    private static func makeSteps(_ items: [WorkoutItem], store: Store) -> [Step] {
+        let restTimer = store.data.settings.restTimer
         var steps: [Step] = []
         for (i, item) in items.enumerated() {
             guard let ex = item.exercise else { continue }
@@ -49,12 +55,20 @@ final class PlayerEngine: ObservableObject {
                     steps.append(.work(item: i, set: s, side: nil))
                 }
                 let isLast = isLastItem && s == item.sets
-                if !isLast && item.rest > 0 {
+                if restTimer && !isLast && item.rest > 0 {
                     steps.append(.rest(seconds: item.rest, label: s == item.sets ? "Next exercise" : "Rest"))
                 }
             }
         }
-        self.steps = steps
+        return steps
+    }
+
+    /// Before the workout starts, turning the rest timer on or off rebuilds the steps.
+    func setRestTimer(_ on: Bool) {
+        guard !started else { return }
+        store.data.settings.restTimer = on
+        steps = Self.makeSteps(items, store: store)
+        objectWillChange.send()
     }
 
     // MARK: Derived
@@ -379,6 +393,17 @@ struct PlayerView: View {
                 }
                 .padding(.top, 10)
             }
+            Toggle(isOn: Binding(get: { store.data.settings.restTimer }, set: { engine.setRestTimer($0) })) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Rest timer").font(.headline).foregroundStyle(Theme.text)
+                    Text(store.data.settings.restTimer ? "Breathe between sets" : "Next set starts when you tap Done")
+                        .font(.caption).foregroundStyle(Theme.text2)
+                }
+            }
+            .tint(Theme.green)
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Theme.surface))
+            .padding(.top, 10)
         }
     }
 

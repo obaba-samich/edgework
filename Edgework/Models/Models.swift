@@ -960,6 +960,8 @@ struct Settings: Codable {
     var remindGame = true
     var remindStreak = false
     var autoAdvance = true
+    /// The "breathe" rest timer between sets and exercises. Off: the next set starts as soon as you tap Done.
+    var restTimer = true
     var lineMode = true
     var puckCount = 10
     var sport = Sport.hockey
@@ -1070,6 +1072,7 @@ struct Settings: Codable {
         remindGame = try c.decodeIfPresent(Bool.self, forKey: .remindGame) ?? d.remindGame
         remindStreak = try c.decodeIfPresent(Bool.self, forKey: .remindStreak) ?? d.remindStreak
         autoAdvance = try c.decodeIfPresent(Bool.self, forKey: .autoAdvance) ?? d.autoAdvance
+        restTimer = try c.decodeIfPresent(Bool.self, forKey: .restTimer) ?? d.restTimer
         lineMode = try c.decodeIfPresent(Bool.self, forKey: .lineMode) ?? d.lineMode
         puckCount = try c.decodeIfPresent(Int.self, forKey: .puckCount) ?? d.puckCount
         sport = try c.decodeIfPresent(Sport.self, forKey: .sport) ?? d.sport
@@ -1150,7 +1153,7 @@ struct Settings: Codable {
     mutating func copyShared(from o: Settings) {
         name = o.name; units = o.units; weightKg = o.weightKg; heightCm = o.heightCm; age = o.age; sex = o.sex
         nutritionGoal = o.nutritionGoal; kcalOverride = o.kcalOverride; proteinOverride = o.proteinOverride
-        haptics = o.haptics; sounds = o.sounds; countdown = o.countdown; autoAdvance = o.autoAdvance
+        haptics = o.haptics; sounds = o.sounds; countdown = o.countdown; autoAdvance = o.autoAdvance; restTimer = o.restTimer
         keepAwake = o.keepAwake; showCues = o.showCues; addRestSeconds = o.addRestSeconds
         showFuel = o.showFuel; showMealGenerator = o.showMealGenerator; showReadiness = o.showReadiness
         showDailyGoals = o.showDailyGoals; showFigures = o.showFigures; showTips = o.showTips; figures3D = o.figures3D; figureSpeed = o.figureSpeed

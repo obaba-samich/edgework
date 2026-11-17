@@ -633,7 +633,9 @@ struct SettingsView: View {
                 Toggle("Haptics", isOn: s.haptics)
                 Toggle("Sounds", isOn: s.sounds)
                 Toggle("3-2-1 countdown", isOn: s.countdown)
+                Toggle("Rest timer between sets", isOn: s.restTimer)
                 Toggle("Auto-start after rest", isOn: s.autoAdvance)
+                    .disabled(!st.restTimer)
                 Toggle("Keep the screen on", isOn: s.keepAwake)
             } header: { Text("Timer") }
             .listRowBackground(Theme.surface)

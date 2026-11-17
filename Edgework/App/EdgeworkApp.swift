@@ -50,6 +50,8 @@ struct RootView: View {
     @State private var debugSheet = UserDefaults.standard.string(forKey: "showScreen")
     @State private var calendarMessage: String?
     @State private var showRun = false
+    @ObservedObject private var siri = SiriRouter.shared
+    @State private var siriScreen: AppSection?
 
     var body: some View {
         // Tabs come from a stable list (not an `if` inside the TabView), which kept eating the first tap on Library and Fuel.
@@ -150,6 +152,21 @@ struct RootView: View {
                 store.start(Workout(title: ex.name, subtitle: "", focus: .custom, items: [store.item(for: ex, block: .main)]))
             }
         }
+        .sheet(item: $siriScreen) { section in
+            NavigationStack {
+                switch section {
+                case .shooting: ShotTrackerView()
+                case .stickhandling: StickhandlingView()
+                case .running: RunLogView()
+                case .study: StudyView()
+                case .food: FuelView()
+                default: SettingsView()
+                }
+            }
+            .environmentObject(store)
+        }
+        .onChange(of: siri.pending) { _, action in handleSiri() }
+        .onAppear { handleSiri() }
         .sheet(isPresented: $showRun) {
             NavigationStack { GPSRunView() }.environmentObject(store)
         }
@@ -163,6 +180,8 @@ struct RootView: View {
                     if result.dropped > 0 { calendarMessage = "\(result.dropped) exercises in that workout aren't in this version of Edgework, so they were left out." }
                 } else if url.host == "today" {
                     tab = 0
+                } else if url.host == "open", let section = AppSection(rawValue: url.lastPathComponent) {
+                    open(section)
                 } else if url.host == "live" {
                     // Tapped the Dynamic Island or Lock Screen activity.
                     if url.path == "/run" {
@@ -194,6 +213,41 @@ struct RootView: View {
             case .background, .inactive: store.saveNow()
             @unknown default: break
             }
+        }
+    }
+}
+
+extension RootView {
+    /// Runs whatever Siri (or a Shortcut) asked for, once.
+    func handleSiri() {
+        guard let action = siri.pending else { return }
+        siri.pending = nil
+        switch action {
+        case .open(let section):
+            open(section)
+        case .startWorkout:
+            store.ensureToday()
+            tab = 0
+            if store.activeWorkout == nil, let w = store.data.today?.workout { store.start(w) }
+        case .logShots(let n):
+            store.addShots(.wrist, n)
+            calendarMessage = "Logged \(n) shots. \(store.daily().totalShots) of \(store.data.settings.shotGoal) today."
+        case .logWater:
+            store.updateDaily { $0.water += 1 }
+            calendarMessage = "Logged a water. \(store.daily().water) of \(store.data.settings.waterGoal) today."
+        }
+    }
+
+    func open(_ section: AppSection) {
+        siriScreen = nil
+        switch section {
+        case .today: tab = 0
+        case .train: tab = 1
+        case .library: tab = 2
+        case .food:
+            if store.data.settings.showFuel { tab = 3 } else { siriScreen = .food }
+        case .progress: tab = 4
+        default: siriScreen = section
         }
     }
 }

@@ -51,6 +51,7 @@ The app includes a widget extension (`com.pizza.edgework.widgets`) for the Home 
 
 **Hockey**
 - **Shooting** (Train › Shooting): the shot tracker, with two switches. **Aim trainer** calls a shot and a target for every puck. **Puck counter** plans rounds for the pucks you own, counts them back in after each bucket and catches lost ones; with the aim trainer on it switches the pickup stop on or off.
+- **Siri**: "Hey Siri, open food in Edgework" (or Shooting, Study, Running, Stickhandling, Progress, Library, Train, Today, Settings), "start my workout in Edgework", "log shots in Edgework" (Siri asks how many), "log water in Edgework". They also show up in the Shortcuts app.
 - Aim trainer with random or custom shot lists (shot type + target), using the same puck rounds as the counter. Every called shot counts toward today's shots. Tap Hit or Miss to build a heat map of your corners, by shot type.
 - Wrist Rotation program: stick and dumbbell wrist rotations, stick levers, towel wrings and forearm work.
 - Hands caller, shift timer and combine tests.

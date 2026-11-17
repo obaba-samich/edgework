@@ -126,19 +126,18 @@ extension Store {
         withMustDos(program.workout(rest: data.settings.rest))
     }
 
-    /// Adds your must-dos as the Mandatory section at the end. Workouts that already have that section
-    /// (generated ones, or one you edited) are left alone, so a must-do you removed for today stays removed.
+    /// Adds your must-dos, each at the end of its own section: mandatory warm-ups in Warm-up, main moves in
+    /// Main Set, stretches in Static Stretch, mobility in Cool-down. One that's already in the workout stays
+    /// where it is, so nothing is doubled. Used for programs, saved and imported workouts; generated ones add
+    /// their own.
     func withMustDos(_ workout: Workout) -> Workout {
         var w = workout
         guard !w.items.contains(where: { $0.block == .musts }) else { return w }
         let main = w.items.filter { $0.block == .main }
-        for var it in data.settings.mustDos where it.exercise.map({ ex in
-            Generator.mustDoFits(ex, focus: w.focus, sport: data.settings.sport, main: main)
-        }) ?? false {
-            // A must-do lives only in its own section, never inside its category's section too.
-            w.items.removeAll { $0.exerciseID == it.exerciseID }
+        for var it in data.settings.mustDos where !w.items.contains(where: { $0.exerciseID == it.exerciseID }) {
+            guard let ex = it.exercise, Generator.mustDoFits(ex, focus: w.focus, sport: data.settings.sport, main: main) else { continue }
             it.id = UUID()
-            it.block = .musts
+            it.block = Generator.mustDoBlock(ex)
             w.items.append(it)
         }
         return w

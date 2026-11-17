@@ -536,7 +536,7 @@ struct DayPreviewSheet: View {
                         Text("\(store.estimateMinutes(workout)) min · \(workout.items.count) moves · \(workout.totalSets) sets")
                             .font(.subheadline).foregroundStyle(Theme.text2)
                     }
-                    // One card per section, so Mandatory shows as its own section at the end.
+                    // One card per section. Mandatory exercises sit in their own section with a red checklist mark.
                     ForEach(Block.allCases) { block in
                         let items = workout.items.filter { $0.block == block && $0.exercise != nil }
                         if !items.isEmpty {
@@ -545,7 +545,8 @@ struct DayPreviewSheet: View {
                                 VStack(spacing: 0) {
                                     ForEach(items) { item in
                                         if let ex = item.exercise {
-                                            ExerciseRowLabel(exercise: ex, trailing: "\(item.sets)×\(store.targetText(item))")
+                                            ExerciseRowLabel(exercise: ex, trailing: "\(item.sets)×\(store.targetText(item))",
+                                                             required: store.isRequired(ex.id))
                                                 .padding(.vertical, 8)
                                         }
                                     }

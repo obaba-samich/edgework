@@ -1076,7 +1076,7 @@ struct MustDosEditor: View {
                 .onDelete { items.wrappedValue.remove(atOffsets: $0) }
                 .onMove { items.wrappedValue.move(fromOffsets: $0, toOffset: $1) }
             } header: { Text("Your must-dos") } footer: {
-                Text("Must-dos go at the end of every workout and program, in their own Mandatory section. Shooting and stickhandling only join hands, upper-body, strength and full-body workouts, not leg, speed or recovery days.")
+                Text("Must-dos go into every workout and program, at the end of their own section: warm-ups in Warm-up, main moves in Main Set, stretches in Static Stretch, mobility in Cool-down. Shooting and stickhandling only join hands, upper-body, strength and full-body workouts, not leg, speed or recovery days.")
             }
             .listRowBackground(Theme.surface)
         }

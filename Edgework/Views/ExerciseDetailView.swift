@@ -226,7 +226,7 @@ struct ExerciseDetailView: View {
                     let hands = ex.category == .shooting || ex.category == .stickhandling
                     Text(hands ? "Mandatory in arm & hands workouts" : "Mandatory in every workout").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
                     Text(hands ? "Added to hands, upper-body, strength and full-body workouts. Skipped on leg and speed days."
-                         : (required ? "Added to the end of every workout and program, in the Mandatory section. Change sets in Library › Mandatory." : "Like a mandatory run or a daily stretch."))
+                         : (required ? "Added to every workout and program, at the end of its own section (a warm-up goes in Warm-up). Change sets in Library › Mandatory." : "Like a mandatory run or a daily stretch."))
                         .font(.caption).foregroundStyle(Theme.text3)
                 }
             }

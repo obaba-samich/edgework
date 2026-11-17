@@ -81,7 +81,7 @@ enum Generator {
         }()
         func pool(_ cat: Category) -> [Exercise] { available.filter { $0.category == cat } }
 
-        // Required exercises only show up in the Required block at the end, never inside their own category.
+        // Mandatory exercises are added once, at the end of their own section, so the generator doesn't pick them too.
         var used = Set(settings.mustDos.map(\.exerciseID))
         var items: [WorkoutItem] = []
 
@@ -208,16 +208,6 @@ enum Generator {
         main.sort { ($0.exercise?.category.sessionRank ?? 0) < ($1.exercise?.category.sessionRank ?? 0) }
         items += main
 
-        // Must-dos the player set as mandatory for every workout.
-        for var it in settings.mustDos where it.exercise.map({ ex in
-            mustDoFits(ex, focus: focus, sport: settings.sport, main: main)
-        }) ?? false {
-            it.id = UUID()
-            it.block = .musts
-            used.insert(it.exerciseID)
-            items.append(it)
-        }
-
         // Finisher
         if wantsRunFinisher {
             let short: Set<String> = ["strides", "sprints-200", "hill-sprints", "shuttle-run", "repeats-400"]
@@ -227,10 +217,26 @@ enum Generator {
         }
         items += cool
 
+        // Must-dos the player set as mandatory, each at the end of its own section (warm-ups in Warm-up, and so on).
+        for var it in settings.mustDos {
+            guard let ex = it.exercise, mustDoFits(ex, focus: focus, sport: settings.sport, main: main) else { continue }
+            it.id = UUID()
+            it.block = mustDoBlock(ex)
+            items.append(it)
+        }
+
         return Workout(title: focus.title, subtitle: focus.tagline, focus: focus, items: items)
     }
 
-    /// Required exercises go in every workout, except shooting and stickhandling, which only join workouts that
+    /// The section a mandatory exercise belongs in, from what kind of move it is.
+    static func mustDoBlock(_ ex: Exercise) -> Block {
+        if ex.category == .warmup { return .warmup }
+        if Library.staticStretchIDs.contains(ex.id) { return .stretch }
+        if ex.category == .mobility { return .cooldown }
+        return .main
+    }
+
+    /// Mandatory exercises go in every workout, except shooting and stickhandling, which only join workouts that
     /// use your arms and hands (hands, upper body, full body, strength or custom). Pass the main items to also
     /// allow them when the main block already has arm or stick work. A leg day doesn't get shots added.
     static func mustDoFits(_ ex: Exercise, focus: Focus, sport: Sport, main: [WorkoutItem]) -> Bool {

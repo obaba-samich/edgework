@@ -414,7 +414,7 @@ struct PlayerView: View {
         let timed = m == .seconds
         return VStack(spacing: 16) {
             VStack(spacing: 8) {
-                Overline("\(item.block.title) · Set \(set) of \(item.sets)", color: color)
+                Overline("\(item.block.title)\(store.isRequired(ex.id) ? " · Mandatory" : "") · Set \(set) of \(item.sets)", color: color)
                 Text(ex.name)
                     .font(.display(36))
                     .foregroundStyle(Theme.text)

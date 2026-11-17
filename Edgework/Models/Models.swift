@@ -266,7 +266,8 @@ struct Exercise: Identifiable, Hashable {
 // MARK: - Workouts
 
 enum Block: String, Codable, CaseIterable, Identifiable {
-    /// Order here is the order in a workout. Required (must-dos) always go last.
+    /// Order here is the order in a workout. `musts` is only in workouts saved by older versions:
+    /// mandatory exercises now go at the end of their own section instead.
     case warmup, stretch, main, finisher, cooldown, musts
     var id: String { rawValue }
     var title: String {

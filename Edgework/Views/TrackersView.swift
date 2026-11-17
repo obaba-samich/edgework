@@ -57,9 +57,12 @@ struct DailyGoalsCard: View {
 
 // MARK: - Shot tracker
 
+/// Shooting: the shot tracker, with the aim trainer and puck counter built in as switches.
 struct ShotTrackerView: View {
     @EnvironmentObject var store: Store
     @State private var date = Date()
+    @AppStorage("shootAim") private var aimOn = false
+    @AppStorage("shootPucks") private var pucksOn = false
 
     private struct DayShots: Identifiable {
         let date: Date
@@ -75,8 +78,14 @@ struct ShotTrackerView: View {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
                     Overline(Day.key(date) == Day.key(Date()) ? "Today" : date.formatted(.dateTime.weekday(.wide).month().day()), color: Color(hex: 0xB8F36B))
-                    Text("Shot Tracker").font(.display(32)).foregroundStyle(Theme.text)
+                    Text("Shooting").font(.display(32)).foregroundStyle(Theme.text)
                 }
+                modes
+                if aimOn {
+                    AimTrainerView(embedded: true, countPucks: pucksOn)
+                } else if pucksOn {
+                    PuckCounterView(embedded: true)
+                } else {
                 HStack(spacing: 18) {
                     ZStack {
                         Ring(progress: Double(log.totalShots) / Double(max(1, goal)), color: Color(hex: 0xB8F36B), lineWidth: 14)
@@ -133,10 +142,11 @@ struct ShotTrackerView: View {
                 }
                 .cardStyle(padding: 14)
 
-                NavigationLink { PuckCounterView() } label: {
-                    Label("Shoot a bucket with the Puck Counter", systemImage: "circle.grid.3x3.fill")
+                Button { withAnimation { pucksOn = true } } label: {
+                    Label("Shoot a bucket with the puck counter", systemImage: "circle.grid.3x3.fill")
                 }
                 .buttonStyle(SecondaryButtonStyle(color: Color(hex: 0xB8F36B)))
+                }
 
                 chart
 
@@ -147,6 +157,31 @@ struct ShotTrackerView: View {
         }
         .screenBackground()
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var modes: some View {
+        VStack(spacing: 12) {
+            Toggle(isOn: $aimOn.animation()) {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Aim trainer").font(.headline).foregroundStyle(Theme.text)
+                        Text("Calls a shot and a target for every puck").font(.caption).foregroundStyle(Theme.text2)
+                    }
+                } icon: { Image(systemName: "target").foregroundStyle(Color(hex: 0xB8F36B)) }
+            }
+            Divider().overlay(Theme.stroke)
+            Toggle(isOn: $pucksOn.animation()) {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Puck counter").font(.headline).foregroundStyle(Theme.text)
+                        Text(aimOn ? "Count pucks back in after each bucket" : "Shoot a bucket, pick up, repeat until your number")
+                            .font(.caption).foregroundStyle(Theme.text2)
+                    }
+                } icon: { Image(systemName: "circle.grid.3x3.fill").foregroundStyle(Color(hex: 0xB8F36B)) }
+            }
+        }
+        .tint(Color(hex: 0xB8F36B))
+        .cardStyle(padding: 14)
     }
 
     private var chart: some View {

@@ -3,6 +3,8 @@ import SwiftUI
 /// Shoot a bucket, pick it back up, repeat until the shot goal is hit. Tracks every puck so none go missing.
 struct PuckCounterView: View {
     @EnvironmentObject var store: Store
+    /// Shown inside the Shooting screen instead of on its own.
+    var embedded = false
 
     enum Phase { case setup, shooting, pickup, done }
 
@@ -25,26 +27,7 @@ struct PuckCounterView: View {
     private var outThere: Int { max(0, inHand - pickedUp) }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Overline("Shooting", color: Color(hex: 0xB8F36B))
-                    Text("Puck Counter").font(.display(32)).foregroundStyle(Theme.text)
-                    Text("Shoot your bucket, pick them all up, repeat until you hit your number.")
-                        .font(.subheadline).foregroundStyle(Theme.text2)
-                }
-                progressCard
-                switch phase {
-                case .setup: setup
-                case .shooting: shooting
-                case .pickup: pickup
-                case .done: done
-                }
-            }
-            .padding(16)
-        }
-        .screenBackground()
-        .navigationBarTitleDisplayMode(.inline)
+        container
         .toolbar {
             if phase == .shooting || phase == .pickup {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -56,6 +39,36 @@ struct PuckCounterView: View {
             }
         }
         .onAppear { if goal <= 0 { goal = max(10, store.data.settings.shotGoal) } }
+    }
+
+    @ViewBuilder private var container: some View {
+        if embedded {
+            content
+        } else {
+            ScrollView { content.padding(16) }
+                .screenBackground()
+                .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if !embedded {
+                VStack(alignment: .leading, spacing: 4) {
+                    Overline("Shooting", color: Color(hex: 0xB8F36B))
+                    Text("Puck Counter").font(.display(32)).foregroundStyle(Theme.text)
+                    Text("Shoot your bucket, pick them all up, repeat until you hit your number.")
+                        .font(.subheadline).foregroundStyle(Theme.text2)
+                }
+            }
+            progressCard
+            switch phase {
+            case .setup: setup
+            case .shooting: shooting
+            case .pickup: pickup
+            case .done: done
+            }
+        }
     }
 
     // MARK: Pieces

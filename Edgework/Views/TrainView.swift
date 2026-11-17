@@ -126,7 +126,7 @@ struct TrainView: View {
             if store.data.settings.showHockeyTools {
             HStack(spacing: 10) {
                 NavigationLink { ShotTrackerView() } label: {
-                    toolTile("Shot Tracker", "Count every puck", "scope", Color(hex: 0xB8F36B))
+                    toolTile("Shooting", "Tracker, aim trainer, puck counter", "scope", Color(hex: 0xB8F36B))
                 }
                 NavigationLink { StickhandlingView() } label: {
                     toolTile("Stickhandling", "Timer & daily minutes", "figure.hockey", Color(hex: 0xF5D76E))
@@ -143,15 +143,9 @@ struct TrainView: View {
             }
             if store.data.settings.showHockeyTools {
             HStack(spacing: 10) {
-                NavigationLink { AimTrainerView() } label: {
-                    toolTile("Aim Trainer", "Random target calls", "target", Color(hex: 0xB8F36B))
-                }
                 NavigationLink { HandsCallerView() } label: {
                     toolTile("Hands Caller", "React to called moves", "waveform", Color(hex: 0xF5D76E))
                 }
-            }
-            NavigationLink { PuckCounterView() } label: {
-                toolTile("Puck Counter", "Shoot the bucket, pick up every puck", "circle.grid.3x3.fill", Color(hex: 0xB8F36B))
             }
             }
         }

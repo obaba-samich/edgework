@@ -5,6 +5,10 @@ import AudioToolbox
 
 struct AimTrainerView: View {
     @EnvironmentObject var store: Store
+    /// Shown inside the Shooting screen instead of on its own.
+    var embedded = false
+    /// Stop after each bucket to count pucks back in. Off: the next bucket starts straight away.
+    var countPucks = true
 
     enum Zone: String, CaseIterable, Identifiable {
         case topLeft, topRight, lowLeft, lowRight, fiveHole, topMiddle
@@ -94,13 +98,40 @@ struct AimTrainerView: View {
     private var activePucks: Int { max(0, pucks - lost) }
     private var remaining: Int { max(0, goal - called) }
     var body: some View {
-        ScrollView {
+        container
+        .toolbar {
+            if phase == .calling || phase == .pickup {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("End & log") { finish() }
+                }
+            }
+        }
+        .sheet(isPresented: $sharing) { ShareCardSheet(title: "Aim Trainer", card: shareCard) }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
+            if phase == .calling || phase == .pickup { logShots() }
+        }
+    }
+
+    @ViewBuilder private var container: some View {
+        if embedded {
+            content
+        } else {
+            ScrollView { content.padding(16) }
+                .screenBackground()
+                .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private var content: some View {
             VStack(alignment: .leading, spacing: 16) {
+                if !embedded {
                 VStack(alignment: .leading, spacing: 4) {
                     Overline("Shooting", color: Self.lime)
                     Text("Aim Trainer").font(.display(32)).foregroundStyle(Theme.text)
                     Text("A target and shot get called. Shoot a bucket, pick them up, repeat. Every shot counts toward today.")
                         .font(.subheadline).foregroundStyle(Theme.text2)
+                }
                 }
                 progressCard
                 switch phase {
@@ -114,22 +145,6 @@ struct AimTrainerView: View {
                 case .done: done
                 }
             }
-            .padding(16)
-        }
-        .screenBackground()
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if phase == .calling || phase == .pickup {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("End & log") { finish() }
-                }
-            }
-        }
-        .sheet(isPresented: $sharing) { ShareCardSheet(title: "Aim Trainer", card: shareCard) }
-        .onDisappear {
-            UIApplication.shared.isIdleTimerDisabled = false
-            if phase == .calling || phase == .pickup { logShots() }
-        }
     }
 
     // MARK: Pieces
@@ -409,6 +424,11 @@ struct AimTrainerView: View {
         } else {
             // Bucket's empty: go pick them up.
             bucketStart = nil
+            guard countPucks else {
+                pickedUp = bucketSize
+                store.notify(.success)
+                return nextBucket()
+            }
             pickedUp = 0
             phase = .pickup
             store.notify(.success)

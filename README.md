@@ -50,7 +50,7 @@ The app includes a widget extension (`com.pizza.edgework.widgets`) for the Home 
 - In the guided player, "How to" opens the steps without leaving your workout. The current set or rest timer shows on the Lock Screen and Dynamic Island.
 
 **Hockey**
-- Shot tracker and a puck counter that plans rounds for the pucks you own and catches lost ones.
+- **Shooting** (Train › Shooting): the shot tracker, with two switches. **Aim trainer** calls a shot and a target for every puck. **Puck counter** plans rounds for the pucks you own, counts them back in after each bucket and catches lost ones; with the aim trainer on it switches the pickup stop on or off.
 - Aim trainer with random or custom shot lists (shot type + target), using the same puck rounds as the counter. Every called shot counts toward today's shots. Tap Hit or Miss to build a heat map of your corners, by shot type.
 - Wrist Rotation program: stick and dumbbell wrist rotations, stick levers, towel wrings and forearm work.
 - Hands caller, shift timer and combine tests.

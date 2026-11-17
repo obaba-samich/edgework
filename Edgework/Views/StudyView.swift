@@ -6,11 +6,22 @@ struct StudyView: View {
     @State private var skipped: Set<String> = []
     @State private var showSteps = false
     @State private var category: Category?
+    /// Only the level right above yours, so you can work through it and move up.
+    @State private var nextOnly = true
 
     private var settings: Settings { store.data.settings }
 
-    /// Everything you don't know yet for your sport and equipment, easiest-to-know first.
+    /// The level right above your Exercises I know setting, if there is one.
+    private var nextLevel: Knowledge? { Knowledge(rawValue: settings.knowledgeLevel + 1) }
+
     private var queue: [Exercise] {
+        let all = fullQueue
+        guard nextOnly, let next = nextLevel else { return all }
+        return all.filter { Library.familiarity($0.id) == next.rawValue }
+    }
+
+    /// Everything you don't know yet for your sport and equipment, easiest-to-know first.
+    private var fullQueue: [Exercise] {
         let other = settings.sport == .track ? Category.hockeyOnly : Category.trackOnly
         return Library.all
             .filter { !settings.isFamiliar($0) && !settings.excluded.contains($0.id) && !other.contains($0.category) }
@@ -41,10 +52,14 @@ struct StudyView: View {
                         .font(.footnote).foregroundStyle(Theme.text2).cardStyle()
                 }
 
+                if let next = nextLevel { nextLevelCard(next) }
+
                 categoryFilter
 
                 if let ex = current {
                     card(ex)
+                } else if nextOnly, category == nil, let next = nextLevel {
+                    moveUpCard(next)
                 } else {
                     EmptyState(symbol: "checkmark.seal.fill", title: "Nothing left to learn",
                                message: category == nil ? "You know every exercise for your equipment." : "Pick another category.")
@@ -64,8 +79,49 @@ struct StudyView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    private func nextLevelCard(_ next: Knowledge) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle(isOn: $nextOnly.animation()) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Study the next level").font(.headline).foregroundStyle(Theme.text)
+                    Text("Level \(next.rawValue) of 9: \(next.fullTitle)").font(.caption).foregroundStyle(Theme.text2)
+                }
+            }
+            .tint(Theme.ice)
+            if nextOnly {
+                let left = queue.count
+                Text(left == 0 ? "All done. Move up when you're ready." : "\(left) move\(left == 1 ? "" : "s") left in this level. Learn them all and you can move up.")
+                    .font(.footnote).foregroundStyle(Theme.text2)
+            }
+        }
+        .cardStyle()
+    }
+
+    /// Shown when you've learned every move in the next level.
+    private func moveUpCard(_ next: Knowledge) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("You know all of \(next.title)", systemImage: "arrow.up.circle.fill")
+                .font(.headline).foregroundStyle(Theme.green)
+            Text("Move your Exercises I know setting up to level \(next.rawValue), \(next.fullTitle). Your workouts start using every move in it.")
+                .font(.subheadline).foregroundStyle(Theme.text2)
+            Button {
+                withAnimation {
+                    // Those moves are covered by the level now, so they don't need to stay in Learned.
+                    let ids = Set(Library.familiarityLevels[next.rawValue - 1])
+                    store.data.settings.learned.subtract(ids)
+                    store.data.settings.knowledgeLevel = next.rawValue
+                    skipped = []
+                    category = nil
+                }
+                store.notify(.success)
+            } label: { Label("Move up to level \(next.rawValue)", systemImage: "arrow.up") }
+                .buttonStyle(PrimaryButtonStyle(color: Theme.green))
+        }
+        .cardStyle()
+    }
+
     private var categoryFilter: some View {
-        let cats = Array(Set(Library.all.filter { !settings.isFamiliar($0) }.map(\.category)))
+        let cats = Array(Set(Library.all.filter { ex in !settings.isFamiliar(ex) && (!nextOnly || nextLevel.map { Library.familiarity(ex.id) == $0.rawValue } ?? true) }.map(\.category)))
             .filter { !(settings.sport == .track ? Category.hockeyOnly : Category.trackOnly).contains($0) }
             .sorted { $0.title < $1.title }
         return ScrollView(.horizontal, showsIndicators: false) {
@@ -88,7 +144,7 @@ struct StudyView: View {
                 IconBadge(symbol: ex.symbol, color: color, size: 54)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(ex.name).font(.display(26)).foregroundStyle(Theme.text)
-                    Text("\(ex.category.title) · \((Knowledge(rawValue: Library.familiarity(ex.id)) ?? .everything).fullTitle)")
+                    Text("\(ex.category.title) · Level \(Library.familiarity(ex.id)) · \((Knowledge(rawValue: Library.familiarity(ex.id)) ?? .everything).fullTitle)")
                         .font(.caption.weight(.semibold)).foregroundStyle(color)
                 }
             }
@@ -128,6 +184,14 @@ struct StudyView: View {
                 } label: { Text("Later") }
                     .buttonStyle(SecondaryButtonStyle())
             }
+            Button {
+                withAnimation {
+                    store.data.settings.learned.insert(ex.id)
+                    showSteps = false
+                }
+                store.haptic(.light)
+            } label: { Label("I already know this one", systemImage: "hand.thumbsup.fill") }
+                .buttonStyle(SecondaryButtonStyle(color: Theme.green))
             Button {
                 withAnimation {
                     store.data.settings.learned.insert(ex.id)

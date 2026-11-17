@@ -5,3 +5,9 @@ Payload/
 .DS_Store
 Edgework/Info.plist
 EdgeworkWidgets/Info.plist
+build.log
+DerivedData/
+xcuserdata/
+*.xcuserstate
+__pycache__/
+shots/

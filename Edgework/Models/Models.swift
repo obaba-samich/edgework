@@ -274,7 +274,7 @@ enum Block: String, Codable, CaseIterable, Identifiable {
         case .warmup: "Warm-up"
         case .stretch: "Static Stretch"
         case .main: "Main Set"
-        case .musts: "Required"
+        case .musts: "Mandatory"
         case .finisher: "Finisher"
         case .cooldown: "Cool-down"
         }

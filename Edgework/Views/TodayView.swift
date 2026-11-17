@@ -536,15 +536,24 @@ struct DayPreviewSheet: View {
                         Text("\(store.estimateMinutes(workout)) min · \(workout.items.count) moves · \(workout.totalSets) sets")
                             .font(.subheadline).foregroundStyle(Theme.text2)
                     }
-                    VStack(spacing: 0) {
-                        ForEach(workout.ordered) { item in
-                            if let ex = item.exercise {
-                                ExerciseRowLabel(exercise: ex, trailing: "\(item.sets)×\(store.targetText(item))")
-                                    .padding(.vertical, 8)
+                    // One card per section, so Mandatory shows as its own section at the end.
+                    ForEach(Block.allCases) { block in
+                        let items = workout.items.filter { $0.block == block && $0.exercise != nil }
+                        if !items.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Overline(block.title, color: block == .musts ? Theme.red : Theme.text2)
+                                VStack(spacing: 0) {
+                                    ForEach(items) { item in
+                                        if let ex = item.exercise {
+                                            ExerciseRowLabel(exercise: ex, trailing: "\(item.sets)×\(store.targetText(item))")
+                                                .padding(.vertical, 8)
+                                        }
+                                    }
+                                }
+                                .cardStyle(padding: 12)
                             }
                         }
                     }
-                    .cardStyle(padding: 12)
 
                     Button {
                         dismiss()

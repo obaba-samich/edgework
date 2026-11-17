@@ -68,7 +68,7 @@ struct WorkoutDetailView: View {
                     if !items.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
-                                Overline(block.title)
+                                Overline(block.title, color: block == .musts ? Theme.red : Theme.text2)
                                 Spacer()
                                 Text("~\(max(1, items.map(store.estimateSeconds).reduce(0, +) / 60)) min")
                                     .font(.number(12, .semibold)).foregroundStyle(Theme.text3)

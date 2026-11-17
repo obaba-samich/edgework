@@ -111,7 +111,7 @@ struct SettingsView: View {
             }
             page("Goals", "target", Theme.green, detail: nil) { goals }
         } header: { Text("Training") } footer: {
-            Text("Required and priority exercises are set in the Library: long-press any exercise, or open it.")
+            Text("Mandatory and priority exercises are set in the Library: long-press any exercise, or open it.")
         }
         .listRowBackground(Theme.surface)
     }

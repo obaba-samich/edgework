@@ -58,7 +58,7 @@ struct LibraryView: View {
                                         Button {
                                             store.setRequired(ex, !store.isRequired(ex.id))
                                         } label: {
-                                            Label(store.isRequired(ex.id) ? "Not required" : (ex.category == .shooting || ex.category == .stickhandling ? "Required in arm & hands workouts" : "Required in every workout"),
+                                            Label(store.isRequired(ex.id) ? "Not mandatory" : (ex.category == .shooting || ex.category == .stickhandling ? "Mandatory in arm & hands workouts" : "Mandatory in every workout"),
                                                   systemImage: store.isRequired(ex.id) ? "checklist.unchecked" : "checklist")
                                         }
                                         Button { store.toggleFavorite(ex.id) } label: {
@@ -87,7 +87,7 @@ struct LibraryView: View {
                     NavigationLink {
                         MustDosEditor()
                     } label: {
-                        Label("Required (\(store.data.settings.mustDos.count))", systemImage: "checklist")
+                        Label("Mandatory (\(store.data.settings.mustDos.count))", systemImage: "checklist")
                             .labelStyle(.titleAndIcon)
                     }
                 }
@@ -126,7 +126,7 @@ struct LibraryView: View {
                     Chip(text: "Priority", symbol: "arrow.up.circle.fill", color: Theme.green, filled: planFilter == 1)
                 }
                 Button { planFilter = planFilter == 2 ? 0 : 2 } label: {
-                    Chip(text: "Required", symbol: "checklist", color: Theme.red, filled: planFilter == 2)
+                    Chip(text: "Mandatory", symbol: "checklist", color: Theme.red, filled: planFilter == 2)
                 }
             }
             .buttonStyle(PressableStyle())

@@ -153,14 +153,21 @@ struct RootView: View {
             }
         }
         .sheet(item: $siriScreen) { section in
-            NavigationStack {
-                switch section {
-                case .shooting: ShotTrackerView()
-                case .stickhandling: StickhandlingView()
-                case .running: RunLogView()
-                case .study: StudyView()
-                case .food: FuelView()
-                default: SettingsView()
+            Group {
+                // Settings and Fuel bring their own navigation stacks; the rest need one.
+                if section == .settings {
+                    SettingsView()
+                } else if section == .food {
+                    FuelView()
+                } else {
+                    NavigationStack {
+                        switch section {
+                        case .shooting: ShotTrackerView()
+                        case .stickhandling: StickhandlingView()
+                        case .running: RunLogView()
+                        default: StudyView()
+                        }
+                    }
                 }
             }
             .environmentObject(store)

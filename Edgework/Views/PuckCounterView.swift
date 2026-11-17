@@ -39,6 +39,8 @@ struct PuckCounterView: View {
             }
         }
         .onAppear { if goal <= 0 { goal = max(10, store.data.settings.shotGoal) } }
+        // Leaving mid-session (or switching the puck counter off) still counts the shots you took.
+        .onDisappear { if phase == .shooting || phase == .pickup { logShots() } }
     }
 
     @ViewBuilder private var container: some View {

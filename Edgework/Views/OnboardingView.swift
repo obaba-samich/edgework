@@ -325,7 +325,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 12) {
             title("Exercises", "Which of these do you know?",
                   "Not about how hard they are. Edgework has 300+ moves and some have names you've never heard, so this picks which ones show up in your workouts.")
-            KnowledgeQuiz(accent: accent)
+            KnowledgeQuiz(accent: accent, sport: goal == .track ? .track : .hockey)
             section("Or pick it yourself")
             ForEach(KnowledgeSection.allCases) { sec in
                 VStack(alignment: .leading, spacing: 8) {

@@ -1155,6 +1155,8 @@ struct Settings: Codable {
         name = o.name; units = o.units; weightKg = o.weightKg; heightCm = o.heightCm; age = o.age; sex = o.sex
         nutritionGoal = o.nutritionGoal; kcalOverride = o.kcalOverride; proteinOverride = o.proteinOverride
         haptics = o.haptics; sounds = o.sounds; countdown = o.countdown; autoAdvance = o.autoAdvance; restTimer = o.restTimer
+        // What you know is about you, not the sport.
+        knowledgeLevel = o.knowledgeLevel; learned = o.learned
         keepAwake = o.keepAwake; showCues = o.showCues; addRestSeconds = o.addRestSeconds
         showFuel = o.showFuel; showMealGenerator = o.showMealGenerator; showReadiness = o.showReadiness
         showDailyGoals = o.showDailyGoals; showFigures = o.showFigures; showTips = o.showTips; figures3D = o.figures3D; figureSpeed = o.figureSpeed

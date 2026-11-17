@@ -5,6 +5,8 @@ import SwiftUI
 struct KnowledgeQuiz: View {
     @EnvironmentObject var store: Store
     var accent: Color = Theme.ice
+    /// Setup passes the sport you just picked, since it isn't saved until the end.
+    var sport: Sport? = nil
     @State private var sample: [Exercise] = []
     @State private var picked: Set<String> = []
     @State private var answered = false
@@ -62,7 +64,7 @@ struct KnowledgeQuiz: View {
                 } label: { Text("Don't know any") }
                     .buttonStyle(SecondaryButtonStyle())
                 Button {
-                    sample = Self.makeSample(sport: store.data.settings.sport)
+                    sample = Self.makeSample(sport: sport ?? store.data.settings.sport)
                     picked = []
                     answered = false
                 } label: { Label("New set", systemImage: "arrow.clockwise") }
@@ -80,7 +82,7 @@ struct KnowledgeQuiz: View {
                 .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(accent.opacity(0.12)))
             }
         }
-        .onAppear { if sample.isEmpty { sample = Self.makeSample(sport: store.data.settings.sport) } }
+        .onAppear { if sample.isEmpty { sample = Self.makeSample(sport: sport ?? store.data.settings.sport) } }
         .sheet(item: $info) { ex in
             NavigationStack { ExerciseDetailView(exercise: ex) }.environmentObject(store)
         }

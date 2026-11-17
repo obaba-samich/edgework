@@ -218,7 +218,8 @@ enum Generator {
         items += cool
 
         // Must-dos the player set as mandatory, each at the end of its own section (warm-ups in Warm-up, and so on).
-        for var it in settings.mustDos {
+        for var it in settings.mustDos where !items.contains(where: { $0.exerciseID == it.exerciseID }) {
+            // Already in from your warm-up routine or the warm-up jog: leave it there instead of doubling it.
             guard let ex = it.exercise, mustDoFits(ex, focus: focus, sport: settings.sport, main: main) else { continue }
             it.id = UUID()
             it.block = mustDoBlock(ex)

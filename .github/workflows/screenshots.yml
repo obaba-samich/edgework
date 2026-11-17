@@ -28,7 +28,7 @@ jobs:
       - name: Screenshots
         run: |
           APP=build/Build/Products/Debug-iphonesimulator/Edgework.app
-          ID=com.pizza.edgework
+          ID=com.obaba.edgework
           mkdir -p shots
           xcrun simctl status_bar "$UDID" override --time 9:41 --batteryLevel 100 --cellularBars 4
           xcrun simctl install "$UDID" "$APP"

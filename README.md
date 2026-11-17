@@ -23,7 +23,7 @@ Edgework isn't on the App Store. Download `Edgework.ipa` from the [latest releas
 - A paid Apple Developer account or a signing service.
 - [TrollStore](https://github.com/opa334/TrollStore), on supported iOS versions.
 
-The app includes a widget extension (`com.pizza.edgework.widgets`) for the Home Screen widgets and the Lock Screen and Dynamic Island timers. The widgets read from the App Group `group.com.pizza.edgework` (AltStore and SideStore rename it, and the app picks that up). If your signer drops the extension or the App Group, the app still works. The widgets then say "Open Edgework to set up this widget".
+The app includes a widget extension (`com.obaba.edgework.widgets`) for the Home Screen widgets and the Lock Screen and Dynamic Island timers. The widgets read from the App Group `group.com.obaba.edgework` (AltStore and SideStore rename it, and the app picks that up). If your signer drops the extension or the App Group, the app still works. The widgets then say "Open Edgework to set up this widget".
 
 ## What's inside
 

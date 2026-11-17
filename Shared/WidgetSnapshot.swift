@@ -22,7 +22,7 @@ struct WidgetSnapshot: Codable, Equatable {
     /// AltStore and SideStore rename App Groups and list the real IDs under `ALTAppGroups`, so check those first.
     static var groupID: String? {
         let renamed = Bundle.main.object(forInfoDictionaryKey: "ALTAppGroups") as? [String] ?? []
-        return (renamed + ["group.com.pizza.edgework"]).first {
+        return (renamed + ["group.com.obaba.edgework"]).first {
             FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: $0) != nil
         }
     }

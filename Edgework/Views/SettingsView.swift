@@ -621,7 +621,12 @@ struct SettingsView: View {
 
     private var goals: some View {
         Section {
-            Stepper("Water: \(st.waterGoal) glasses/day", value: s.waterGoal, in: 0...20)
+            Stepper("Water: \(st.waterUnit.text(st.waterGoal))/day",
+                    value: Binding(get: { st.waterUnit.fromGlasses(st.waterGoal) }, set: { store.data.settings.waterGoal = max(0, st.waterUnit.toGlasses($0)) }),
+                    in: 0...(st.waterUnit.perGlass * 20), step: st.waterUnit.step)
+            Picker("Water unit", selection: s.waterUnit) {
+                ForEach(WaterUnit.allCases) { Text($0.title).tag($0) }
+            }
             Stepper("Running: \(store.distanceText(st.runGoalKm))/week", value: s.runGoalKm, in: 0...150, step: 1)
             if st.sport == .hockey {
                 Stepper("Shots per day: \(st.shotGoal)", value: s.shotGoal, in: 0...1000, step: 25)

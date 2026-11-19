@@ -50,7 +50,8 @@ struct DailyLog: Codable, Hashable {
     var onTarget = 0
     var stickMinutes = 0
     var runKm = 0.0
-    var water = 0
+    /// Glasses of water (8 fl oz each). Can be a decimal, like 2.5.
+    var water = 0.0
     var sleep: Double?
     var soreness: Int?
     var energy: Int?
@@ -76,7 +77,7 @@ struct DailyLog: Codable, Hashable {
         onTarget = try c.decodeIfPresent(Int.self, forKey: .onTarget) ?? 0
         stickMinutes = try c.decodeIfPresent(Int.self, forKey: .stickMinutes) ?? 0
         runKm = try c.decodeIfPresent(Double.self, forKey: .runKm) ?? 0
-        water = try c.decodeIfPresent(Int.self, forKey: .water) ?? 0
+        water = try c.decodeIfPresent(Double.self, forKey: .water) ?? 0
         sleep = try c.decodeIfPresent(Double.self, forKey: .sleep)
         soreness = try c.decodeIfPresent(Int.self, forKey: .soreness)
         energy = try c.decodeIfPresent(Int.self, forKey: .energy)
@@ -289,6 +290,58 @@ enum NutritionGoal: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// How water is shown and typed. Stored in glasses (8 fl oz) either way.
+enum WaterUnit: String, Codable, CaseIterable, Identifiable {
+    case glasses, flOz, ml
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .glasses: "Glasses"
+        case .flOz: "fl oz"
+        case .ml: "ml"
+        }
+    }
+    /// Short label after a number: "glasses", "fl oz", "ml".
+    var label: String { self == .glasses ? "glasses" : title }
+    /// How much of this unit is in one 8 fl oz glass.
+    var perGlass: Double {
+        switch self {
+        case .glasses: 1
+        case .flOz: 8
+        case .ml: 236.588
+        }
+    }
+    /// Step for + and - buttons, in this unit.
+    var step: Double {
+        switch self {
+        case .glasses: 0.5
+        case .flOz: 4
+        case .ml: 100
+        }
+    }
+    /// Quick amounts to tap, in this unit: a glass, a bottle, a big bottle...
+    var quick: [Double] {
+        switch self {
+        case .glasses: [0.5, 1, 2, 4]
+        case .flOz: [8, 12, 16.9, 20, 32]
+        case .ml: [250, 330, 500, 750, 1000]
+        }
+    }
+    func toGlasses(_ v: Double) -> Double { v / perGlass }
+    func fromGlasses(_ g: Double) -> Double { g * perGlass }
+    /// "2.5 glasses", "20 fl oz", "590 ml".
+    func text(_ glasses: Double) -> String {
+        let v = fromGlasses(glasses)
+        let n = self == .ml ? "\(Int(v.rounded()))" : WaterUnit.number(v)
+        return self == .glasses ? "\(n) glass\(v == 1 ? "" : "es")" : "\(n) \(title)"
+    }
+    /// Up to one decimal place, no trailing ".0".
+    static func number(_ v: Double) -> String {
+        let r = (v * 10).rounded() / 10
+        return r == r.rounded() ? "\(Int(r))" : String(format: "%.1f", r)
+    }
+}
+
 enum Units: String, Codable, CaseIterable, Identifiable {
     case imperial, metric
     var id: String { rawValue }
@@ -300,5 +353,5 @@ struct NutritionTargets {
     var protein: Double
     var carbs: Double
     var fat: Double
-    var water: Int
+    var water: Double
 }

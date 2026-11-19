@@ -264,7 +264,7 @@ struct DietReport {
         let snacks = avg { $0.food.group == .snack && $0.food.protein < 5 ? $0.kcal : 0 }
         let fatPct = kcal > 0 ? avg { $0.fat } * 9 / kcal : 0
         let water = store.data.daily.filter { dayKeys.contains($0.key) }.map(\.value.water).reduce(0, +)
-        let waterAvg = Double(water) / d
+        let waterAvg = water / d
         let iron = avg { $0.food.benefits.contains(.iron) ? $0.servings : 0 }
         let calcium = avg { $0.food.group == .dairy || $0.food.benefits.contains(.bones) ? $0.servings : 0 }
         let breakfasts = Set(entries.filter { $0.meal == .breakfast }.map { Day.key($0.date) }).count
@@ -291,7 +291,7 @@ struct DietReport {
                                symbol: "leaf.fill", color: Color(hex: 0x4FD1C5), foods: ["oatmeal", "black-beans", "raspberries", "pear", "wheat-bread"]))
         }
         if waterAvg < Double(st.waterGoal) * 0.75 {
-            r.more.append(Note(title: "More water", detail: "About \(AmountField.format((waterAvg * 10).rounded() / 10)) glasses a day vs \(st.waterGoal). Keep a bottle with you.",
+            r.more.append(Note(title: "More water", detail: "About \(st.waterUnit.text(waterAvg)) a day vs \(st.waterUnit.text(st.waterGoal)). Keep a bottle with you.",
                                symbol: "drop.fill", color: Theme.ice, foods: ["water", "electrolyte-zero", "watermelon", "orange"]))
         }
         if iron < 0.5 {
@@ -336,7 +336,7 @@ struct DietReport {
         // Going well
         if protein >= t.protein * 0.9 { r.good.append(Note(title: "Protein on target", detail: "\(Int(protein)) g a day. Nice.", symbol: "checkmark.seal.fill", color: Theme.green)) }
         if produce >= 5 { r.good.append(Note(title: "Plenty of produce", detail: "5+ servings of fruit and veg a day.", symbol: "checkmark.seal.fill", color: Theme.green)) }
-        if waterAvg >= Double(st.waterGoal) { r.good.append(Note(title: "Hydrated", detail: "Hitting your water goal.", symbol: "checkmark.seal.fill", color: Theme.green)) }
+        if waterAvg >= st.waterGoal { r.good.append(Note(title: "Hydrated", detail: "Hitting your water goal.", symbol: "checkmark.seal.fill", color: Theme.green)) }
         if drinkSugar < 30 && r.days >= 3 { r.good.append(Note(title: "Few sugary drinks", detail: "Most of your drinks are water or low sugar.", symbol: "checkmark.seal.fill", color: Theme.green)) }
         return r
     }

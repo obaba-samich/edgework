@@ -1017,7 +1017,9 @@ struct Settings: Codable {
     var remindWater = false
     var shotGoal = 100
     var stickGoal = 15
-    var waterGoal = 8
+    /// Glasses a day (8 fl oz each). Can be a decimal.
+    var waterGoal = 8.0
+    var waterUnit = WaterUnit.glasses
     var runGoalKm = 10.0
     var mustDos: [WorkoutItem] = []
     var units = Units.imperial
@@ -1127,7 +1129,8 @@ struct Settings: Codable {
         remindWater = try c.decodeIfPresent(Bool.self, forKey: .remindWater) ?? d.remindWater
         shotGoal = try c.decodeIfPresent(Int.self, forKey: .shotGoal) ?? d.shotGoal
         stickGoal = try c.decodeIfPresent(Int.self, forKey: .stickGoal) ?? d.stickGoal
-        waterGoal = try c.decodeIfPresent(Int.self, forKey: .waterGoal) ?? d.waterGoal
+        waterGoal = try c.decodeIfPresent(Double.self, forKey: .waterGoal) ?? d.waterGoal
+        waterUnit = try c.decodeIfPresent(WaterUnit.self, forKey: .waterUnit) ?? d.waterUnit
         runGoalKm = try c.decodeIfPresent(Double.self, forKey: .runGoalKm) ?? d.runGoalKm
         mustDos = try c.decodeIfPresent([WorkoutItem].self, forKey: .mustDos) ?? d.mustDos
         units = try c.decodeIfPresent(Units.self, forKey: .units) ?? d.units
@@ -1160,7 +1163,7 @@ struct Settings: Codable {
         keepAwake = o.keepAwake; showCues = o.showCues; addRestSeconds = o.addRestSeconds
         showFuel = o.showFuel; showMealGenerator = o.showMealGenerator; showReadiness = o.showReadiness
         showDailyGoals = o.showDailyGoals; showFigures = o.showFigures; showTips = o.showTips; figures3D = o.figures3D; figureSpeed = o.figureSpeed
-        waterGoal = o.waterGoal; remindWater = o.remindWater; equipment = o.equipment
+        waterGoal = o.waterGoal; waterUnit = o.waterUnit; remindWater = o.remindWater; equipment = o.equipment
         waterStart = o.waterStart; waterEnd = o.waterEnd; waterEvery = o.waterEvery; streakMinute = o.streakMinute; remindStreak = o.remindStreak
         gpsAutoPause = o.gpsAutoPause; gpsAnnounce = o.gpsAnnounce; liveActivities = o.liveActivities
     }

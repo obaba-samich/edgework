@@ -241,7 +241,8 @@ extension RootView {
             calendarMessage = "Logged \(n) shots. \(store.daily().totalShots) of \(store.data.settings.shotGoal) today."
         case .logWater:
             store.updateDaily { $0.water += 1 }
-            calendarMessage = "Logged a water. \(store.daily().water) of \(store.data.settings.waterGoal) today."
+            let u = store.data.settings.waterUnit
+            calendarMessage = "Logged a glass of water. \(u.text(store.daily().water)) of \(u.text(store.data.settings.waterGoal)) today."
         }
     }
 

@@ -211,7 +211,7 @@ enum Notifier {
             for d in 0..<2 {
                 let day = Day.add(d, to: Day.start(now))
                 for h in stride(from: st.waterStart, through: max(st.waterStart, st.waterEnd), by: max(1, st.waterEvery)) {
-                    add("water-\(d)-\(h)", "Drink some water", "Goal: \(st.waterGoal) glasses today. Tap to log one.",
+                    add("water-\(d)-\(h)", "Drink some water", "Goal: \(st.waterUnit.text(st.waterGoal)) today. Tap to log some.",
                         at: day.addingTimeInterval(TimeInterval(h * 3600)))
                 }
             }

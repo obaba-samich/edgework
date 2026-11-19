@@ -66,7 +66,7 @@ extension Store {
         let stamp = Day.key(date) == Day.key(Date()) ? Date() : Day.start(date).addingTimeInterval(12 * 3600)
         data.foods.append(FoodEntry(food: food, servings: servings, meal: meal, date: stamp))
         // Water-like drinks fill the water goal, 8 oz to a glass.
-        if food.hydrates { updateDaily(date) { $0.water += max(1, Int((servings * (food.servingOz ?? 8) / 8).rounded())) } }
+        if food.hydrates { updateDaily(date) { $0.water += servings * (food.servingOz ?? 8) / 8 } }
         haptic(.light)
     }
 

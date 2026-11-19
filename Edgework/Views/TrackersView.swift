@@ -24,7 +24,8 @@ struct DailyGoalsCard: View {
                     store.updateDaily { $0.water += 1 }
                     store.haptic(.light)
                 } label: {
-                    goal("\(log.water)", "/\(st.waterGoal) water", Double(log.water) / Double(max(1, st.waterGoal)), Theme.ice, "drop.fill")
+                    goal(WaterUnit.number(st.waterUnit.fromGlasses(log.water)), "/\(WaterUnit.number(st.waterUnit.fromGlasses(st.waterGoal))) \(st.waterUnit == .glasses ? "water" : st.waterUnit.label)",
+                         log.water / max(0.5, st.waterGoal), Theme.ice, "drop.fill")
                 }
                 NavigationLink { RunLogView() } label: {
                     let km = store.weekRunKm

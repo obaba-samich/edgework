@@ -100,6 +100,7 @@ struct SettingsSearchItem: Identifiable {
 
         // Goals
         .init(title: "Water goal", place: "Goals", target: .page(.goals), keywords: ["water", "glasses", "hydration", "drink"]),
+        .init(title: "Water unit", place: "Goals", target: .page(.goals), keywords: ["water", "fl oz", "fluid ounces", "ounces", "oz", "ml", "millilitres", "milliliters", "glasses", "bottle"]),
         .init(title: "Weekly running goal", place: "Goals", target: .page(.goals), keywords: ["running", "distance", "km", "miles", "weekly"]),
         .init(title: "Shots per day", place: "Goals", target: .page(.goals), keywords: ["shots", "shot goal", "shooting", "pucks"], sport: .hockey),
         .init(title: "Stickhandling minutes", place: "Goals", target: .page(.goals), keywords: ["stickhandling", "hands", "minutes", "stick"], sport: .hockey),

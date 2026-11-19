@@ -208,11 +208,11 @@ struct MeetDayCard: View {
     let after: Bool
     @State private var checked: Set<Int> = []
 
-    static func afterSteps(water: Int) -> [(String, String)] {
+    static func afterSteps(water: String) -> [(String, String)] {
         [("figure.walk", "10–15 min easy jog or walk"),
          ("figure.flexibility", "Long stretches: hamstrings, hips, calves"),
          ("circle.dotted", "Foam roll quads, calves, glutes"),
-         ("drop.fill", "Rehydrate: \(water)+ glasses"),
+         ("drop.fill", "Rehydrate: \(water)+"),
          ("fork.knife", "Protein at every meal today"),
          ("moon.fill", "Early night, 8+ hours")]
     }
@@ -236,7 +236,7 @@ struct MeetDayCard: View {
         let st = store.data.settings
         let meet = store.events(on: Date()).first { store.kind($0) == .game }
         let start = meet.flatMap { $0.allDay ? nil : $0.start }
-        let steps = after ? Self.afterSteps(water: st.waterGoal) : Self.meetSteps(start: start, warmup: st.meetWarmupMinutes)
+        let steps = after ? Self.afterSteps(water: st.waterUnit.text(st.waterGoal)) : Self.meetSteps(start: start, warmup: st.meetWarmupMinutes)
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Overline(after ? "Day after the meet" : "Meet day", color: Theme.red)

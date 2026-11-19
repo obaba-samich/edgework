@@ -342,33 +342,105 @@ struct MacroCard: View {
 struct WaterCard: View {
     @EnvironmentObject var store: Store
     let date: Date
+    @State private var adding = false
 
     var body: some View {
         let glasses = store.daily(date).water
-        let goal = max(1, store.data.settings.waterGoal)
+        let unit = store.data.settings.waterUnit
+        let goal = max(0.5, store.data.settings.waterGoal)
+        let drops = Int(max(goal, glasses).rounded(.up))
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Overline("Water", color: Theme.ice)
                 Spacer()
-                Text("\(glasses) / \(goal) glasses").font(.number(13, .semibold)).foregroundStyle(Theme.text)
+                Text("\(WaterUnit.number(unit.fromGlasses(glasses))) / \(WaterUnit.number(unit.fromGlasses(goal))) \(unit.label)")
+                    .font(.number(13, .semibold)).foregroundStyle(Theme.text)
             }
             HStack(spacing: 6) {
-                ForEach(0..<max(goal, glasses), id: \.self) { i in
+                ForEach(0..<min(drops, 24), id: \.self) { i in
+                    let fill = min(1, max(0, glasses - Double(i)))
                     Button {
-                        store.updateDaily(date) { $0.water = i < glasses ? i : i + 1 }
+                        // Tap the next empty glass to fill it, or a full one to empty back to it.
+                        store.updateDaily(date) { $0.water = fill >= 1 ? Double(i) : Double(i + 1) }
                         store.haptic(.light)
                     } label: {
-                        Image(systemName: i < glasses ? "drop.fill" : "drop")
+                        Image(systemName: fill >= 1 ? "drop.fill" : fill > 0 ? "drop.halffull" : "drop")
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(i < glasses ? Theme.ice : Theme.text3)
+                            .foregroundStyle(fill > 0 ? Theme.ice : Theme.text3)
                             .frame(maxWidth: .infinity)
                             .frame(height: 30)
                     }
                     .buttonStyle(PressableStyle())
                 }
             }
+            Button { adding = true } label: {
+                Label("Add an amount", systemImage: "plus.circle.fill").font(.footnote.weight(.semibold)).foregroundStyle(Theme.ice)
+            }
         }
         .cardStyle()
+        .sheet(isPresented: $adding) { WaterAmountSheet(date: date).environmentObject(store).presentationDetents([.medium]) }
+    }
+}
+
+/// Type any amount of water, like 16.9 fl oz or 1.5 glasses, or take some back off.
+struct WaterAmountSheet: View {
+    @EnvironmentObject var store: Store
+    @Environment(\.dismiss) private var dismiss
+    let date: Date
+    @State private var amount: Double = 0
+
+    var body: some View {
+        let unit = store.data.settings.waterUnit
+        let have = store.daily(date).water
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Picker("Unit", selection: Binding(get: { unit }, set: { u in
+                    amount = (u.fromGlasses(unit.toGlasses(amount)) * 10).rounded() / 10
+                    store.data.settings.waterUnit = u
+                })) {
+                    ForEach(WaterUnit.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                HStack {
+                    Text("Amount").font(.headline).foregroundStyle(Theme.text)
+                    Spacer()
+                    AmountField(value: $amount, step: unit.step, range: 0.1...(unit.perGlass * 40), unit: unit.label)
+                }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(unit.quick, id: \.self) { q in
+                            Button { amount = q } label: {
+                                Chip(text: "\(WaterUnit.number(q)) \(unit.label)", color: Theme.ice, filled: abs(amount - q) < 0.05)
+                            }
+                            .buttonStyle(PressableStyle())
+                        }
+                    }
+                }
+                Text("Today: \(unit.text(have))").font(.footnote).foregroundStyle(Theme.text2)
+                HStack(spacing: 10) {
+                    Button {
+                        store.updateDaily(date) { $0.water = max(0, $0.water - unit.toGlasses(amount)) }
+                        store.haptic(.light)
+                        dismiss()
+                    } label: { Label("Remove", systemImage: "minus") }
+                        .buttonStyle(SecondaryButtonStyle())
+                        .disabled(have <= 0)
+                    Button {
+                        store.updateDaily(date) { $0.water = min(100, $0.water + unit.toGlasses(amount)) }
+                        store.notify(.success)
+                        dismiss()
+                    } label: { Label("Add", systemImage: "drop.fill") }
+                        .buttonStyle(PrimaryButtonStyle(color: Theme.ice))
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+            .screenBackground()
+            .navigationTitle("Add water")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+        }
+        .onAppear { if amount == 0 { amount = unit == .glasses ? 1 : unit.quick[1] } }
     }
 }
 
@@ -640,8 +712,7 @@ struct FoodDetailSheet: View {
                 }
             }
             if food.hydrates {
-                let glasses = max(1, Int((servings * ozPerServing / 8).rounded()))
-                Label("Counts toward water: +\(glasses) glass\(glasses == 1 ? "" : "es")", systemImage: "drop.fill")
+                Label("Counts toward water: +\(store.data.settings.waterUnit.text(servings * ozPerServing / 8))", systemImage: "drop.fill")
                     .font(.footnote.weight(.semibold)).foregroundStyle(Theme.ice)
             } else if food.sugaryDrink {
                 Label("\(Int(food.carbs * servings)) g of sugar you drink. Water or zero-sugar electrolytes hydrate without it.",

@@ -51,7 +51,7 @@ struct ManualLogView: View {
                                 .keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing)
                                 .frame(width: 80)
-                            Text("km").foregroundStyle(Theme.text2)
+                            Text(store.data.settings.units == .imperial ? "mi" : "km").foregroundStyle(Theme.text2)
                         }
                     }
                 }
@@ -98,7 +98,9 @@ struct ManualLogView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        let km = Double(distance.replacingOccurrences(of: ",", with: "."))
+                        // Typed in your units, so 3.1 means miles if you use imperial.
+                        let typed = Double(distance.replacingOccurrences(of: ",", with: ".")).map { max(0, $0) }
+                        let km = typed.map { store.data.settings.units == .imperial ? $0 / 0.621371 : $0 }
                         store.logManual(activity: activity, title: title, date: date, minutes: minutes,
                                         distanceKm: activity.hasDistance ? km : nil, rpe: rpe, note: note, entries: entries)
                         store.notify(.success)

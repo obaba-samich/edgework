@@ -419,9 +419,10 @@ struct CheckInSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Overline("Sleep last night")
                         HStack {
-                            Text(String(format: "%.1f hours", sleep)).font(.number(28)).foregroundStyle(Theme.text)
+                            Text("Hours").font(.headline).foregroundStyle(Theme.text)
                             Spacer()
-                            TargetStepper(value: "", minus: { sleep = max(3, sleep - 0.5) }, plus: { sleep = min(13, sleep + 0.5) })
+                            // Type it exactly, like 7.75, or step by 15 minutes.
+                            AmountField(value: $sleep, step: 0.25, range: 0.25...16, unit: "h")
                         }
                     }
                     .cardStyle()

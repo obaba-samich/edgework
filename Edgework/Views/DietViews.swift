@@ -38,6 +38,22 @@ extension Food {
 // MARK: - Servings field
 
 /// −/+ in fixed steps, plus a number you can type.
+/// Body weight you can type to the decimal, like 152.5 lb, or nudge with + and -.
+struct BodyWeightRow: View {
+    @EnvironmentObject var store: Store
+
+    var body: some View {
+        let imperial = store.data.settings.units == .imperial
+        HStack {
+            Text("Weight")
+            Spacer()
+            AmountField(value: Binding(get: { (store.data.settings.weightKg * (imperial ? 2.20462 : 1) * 10).rounded() / 10 },
+                                       set: { store.data.settings.weightKg = imperial ? $0 / 2.20462 : $0 }),
+                        step: 1, range: imperial ? 45...500 : 20...230, unit: imperial ? "lb" : "kg")
+        }
+    }
+}
+
 struct AmountField: View {
     @Binding var value: Double
     var step: Double = 0.25

@@ -1215,10 +1215,7 @@ struct NutritionSettingsView: View {
                 }
                 .pickerStyle(.segmented)
                 Stepper("Age: \(st.age)", value: s.age, in: 10...80)
-                Stepper(imperial ? "Weight: \(Int((st.weightKg * 2.20462).rounded())) lb" : "Weight: \(Int(st.weightKg.rounded())) kg",
-                        value: Binding(get: { imperial ? st.weightKg * 2.20462 : st.weightKg },
-                                       set: { store.data.settings.weightKg = imperial ? $0 / 2.20462 : $0 }),
-                        in: 50...400, step: 1)
+                BodyWeightRow()
                 Stepper(imperial ? "Height: \(Int(st.heightCm / 2.54) / 12)' \(Int(st.heightCm / 2.54) % 12)\"" : "Height: \(Int(st.heightCm)) cm",
                         value: Binding(get: { imperial ? st.heightCm / 2.54 : st.heightCm },
                                        set: { store.data.settings.heightCm = imperial ? $0 * 2.54 : $0 }),

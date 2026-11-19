@@ -627,7 +627,11 @@ struct SettingsView: View {
             Picker("Water unit", selection: s.waterUnit) {
                 ForEach(WaterUnit.allCases) { Text($0.title).tag($0) }
             }
-            Stepper("Running: \(store.distanceText(st.runGoalKm))/week", value: s.runGoalKm, in: 0...150, step: 1)
+            // Half-mile or half-km steps in your own units, so miles don't jump by 0.6.
+            Stepper("Running: \(store.distanceText(st.runGoalKm))/week",
+                    value: Binding(get: { st.units == .imperial ? (st.runGoalKm * 0.621371 * 2).rounded() / 2 : st.runGoalKm },
+                                   set: { store.data.settings.runGoalKm = max(0, st.units == .imperial ? $0 / 0.621371 : $0) }),
+                    in: 0...150, step: 0.5)
             if st.sport == .hockey {
                 Stepper("Shots per day: \(st.shotGoal)", value: s.shotGoal, in: 0...1000, step: 25)
                 Stepper("Stickhandling: \(st.stickGoal) min/day", value: s.stickGoal, in: 0...120, step: 5)

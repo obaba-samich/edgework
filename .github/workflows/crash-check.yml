@@ -1,0 +1,65 @@
+name: Crash check
+
+# Opens screens on a simulator and prints any crash report, so crashes can be found without a Mac.
+on:
+  workflow_dispatch:
+    inputs:
+      screens:
+        description: "showScreen values to open, space separated"
+        default: "settings"
+
+jobs:
+  check:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Boot simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -E "^\s+iPhone 16 Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}")
+          echo "UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project Edgework.xcodeproj -scheme Edgework -configuration Debug \
+            -destination "id=$UDID" -derivedDataPath build build 2>&1 | tail -5
+      - name: Open screens
+        run: |
+          APP=build/Build/Products/Debug-iphonesimulator/Edgework.app
+          ID=com.obaba.edgework
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p shots
+          for s in ${{ github.event.inputs.screens }}; do
+            for sport in hockey track; do
+              echo "=== $s ($sport) ==="
+              ( xcrun simctl launch --console-pty --terminate-running-process "$UDID" $ID -demoData YES -sport $sport -showScreen $s > "console-$s-$sport.txt" 2>&1 & )
+              sleep 10
+              xcrun simctl io "$UDID" screenshot "shots/$s-$sport.png" || true
+              if xcrun simctl spawn "$UDID" launchctl list | grep -q "$ID"; then echo "still running"; else echo "NOT RUNNING (crashed?)"; fi
+              tail -40 "console-$s-$sport.txt" || true
+              xcrun simctl terminate "$UDID" $ID || true
+              sleep 1
+            done
+          done
+      - name: Crash reports
+        if: always()
+        run: |
+          for f in ~/Library/Logs/DiagnosticReports/Edgework*; do
+            [ -f "$f" ] || continue
+            echo "===== $f"
+            head -150 "$f"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crash-check
+          path: |
+            shots
+            console-*.txt
